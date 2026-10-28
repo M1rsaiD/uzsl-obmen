@@ -50,4 +50,4 @@
 
 - Claude Code ≥ 2.1.224, вход через claude.ai (`/login`).
 - Remote Control для всех сессий: `/config` → «Enable Remote Control for all sessions».
-- `gh auth login` с fine-grained token: репозитории `dissertatsiya` и `uzsl-obmen`, Contents: Read and write.
+- `gh auth login` → GitHub.com → HTTPS → «Authenticate Git» — Yes → «Login with a web browser» (вход через браузер, токен создаётся сам).
