@@ -1,0 +1,122 @@
+{
+ "edges_total": 32,
+ "nodes": 27,
+ "fig1": {
+  "letters": [
+   "L",
+   "M",
+   "O",
+   "SH"
+  ],
+  "cells": [
+   {
+    "signer": "002",
+    "gloss": "L",
+    "sample_id": "54",
+    "frame": 17,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "002",
+    "gloss": "M",
+    "sample_id": "61",
+    "frame": 28,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "002",
+    "gloss": "O",
+    "sample_id": "71",
+    "frame": 29,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "002",
+    "gloss": "SH",
+    "sample_id": "136",
+    "frame": 18,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "003",
+    "gloss": "L",
+    "sample_id": "189",
+    "frame": 20,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "003",
+    "gloss": "M",
+    "sample_id": "194",
+    "frame": 21,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "003",
+    "gloss": "O",
+    "sample_id": "206",
+    "frame": 26,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   },
+   {
+    "signer": "003",
+    "gloss": "SH",
+    "sample_id": "246",
+    "frame": 26,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19
+   }
+  ],
+  "check": {
+   "px": [
+    2007,
+    803
+   ],
+   "dpi": 300,
+   "cm": [
+    16.99,
+    6.8
+   ]
+  },
+  "caption_note": "frame from the middle of the longest run with the dominant hand detected"
+ },
+ "fig4": {
+  "sample_id": "1",
+  "gloss": "A",
+  "frame": 43,
+  "points": 64,
+  "edges": 19,
+  "tokens_present": [
+   32,
+   0,
+   25,
+   32
+  ],
+  "check": {
+   "px": [
+    2007,
+    614
+   ],
+   "dpi": 300,
+   "cm": [
+    16.99,
+    5.2
+   ]
+  }
+ }
+}
