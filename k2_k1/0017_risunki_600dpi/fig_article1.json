@@ -1,0 +1,165 @@
+{
+ "edges_total": 32,
+ "nodes": 27,
+ "fig1": {
+  "letters": [
+   "L",
+   "M",
+   "O",
+   "SH"
+  ],
+  "cells": [
+   {
+    "signer": "002",
+    "gloss": "L",
+    "sample_id": "54",
+    "frame": 17,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "002",
+    "gloss": "M",
+    "sample_id": "61",
+    "frame": 28,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "002",
+    "gloss": "O",
+    "sample_id": "71",
+    "frame": 29,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "002",
+    "gloss": "SH",
+    "sample_id": "136",
+    "frame": 18,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "003",
+    "gloss": "L",
+    "sample_id": "189",
+    "frame": 20,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "003",
+    "gloss": "M",
+    "sample_id": "194",
+    "frame": 21,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "003",
+    "gloss": "O",
+    "sample_id": "206",
+    "frame": 26,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   },
+   {
+    "signer": "003",
+    "gloss": "SH",
+    "sample_id": "246",
+    "frame": 26,
+    "dominant": "right hand",
+    "points": 64,
+    "edges": 19,
+    "far_edges": 1
+   }
+  ],
+  "check": {
+   "px": [
+    4016,
+    1489
+   ],
+   "dpi": 600,
+   "cm": [
+    17.0,
+    6.3
+   ]
+  },
+  "verify": {
+   "blank_px": {
+    "top": 11,
+    "bottom": 14,
+    "left": 12,
+    "right": 7
+   },
+   "blank_frac_w": 0.0047,
+   "blank_frac_h": 0.0168,
+   "font_sizes": [
+    8.0
+   ],
+   "n_texts": 10,
+   "text_overlaps": [],
+   "far_lines_styled": 8,
+   "far_edges_drawn": 8
+  },
+  "caption_note": "frame from the middle of the longest run with the dominant hand detected"
+ },
+ "fig4": {
+  "sample_id": "256",
+  "gloss": "G'",
+  "frame": 47,
+  "points": 64,
+  "edges": 19,
+  "far_edges": 1,
+  "tokens_present": [
+   32,
+   0,
+   27,
+   32
+  ],
+  "check": {
+   "px": [
+    4016,
+    1311
+   ],
+   "dpi": 600,
+   "cm": [
+    17.0,
+    5.55
+   ]
+  },
+  "verify": {
+   "blank_px": {
+    "top": 11,
+    "bottom": 33,
+    "left": 9,
+    "right": 18
+   },
+   "blank_frac_w": 0.0067,
+   "blank_frac_h": 0.0336,
+   "font_sizes": [
+    8.0
+   ],
+   "n_texts": 28,
+   "text_overlaps": [],
+   "far_lines_styled": 1,
+   "far_edges_drawn": 1
+  }
+ }
+}
