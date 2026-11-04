@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка меток корпуса УзЖЯ</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d232b; --mute:#5b6470; --line:#d5dae1; --ok:#2e7d4f; --bad:#b3362c; --unk:#8a6d1f; --acc:#2a62b8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:10px 16px; background:var(--card); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  header h1 { font-size:17px; margin:0 12px 0 0; }
+  label.btn, button { font:inherit; padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; }
+  label.btn input { display:none; }
+  main { padding:12px 16px; max-width:1400px; margin:0 auto; }
+  .info { display:flex; flex-wrap:wrap; gap:18px; align-items:baseline; margin-bottom:8px; }
+  .gloss { font-size:26px; font-weight:700; }
+  .mute { color:var(--mute); }
+  .pair { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px; }
+  .panel h2 { font-size:14px; margin:0 0 6px; color:var(--mute); font-weight:600; }
+  video { width:100%; max-height:58vh; background:#000; border-radius:4px; }
+  video.mirror { transform: scaleX(-1); }
+  .ctl { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; align-items:center; }
+  .verdicts { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 6px; }
+  .verdicts button { font-size:16px; padding:10px 16px; }
+  .v-same { border-color:var(--ok)!important; color:var(--ok); }
+  .v-diff { border-color:var(--bad)!important; color:var(--bad); }
+  .v-unsure, .v-noref { border-color:var(--unk)!important; color:var(--unk); }
+  .chosen { background:#eef3ff; outline:2px solid var(--acc); }
+  textarea { width:100%; min-height:44px; font:inherit; padding:6px; border:1px solid var(--line); border-radius:6px; }
+  .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:6px; }
+  .bar > div { height:100%; background:var(--acc); width:0; }
+  .empty { padding:40px 16px; text-align:center; color:var(--mute); }
+  kbd { border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 4px; font-size:12px; background:#fff; }
+  #msg { color:var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Проверка меток корпуса УзЖЯ</h1>
+  <label class="btn">1. Список пар (JSON)<input type="file" id="fManifest" accept=".json,application/json"></label>
+  <label class="btn">2. Папка с видео<input type="file" id="fDir" webkitdirectory multiple></label>
+  <label class="btn">Продолжить: загрузить ответы<input type="file" id="fAnswers" accept=".json,application/json"></label>
+  <button id="bExport">Сохранить ответы в файл</button>
+  <span id="msg"></span>
+</header>
+<main id="app">
+  <div class="empty" id="empty">
+    Загрузите список пар (JSON) и выберите папку с видео. Страница работает без интернета; видео никуда не отправляются.<br>
+    Клавиши: <kbd>1</kbd> тот же жест · <kbd>2</kbd> другой · <kbd>3</kbd> не уверен · <kbd>4</kbd> нет эталона · <kbd>←</kbd> <kbd>→</kbd> назад и вперёд · <kbd>Пробел</kbd> повторить оба видео.
+  </div>
+  <section id="work" hidden>
+    <div class="info">
+      <span class="gloss" id="gloss"></span>
+      <span class="mute" id="pos"></span>
+      <span class="mute" id="done"></span>
+    </div>
+    <div class="bar"><div id="prog"></div></div>
+    <div class="pair" style="margin-top:10px">
+      <div class="panel">
+        <h2>Сегмент корпуса (что подписано этим словом)</h2>
+        <video id="vA" muted playsinline loop></video>
+        <div class="ctl">
+          <button data-rate="0.5" data-v="vA">0,5×</button><button data-rate="1" data-v="vA">1×</button>
+          <button data-mirror="vA">Отразить</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Эталон из словаря imo-ishora</h2>
+        <video id="vB" muted playsinline loop></video>
+        <div class="ctl">
+          <button data-rate="0.5" data-v="vB">0,5×</button><button data-rate="1" data-v="vB">1×</button>
+          <button data-mirror="vB">Отразить</button>
+          <span class="mute" id="noRefNote" hidden>эталона нет</span>
+        </div>
+      </div>
+    </div>
+    <div class="verdicts">
+      <button class="v-same" data-verdict="same">1 · Тот же жест</button>
+      <button class="v-diff" data-verdict="different">2 · Другой жест</button>
+      <button class="v-unsure" data-verdict="unsure">3 · Не уверен</button>
+      <button class="v-noref" data-verdict="noref">4 · Нет эталона / видео не открылось</button>
+    </div>
+    <textarea id="comment" placeholder="Комментарий (необязательно): например, «похож, но другая форма кисти»"></textarea>
+    <div class="ctl" style="margin-top:8px">
+      <button id="bPrev">← Назад</button><button id="bNext">Вперёд →</button>
+      <button id="bNextOpen">К следующей без ответа</button>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+// Список пар: {"version": "...", "pairs": [{"id", "gloss", "a": {"path", "start"?, "end"?}, "b": {"path", ...} | null}]}
+const KEY = 'uzsl_label_review_v1';
+let manifest = null, files = new Map(), i = 0;
+let answers = {};
+try { answers = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { answers = {}; }
+const $ = id => document.getElementById(id);
+const msg = t => { $('msg').textContent = t || ''; };
+function save() { try { localStorage.setItem(KEY, JSON.stringify(answers)); } catch (e) { msg('Браузер не сохраняет ответы сам — чаще сохраняйте в файл.'); } }
+
+function readJSON(file) { return file.text().then(t => JSON.parse(t)); }
+$('fManifest').onchange = async e => {
+  try {
+    const m = await readJSON(e.target.files[0]);
+    if (!Array.isArray(m.pairs) || !m.pairs.length) throw new Error('нет поля pairs');
+    const ids = new Set(m.pairs.map(p => p.id));
+    if (ids.size !== m.pairs.length) throw new Error('повторяются id');
+    manifest = m; i = firstOpen(); msg(''); show();
+  } catch (err) { msg('Список не прочитан: ' + err.message); }
+};
+$('fDir').onchange = e => {
+  files = new Map();
+  for (const f of e.target.files) {
+    const rel = f.webkitRelativePath.split('/').slice(1).join('/'); // путь внутри выбранной папки
+    files.set(rel, f); files.set(f.name, files.get(f.name) || f);
+  }
+  msg(files.size ? '' : 'В папке нет файлов'); show();
+};
+$('fAnswers').onchange = async e => {
+  try {
+    const a = await readJSON(e.target.files[0]);
+    for (const r of a.answers || []) answers[r.id] = r;
+    save(); show();
+  } catch (err) { msg('Ответы не прочитаны: ' + err.message); }
+};
+$('bExport').onclick = () => {
+  const out = { format: 'uzsl_label_review_v1', manifest_version: manifest && manifest.version, saved: new Date().toISOString(),
+                answers: Object.values(answers).sort((x, y) => String(x.id).localeCompare(String(y.id))) };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'answers_v1.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
+
+const urls = [];
+function srcFor(ref) {
+  if (!ref || !ref.path) return null;
+  const f = files.get(ref.path) || files.get(ref.path.split('/').pop());
+  if (f) { const u = URL.createObjectURL(f); urls.push(u); return u; }
+  return ref.path; // запасной путь: относительно страницы
+}
+function setVideo(v, ref) {
+  v.onloadedmetadata = v.ontimeupdate = null;
+  if (!ref) { v.removeAttribute('src'); v.load(); return; }
+  const s = srcFor(ref), st = +ref.start || 0, en = ref.end != null ? +ref.end : null;
+  v.src = s; v.playbackRate = 1;
+  v.onloadedmetadata = () => { v.currentTime = st; v.play().catch(() => {}); };
+  if (en != null) v.ontimeupdate = () => { if (v.currentTime >= en) v.currentTime = st; };
+  v.onerror = () => msg('Не открылось видео: ' + ref.path);
+}
+function firstOpen(from = 0) {
+  const n = manifest.pairs.length;
+  for (let k = 0; k < n; k++) { const j = (from + k) % n; if (!answers[manifest.pairs[j].id]) return j; }
+  return Math.min(from, n - 1);
+}
+function show() {
+  if (!manifest) return;
+  $('empty').hidden = true; $('work').hidden = false;
+  while (urls.length) URL.revokeObjectURL(urls.pop());
+  const p = manifest.pairs[i], a = answers[p.id];
+  $('gloss').textContent = p.gloss || '—';
+  $('pos').textContent = `пара ${i + 1} из ${manifest.pairs.length} · id ${p.id}`;
+  const done = manifest.pairs.filter(q => answers[q.id]).length;
+  $('done').textContent = `отвечено: ${done}`;
+  $('prog').style.width = (100 * done / manifest.pairs.length) + '%';
+  setVideo($('vA'), p.a); setVideo($('vB'), p.b);
+  $('noRefNote').hidden = !!p.b;
+  document.querySelectorAll('[data-verdict]').forEach(b => b.classList.toggle('chosen', !!a && a.verdict === b.dataset.verdict));
+  $('comment').value = a && a.comment || '';
+}
+function answer(verdict) {
+  if (!manifest) return;
+  const p = manifest.pairs[i];
+  answers[p.id] = { id: p.id, gloss: p.gloss, verdict, comment: $('comment').value.trim(), t: new Date().toISOString() };
+  save(); i = firstOpen(i + 1); show();
+}
+document.querySelectorAll('[data-verdict]').forEach(b => b.onclick = () => answer(b.dataset.verdict));
+document.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { $(b.dataset.v).playbackRate = +b.dataset.rate; });
+document.querySelectorAll('[data-mirror]').forEach(b => b.onclick = () => $(b.dataset.mirror).classList.toggle('mirror'));
+$('bPrev').onclick = () => { if (manifest) { i = Math.max(0, i - 1); show(); } };
+$('bNext').onclick = () => { if (manifest) { i = Math.min(manifest.pairs.length - 1, i + 1); show(); } };
+$('bNextOpen').onclick = () => { if (manifest) { i = firstOpen(i + 1); show(); } };
+$('comment').onchange = () => { const p = manifest && manifest.pairs[i]; if (p && answers[p.id]) { answers[p.id].comment = $('comment').value.trim(); save(); } };
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || !manifest) return;
+  const map = { '1': 'same', '2': 'different', '3': 'unsure', '4': 'noref' };
+  if (map[e.key]) { e.preventDefault(); answer(map[e.key]); }
+  else if (e.key === 'ArrowLeft') $('bPrev').click();
+  else if (e.key === 'ArrowRight') $('bNext').click();
+  else if (e.key === ' ') { e.preventDefault(); for (const v of [$('vA'), $('vB')]) { const p = manifest.pairs[i]; const r = v.id === 'vA' ? p.a : p.b; if (r) { v.currentTime = +r.start || 0; v.play().catch(() => {}); } } }
+});
+</script>
+</body>
+</html>
