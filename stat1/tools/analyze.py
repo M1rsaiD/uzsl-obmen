@@ -18,7 +18,7 @@ NUM = {}           # numbers.json
 # ---------------------------------------------------------------- загрузка
 _records, _classes = {}, {}
 def space_of(dataset):
-    return {'slovo': 'slovo', 'bukva': 'bukva', 'pilot': 'pilot', 'uzsl': 'uzsl', 'IMO': 'uzsl', 'N01': 'uzsl'}[dataset]
+    return {'slovo': 'slovo', 'bukva': 'bukva', 'pilot': 'pilot', 'uzsl': 'uzsl', 'IMO': 'uzsl', 'N01': 'uzsl', 'asl_signs': 'asl_signs'}[dataset]
 def records(space):
     if space not in _records:
         df = pd.read_csv(EXP / 'records' / f'{space}.csv.gz')
@@ -44,7 +44,7 @@ def load_run(row):
     ds = row.dataset
     if not ds:  # в manifest у части серий dataset пуст — выводим из имени условия/пути
         s = (row.condition + ' ' + row.path).lower()
-        ds = 'bukva' if 'bukva' in s else 'pilot' if 'pilot' in s else 'uzsl' if 'uzsl' in s else 'slovo'
+        ds = 'bukva' if 'bukva' in s else 'pilot' if 'pilot' in s else 'uzsl' if 'uzsl' in s else 'asl_signs' if 'asl' in s else 'slovo'
     sp = space_of(ds)
     rec = records(sp)
     df['signer'] = rec.loc[df.rec, 'signer'].values
@@ -93,7 +93,8 @@ def signer_table(df, col='correct'):
     g = df.groupby(['seed', 'signer'])[col].agg(['sum', 'count']).unstack('signer').fillna(0)
     return g['sum'].values, g['count'].values, list(g['sum'].columns)
 
-def boot_pooled(sums, counts, nb=NB, rng=RNG):
+def boot_pooled(sums, counts, nb=NB, rng=None):
+    rng = rng or RNG
     """Объединённая по записям точность, усреднённая по затравкам; ДИ бутстрепом по исполнителям."""
     S = sums.shape[1]
     point = (sums.sum(1) / counts.sum(1)).mean()
@@ -114,7 +115,8 @@ def metrics(df, min_clips=10, nb=NB):
     return dict(top1=t1, ci=[lo, hi], top5=t5, macro_signer=macro, worst_signer=worst,
                 precision=p, recall=r, f1=f, n_test=int(counts.sum(1).mean()), n_signers=len(signers), n_seeds=int(sums.shape[0]))
 
-def paired_diff(dfA, dfB, nb=NB, level=95, rng=RNG):
+def paired_diff(dfA, dfB, nb=NB, level=95, rng=None):
+    rng = rng or RNG
     """Парная разность A − B на общих записях (среднее по затравкам на запись), бутстреп по исполнителям."""
     a = dfA.groupby('record_id').agg(c=('correct', 'mean'), signer=('signer', 'first'))
     b = dfB.groupby('record_id').agg(c=('correct', 'mean'))
@@ -137,8 +139,8 @@ def a1(dataset):
 
 RSL_ROWS = [  # (ключ, подпись, Slovo (series, condition), Bukva (series, condition))
     ('A1', 'MPE-A1', ('A1',), ('A1',)),
-    ('ST-GCN released', 'ST-GCN, released code', ('M11G3', 'g3_slovo_stgcn_orig_mpkrec'), None),
-    ('SL-GCN released', 'SL-GCN, released code', ('M11G2', 'g2_slovo_slgcn_orig_mpkrec'), None),
+    ('ST-GCN released', 'ST-GCN, released code', ('M11G3', 'g3_slovo_stgcn_orig_mpkrec'), ('M12', 'm12_1_bukva_stgcn_orig_A3')),   # Bukva: M12-1, их вход (3 канала), общий рецепт, T = 32
+    ('SL-GCN released', 'SL-GCN, released code', ('M11G2', 'g2_slovo_slgcn_orig_mpkrec'), ('M12', 'm12_1_bukva_slgcn_orig_A3')),
     ('ST-GCN released authors', "ST-GCN, released code and authors' recipe", ('M11', 'stgcn'), ('M11', 'stgcn_bukva')),
     ('SL-GCN released authors', "SL-GCN, released code and authors' recipe", ('M11', 'samslr'), ('M11', 'samslr_bukva')),
     ('A1 SL-GCN recipe', 'MPE-A1, SL-GCN recipe', ('M11G2', 'g2_slovo_a1_samslr'), None),
@@ -174,7 +176,7 @@ def rsl_tables():
     pairs = {'slovo': [('ST-GCN released', 'ST-GCN reimpl'), ('SL-GCN released', 'SL-GCN reimpl'), ('SL-GCN released authors', 'SL-GCN released'),
                        ('A1 SL-GCN recipe', 'A1'), ('A1 SL-GCN recipe', 'SL-GCN released authors'), ('KP Transformer', 'KP Transformer shared'),
                        ('ST-GCN released authors', 'ST-GCN reimpl'), ('ST-GCN released', 'ST-GCN released authors')],
-             'bukva': [('SL-GCN released authors', 'SL-GCN reimpl'), ('ST-GCN released authors', 'ST-GCN reimpl')]}
+             'bukva': [('SL-GCN released authors', 'SL-GCN reimpl'), ('ST-GCN released authors', 'ST-GCN reimpl'), ('ST-GCN released', 'ST-GCN reimpl'), ('SL-GCN released', 'SL-GCN reimpl'), ('SL-GCN released authors', 'SL-GCN released'), ('ST-GCN released authors', 'ST-GCN released')]}
     loaded = {}
     def get(ds, key):
         if (ds, key) not in loaded:
@@ -350,6 +352,43 @@ def loso():
     fig_loso_signers(res)
     NUM['loso'] = res
 
+# ---------------------------------------------------------------- 4b. M12-1 (наше представление в оригинальных сетях), M12-2 (гибрид), M11-Б (asl-signs)
+def m12_asl():
+    res = {}
+    def d99(a, b): return {'95': paired_diff(a, b), '99': paired_diff(a, b, level=99)}
+    runs_ = {('slovo', 'stgcn', 'A'): ('M11G3', 'g3_slovo_stgcn_orig_mpkrec'), ('slovo', 'stgcn', 'B'): ('M12', 'm12_1_slovo_stgcn_orig_B6'),
+             ('slovo', 'slgcn', 'A'): ('M11G2', 'g2_slovo_slgcn_orig_mpkrec'), ('slovo', 'slgcn', 'B'): ('M12', 'm12_1_slovo_slgcn_orig_B6'),
+             ('bukva', 'stgcn', 'A'): ('M12', 'm12_1_bukva_stgcn_orig_A3'), ('bukva', 'stgcn', 'B'): ('M12', 'm12_1_bukva_stgcn_orig_B6'),
+             ('bukva', 'slgcn', 'A'): ('M12', 'm12_1_bukva_slgcn_orig_A3'), ('bukva', 'slgcn', 'B'): ('M12', 'm12_1_bukva_slgcn_orig_B6')}
+    dfs = {k: load_condition(*v) for k, v in runs_.items()}
+    for ds in ('slovo', 'bukva'):
+        for net in ('stgcn', 'slgcn'):
+            a, b = dfs[(ds, net, 'A')], dfs[(ds, net, 'B')]
+            if a is None or b is None: continue
+            res[f'M12-1 {ds} {net} B − A'] = dict(A=metrics(a)['top1'], B=metrics(b)['top1'], **d99(b, a))
+            print(f"M12-1 {ds} {net}: A {metrics(a)['top1']:.2f} B {metrics(b)['top1']:.2f} Δ {res[f'M12-1 {ds} {net} B − A']['99']['delta']:+.2f} [{res[f'M12-1 {ds} {net} B − A']['99']['ci'][0]:+.2f}; {res[f'M12-1 {ds} {net} B − A']['99']['ci'][1]:+.2f}] (99%)")
+    # M12-2: гибрид (блоки SL-GCN + токены частей + Conformer, их 3 канала) − ориг. SL-GCN с тем же входом и рецептом; справочно — против рецепта авторов
+    for ds in ('slovo', 'bukva'):
+        h = load_condition('M12_2', f'm12_2_{ds}_hybrid'); ctrl = dfs[(ds, 'slgcn', 'A')]
+        if h is None or ctrl is None: continue
+        res[f'M12-2 {ds} hybrid − SL-GCN released (same input, shared recipe)'] = dict(hybrid=metrics(h)['top1'], control=metrics(ctrl)['top1'], **d99(h, ctrl))
+        auth = load_condition('M11', 'samslr' if ds == 'slovo' else 'samslr_bukva')
+        if auth is not None: res[f'M12-2 {ds} hybrid − SL-GCN released (authors recipe)'] = dict(hybrid=metrics(h)['top1'], control=metrics(auth)['top1'], **d99(h, auth))
+        for k in [x for x in res if x.startswith(f'M12-2 {ds}')]: print(f"{k}: {res[k]['hybrid']:.2f} vs {res[k]['control']:.2f} Δ {res[k]['99']['delta']:+.2f} [{res[k]['99']['ci'][0]:+.2f}; {res[k]['99']['ci'][1]:+.2f}] (99%)")
+    # M11-Б: asl-signs, 5-кратная перекрёстная проверка по исполнителям, макро по исполнителям
+    aa = load_condition('M11B', 'asl_cv_a1'); nt = load_condition('M11B', 'asl_cv_a1_bez_tokenov')
+    if aa is not None and nt is not None:
+        def macro(df):
+            ps = df.groupby(['signer', 'seed']).correct.mean().groupby('signer').mean(); return 100 * ps.mean(), ps
+        m1, p1 = macro(aa); m0, p0 = macro(nt); d = (p0 - p1).dropna().values   # без токенов − A1
+        out = {}
+        for level in (95, 99):
+            idx = RNG.integers(0, len(d), size=(NB_LOSO, len(d))); bs = d[idx].mean(1); q = (100 - level) / 2
+            out[str(level)] = dict(delta=100 * d.mean(), ci=[100 * np.percentile(bs, q), 100 * np.percentile(bs, 100 - q)], positive=int((d > 0).sum()), signers=int(len(d)))
+        res['M11-B asl-signs'] = dict(A1_macro=m1, no_tokens_macro=m0, A1_pooled=metrics(aa)['top1'], no_tokens_pooled=metrics(nt)['top1'], n_signers=int(aa.signer.nunique()), n_records=int(len(aa) / aa.seed.nunique()), n_classes=int(aa.true.nunique()), delta_no_tokens_minus_A1=out)
+        print(f"M11-B asl: A1 macro {m1:.2f} (pooled {metrics(aa)['top1']:.2f}), no tokens {m0:.2f}; Δ {out['99']['delta']:+.2f} [{out['99']['ci'][0]:+.2f}; {out['99']['ci'][1]:+.2f}] (99%) signers {len(d)}")
+    NUM['m12_asl'] = res
+
 # ---------------------------------------------------------------- 6. Внешние источники
 def external():
     res = {}
@@ -360,15 +399,19 @@ def external():
             head = set(json.load(open(EXP / f'EXT_{src}' / model / 'labels.json'))['uzsl'])
             names = classes('uzsl')
             inhead = df[df.true.map(lambda i: names[i] in head)]
+            if src == 'IMO':  # главная выборка — точное сопоставление метки словаря с классом корпуса (правило eval_external.py); нечёткие — справочно
+                exact = set(pd.read_csv(EXP / 'docs' / 'imo_norm_method.csv').query("norm_method == 'exact'").record_id)
+                res[f'{src}/{model} (with fuzzy)'] = dict(n_in_head=int(len(inhead)), n_words=int(inhead.true.nunique()), top1=100 * inhead.correct.mean(), top5=100 * inhead.top5.mean())
+                inhead = inhead[inhead.record_id.isin(exact)]
             def boot_records(d, col):
                 v = d[col].values; idx = RNG.integers(0, len(v), size=(NB_LOSO, len(v))); bs = v[idx].mean(1)
                 return [100 * v.mean(), 100 * np.percentile(bs, 2.5), 100 * np.percentile(bs, 97.5)]
             # для imo-ishora — бутстреп по словам (классам)
-            if src == 'IMO':
+            if src == 'IMO':  # единица — слово: точность усредняется по словам (как в отчётах), бутстреп по словам
                 byw = inhead.groupby('true').correct.mean().values; idx = RNG.integers(0, len(byw), size=(NB_LOSO, len(byw))); bs = byw[idx].mean(1)
-                t1 = [100 * inhead.correct.mean(), 100 * np.percentile(bs, 2.5), 100 * np.percentile(bs, 97.5)]
-            else: t1 = boot_records(inhead, 'correct')
-            res[f'{src}/{model}'] = dict(top1=t1[0], ci=t1[1:], top5=100 * inhead.top5.mean(), n_in_head=int(len(inhead)), n_total=int(len(df)), n_words=int(inhead.true.nunique()), head_size=len(head), f1=per_class_prf(inhead)[2])
+                t1 = [100 * byw.mean(), 100 * np.percentile(bs, 2.5), 100 * np.percentile(bs, 97.5)]; t5 = 100 * inhead.groupby('true').top5.mean().mean()
+            else: t1 = boot_records(inhead, 'correct'); t5 = 100 * inhead.top5.mean()
+            res[f'{src}/{model}'] = dict(top1=t1[0], ci=t1[1:], top5=t5, n_in_head=int(len(inhead)), n_total=int(len(df)), n_words=int(inhead.true.nunique()), head_size=len(head), f1=per_class_prf(inhead)[2])
             print(f'EXT {src} {model:6s} head {len(head):5d} in-head {len(inhead):4d}/{len(df)} words {inhead.true.nunique()} top1 {t1[0]:.1f} [{t1[1]:.1f}; {t1[2]:.1f}] top5 {res[f"{src}/{model}"]["top5"]:.1f}')
         # парная разность А − Б на полной голове (по записям / по словам)
         A = load_condition(f'EXT_{src}', 'A'); B = load_condition(f'EXT_{src}', 'B')
@@ -377,6 +420,7 @@ def external():
             j = A.set_index('rec').correct.to_frame('a').join(B.set_index('rec').correct.to_frame('b'), how='inner'); j['true'] = A.set_index('rec').true
             j = j[j.true.map(lambda i: names[i] in headAB)]
             if src == 'IMO':
+                j = j[A.set_index('rec').record_id.reindex(j.index).isin(exact)]
                 d = (j.groupby('true').a.mean() - j.groupby('true').b.mean()).values
             else: d = (j.a - j.b).values
             idx = RNG.integers(0, len(d), size=(NB_LOSO, len(d))); bs = d[idx].mean(1)
@@ -387,6 +431,7 @@ def external():
             head = set(json.load(open(EXP / f'EXT_{src}' / 'step1' / 'labels.json'))['uzsl']); names = classes('uzsl')
             j = V.set_index('rec').correct.to_frame('v').join(S.set_index('rec').correct.to_frame('s'), how='inner'); j['true'] = V.set_index('rec').true
             j = j[j.true.map(lambda i: names[i] in head)]
+            if src == 'IMO': j = j[V.set_index('rec').record_id.reindex(j.index).isin(exact)]
             d = (j.groupby('true').v.mean() - j.groupby('true').s.mean()).values if src == 'IMO' else (j.v - j.s).values
             idx = RNG.integers(0, len(d), size=(NB_LOSO, len(d))); bs = d[idx].mean(1)
             res[f'{src}/modelV − step1'] = dict(delta=100 * d.mean(), ci=[100 * np.percentile(bs, 2.5), 100 * np.percentile(bs, 97.5)])
@@ -503,7 +548,10 @@ def fig_loso_signers(res):
     fig.tight_layout(); fig.savefig(OUT / 'figures' / 'fig_loso_signers.pdf'); fig.savefig(OUT / 'figures' / 'fig_loso_signers.png', dpi=300); plt.close(fig)
 
 def main():
-    rsl_tables(); ablations(); official(); pilot(); loso(); external(); robustness(); fewshot(); label_review(); cost(); qc()
+    global RNG
+    for stage in (rsl_tables, ablations, official, pilot, loso, m12_asl, external, robustness, fewshot, label_review, cost, qc):
+        RNG = np.random.default_rng(0)   # каждая стадия — со своего затравочного состояния: добавление стадии не меняет чужие ДИ
+        stage()
     def conv(o):
         if isinstance(o, (np.floating, np.integer)): return o.item()
         if isinstance(o, np.ndarray): return o.tolist()

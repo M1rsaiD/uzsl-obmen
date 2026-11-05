@@ -1,0 +1,253 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{2020_li_wlasl}
+D.~Li, C.~Rodriguez~Opazo, X.~Yu, H.~Li, Word-level {Deep} {Sign} {Language}
+  {Recognition} from {Video:} {A} {New} {Large-scale} {Dataset} and {Methods}
+  {Comparison}, in: 2020 IEEE Winter Conference on Applications of Computer
+  Vision (WACV), IEEE, 2020, pp. 1448--1458.
+
+\bibitem{2019_joze_msasl}
+H.~R. Vaezi~Joze, O.~Koller, \href{https://arxiv.org/abs/1812.01053}{Ms-asl:
+  {A} large-scale data set and benchmark for understanding {American} {Sign}
+  {Language}}, in: Proceedings of the British Machine Vision Conference (BMVC
+  2019), Cardiff, UK, 2019.
+\newline\urlprefix\url{https://arxiv.org/abs/1812.01053}
+
+\bibitem{2020_sincan_autsl}
+O.~M. Sincan, H.~Y. Keles, Autsl: {A} {Large} {Scale} {Multi-Modal} {Turkish}
+  {Sign} {Language} {Dataset} and {Baseline} {Methods}, IEEE Access 8 (2020)
+  181340--181355.
+
+\bibitem{2023_desai_asl_citizen}
+A.~Desai, L.~Berger, F.~Minakov, N.~Milano, C.~Singh, K.~Pumphrey, R.~Ladner,
+  H.~Daum{\'e}~III, A.~X. Lu, N.~Caselli, D.~Bragg, Asl {Citizen:} {A}
+  {Community-Sourced} {Dataset} for {Advancing} {Isolated} {Sign} {Language}
+  {Recognition}, in: Advances in Neural Information Processing Systems 36,
+  Neural Information Processing Systems Foundation, Inc. (NeurIPS), 2023, pp.
+  76893--76907.
+
+\bibitem{2023_kapitanov_slovo}
+A.~Kapitanov, K.~Kvanchiani, A.~Nagaev, E.~Petrova, Slovo: {Russian} {Sign}
+  {Language} {Dataset}, Lecture Notes in Computer Science, Springer, Cham,
+  Switzerland, 2023, pp. 63--73.
+
+\bibitem{2024_kvanchiani_bukva}
+K.~Kvanchiani, P.~Surovtsev, A.~Nagaev, E.~Petrova, A.~Kapitanov, Bukva:
+  {Russian} {Sign} {Language} {Alphabet} (2024).
+
+\bibitem{2025_ovodov_logos}
+I.~Ovodov, P.~Surovtsev, K.~Kvanchiani, A.~Kapitanov, A.~Nagaev, Logos as a
+  {Well-Tempered} {Pre-train} for {Sign} {Language} {Recognition}, in:
+  Proceedings of the 2025 Conference on Empirical Methods in Natural Language
+  Processing, Association for Computational Linguistics, 2025, pp.
+  24340--24353.
+
+\bibitem{2026_ni_sign_language_datasets_survey}
+Y.~Ni, Z.-Q. Cheng, J.~Li, W.~Cheng, Sign-language {Datasets} at {Scale:} {A}
+  {Comprehensive} {Survey} on {Resources,} {Benchmarks,} and {Annotation}
+  {Standards}, in: Proceedings of the 64th Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers), Association for
+  Computational Linguistics, 2026, pp. 41578--41604.
+
+\bibitem{2026_jovlieva_webcam_uzbek_fingerspelling}
+S.~Jovliyeva,
+  \href{https://multijournals.org/index.php/innovative/article/view/3973}{A
+  webcam-based recognition system for the {Uzbek} fingerspelling alphabet},
+  Innovative Multidisciplinary Journal of Applied Technology 4~(3) (2026)
+  44--48.
+\newline\urlprefix\url{https://multijournals.org/index.php/innovative/article/view/3973}
+
+\bibitem{2024_kayumov_uzsl_latin_angular_signs}
+O.~A. Kayumov, N.~R. Kayumova,
+  \href{https://www.academicpublishers.org/journals/index.php/ijai/article/view/745}{Algorithm
+  and model of {Latin} alphabet recognition in {Uzbek} {Sign} {Language}
+  {(UzSL)} based on angular signs obtained from finger joint and wrist
+  coordinates}, International Journal of Artificial Intelligence 4~(3) (2024)
+  628--633.
+\newline\urlprefix\url{https://www.academicpublishers.org/journals/index.php/ijai/article/view/745}
+
+\bibitem{2024_akhmedov_uzsl_dactyl_yolo}
+F.~Akhmedov, M.~Umarov, E.~Urinov, B.~Turgunov, An {Algorithm} of {Recognition}
+  {Uzbek} {Sign} {Language}, in: 2024 International Conference on Information
+  Science and Communications Technologies (ICISCT), IEEE, 2024, pp. 220--225.
+
+\bibitem{2026_ergashev_cnnlstm_vs_squeezeformer_uzsl}
+J.~Ergashev, M.~Rakhmatova, M.~Eshimov, Comparative evaluation of {CNN-LSTM}
+  and {Squeezeformer-Transformer} architectures for real-time {Uzbek} sign
+  language recognition (sep 2026).
+
+\bibitem{2025_akkomron_uzslr_isolated_dynamic}
+K.~Akmalov, \href{https://github.com/akkomron/uzslr-isolated-dynamic}{Uzbek
+  {Sign} {Language} {Recognition} {(UzSLR):} uzslr-isolated-dynamic} (2025).
+\newline\urlprefix\url{https://github.com/akkomron/uzslr-isolated-dynamic}
+
+\bibitem{2026_artiaga_signer_dependence_slt}
+K.~Artiaga, S.~Kamila, H.~Afli, C.~Lynch, M.~Hasanuzzaman, Rethinking {Sign}
+  {Language} {Translation:} {The} {Impact} of {Signer} {Dependence} on {Model}
+  {Evaluation}, in: Findings of the Association for Computational Linguistics:
+  EMNLP 2025, Association for Computational Linguistics, 2025, pp.
+  18379--18391.
+
+\bibitem{2022_li_mvitv2}
+Y.~Li, C.-Y. Wu, H.~Fan, K.~Mangalam, B.~Xiong, J.~Malik, C.~Feichtenhofer,
+  Mvitv2: {Improved} {Multiscale} {Vision} {Transformers} for {Classification}
+  and {Detection}, in: 2022 IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR), IEEE, 2022, pp. 4794--4804.
+
+\bibitem{2020_zhang_mediapipe_hands}
+F.~Zhang, V.~Bazarevsky, A.~Vakunov, A.~Tkachenka, G.~Sung, C.-L. Chang,
+  M.~Grundmann, Mediapipe {Hands:} {On-device} {Real-time} {Hand} {Tracking}
+  (2020).
+
+\bibitem{docs_mediapipe_holistic_landmarker}
+G.~A. Edge,
+  \href{https://ai.google.dev/edge/mediapipe/solutions/vision/holistic_landmarker}{Holistic
+  landmark detection guide} (oct 2026).
+\newline\urlprefix\url{https://ai.google.dev/edge/mediapipe/solutions/vision/holistic_landmarker}
+
+\bibitem{2020_imashev_krsl_dataset}
+A.~Imashev, M.~Mukushev, V.~Kimmelman, A.~Sandygulova, A {Dataset} for
+  {Linguistic} {Understanding,} {Visual} {Evaluation,} and {Recognition} of
+  {Sign} {Languages:} {The} {K-RSL}, in: Proceedings of the 24th Conference on
+  Computational Natural Language Learning, Association for Computational
+  Linguistics, 2020, pp. 631--640.
+
+\bibitem{2024_imashev_krsl_retrospective}
+A.~Imashev, A.~Kydyrbekova, M.~Mukushev, A.~Sandygulova, S.~Islam, K.~Israilov,
+  A.~Makazhanov, Z.~Yessenbayev, Retrospective of {Kazakh-Russian} {Sign}
+  {Language} {Corpus} {Formation}, in: Proceedings of the LREC-COLING 2024 11th
+  Workshop on the Representation and Processing of Sign Languages: Evaluation
+  of Sign Language Resources, European Language Resources Association (ELRA)
+  and ICCL, Torino, Italy, 2024, pp. 111--122.
+
+\bibitem{2018_yan_stgcn}
+S.~Yan, Y.~Xiong, D.~Lin, Spatial {Temporal} {Graph} {Convolutional} {Networks}
+  for {Skeleton-Based} {Action} {Recognition}, Proceedings of the AAAI
+  Conference on Artificial Intelligence 32~(1) (apr 2018).
+
+\bibitem{2021_jiang_sam_slr}
+S.~Jiang, B.~Sun, L.~Wang, Y.~Bai, K.~Li, Y.~Fu, Skeleton {Aware} {Multi-modal}
+  {Sign} {Language} {Recognition}, in: 2021 IEEE/CVF Conference on Computer
+  Vision and Pattern Recognition Workshops (CVPRW), IEEE, 2021, pp. 3408--3418.
+
+\bibitem{2017_vaswani_attention}
+A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones, A.~N. Gomez,
+  {\L}.~Kaiser, I.~Polosukhin,
+  \href{https://proceedings.neurips.cc/paper_files/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html}{Attention
+  is all you need}, in: Advances in Neural Information Processing Systems 30,
+  Curran Associates, 2017.
+\newline\urlprefix\url{https://proceedings.neurips.cc/paper_files/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html}
+
+\bibitem{2023_hu_signbert_plus}
+H.~Hu, W.~Zhao, W.~Zhou, H.~Li, Signbert+: {Hand-Model-Aware} {Self-Supervised}
+  {Pre-Training} for {Sign} {Language} {Understanding}, IEEE Transactions on
+  Pattern Analysis and Machine Intelligence 45~(9) (2023) 11221--11239.
+
+\bibitem{2023_zuo_nla_slr}
+R.~Zuo, F.~Wei, B.~Mak, Natural {Language-Assisted} {Sign} {Language}
+  {Recognition}, in: 2023 IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR), IEEE, 2023, pp. 14890--14900.
+
+\bibitem{2020_gulati_conformer}
+A.~Gulati, J.~Qin, C.-C. Chiu, N.~Parmar, Y.~Zhang, J.~Yu, W.~Han, S.~Wang,
+  Z.~Zhang, Y.~Wu, R.~Pang, Conformer: {Convolution-augmented} {Transformer}
+  for {Speech} {Recognition}, in: Interspeech 2020, ISCA, 2020, pp. 5036--5040.
+
+\bibitem{2025_isharah_signer_invariant_conformer}
+M.~R. Haque, M.~M. Islam, S.~M. T.~U. Raju, F.~Karray, A {Signer-Invariant}
+  {Conformer} and {Multi-Scale} {Fusion} {Transformer} for {Continuous} {Sign}
+  {Language} {Recognition}, in: 2025 IEEE/CVF International Conference on
+  Computer Vision Workshops (ICCVW), IEEE, 2025, pp. 4990--4999.
+
+\bibitem{2022_selvaraj_openhands}
+P.~Selvaraj, G.~NC, P.~Kumar, M.~Khapra, Openhands: {Making} {Sign} {Language}
+  {Recognition} {Accessible} with {Pose-based} {Pretrained} {Models} across
+  {Languages}, in: Proceedings of the 60th Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers), Association for
+  Computational Linguistics, 2022, pp. 2114--2133.
+
+\bibitem{2025_gueuwou_shubert}
+S.~Gueuwou, X.~Du, G.~Shakhnarovich, K.~Livescu, A.~H. Liu, Shubert:
+  {Self-Supervised} {Sign} {Language} {Representation} {Learning} via
+  {Multi-Stream} {Cluster} {Prediction}, in: Proceedings of the 63rd Annual
+  Meeting of the Association for Computational Linguistics (Volume 1: Long
+  Papers), Association for Computational Linguistics, 2025, pp. 28792--28810.
+
+\bibitem{2025_li_uni_sign}
+Z.~Li, W.~Zhou, W.~Zhao, K.~Wu, H.~Hu, H.~Li,
+  \href{https://openreview.net/forum?id=0Xt7uT04cQ}{Uni-sign: {Toward} unified
+  sign language understanding at scale}, in: Proceedings of the 13th
+  International Conference on Learning Representations (ICLR 2025), Singapore,
+  2025, pp. 14611--14630.
+\newline\urlprefix\url{https://openreview.net/forum?id=0Xt7uT04cQ}
+
+\bibitem{2024_kindiroglu_cross_dataset_transfer}
+A.~A. Kindiroglu, O.~Kara, O.~Ozdemir, L.~Akarun, Transfer {Learning} for
+  {Cross-dataset} {Isolated} {Sign} {Language} {Recognition} in
+  {Under-Resourced} {Datasets}, in: 2024 IEEE 18th International Conference on
+  Automatic Face and Gesture Recognition (FG), IEEE, 2024.
+
+\bibitem{2023_ryumin_cross_language_transfer}
+D.~Ryumin, D.~Ivanko, A.~Axyonov, Cross-language {Transfer} {Learning} {Using}
+  {Visual} {Information} for {Automatic} {Sign} {Gesture} {Recognition}, The
+  International Archives of the Photogrammetry, Remote Sensing and Spatial
+  Information Sciences XLVIII-2/W3-2023 (2023) 209--216.
+
+\bibitem{2021_sincan_chalearn_lap_islr}
+O.~M. Sincan, J.~C.~S. Jacques~Junior, S.~Escalera, H.~Y. Keles, Chalearn {LAP}
+  {Large} {Scale} {Signer} {Independent} {Isolated} {Sign} {Language}
+  {Recognition} {Challenge:} {Design,} {Results} and {Future} {Research}, in:
+  2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops
+  (CVPRW), IEEE, 2021, pp. 3467--3476.
+
+\bibitem{2022_mukushev_fluentsigners50}
+M.~Mukushev, A.~Kydyrbekova, A.~Imashev, V.~Kimmelman, A.~Sandygulova,
+  Fluentsigners-50: {A} signer independent benchmark dataset for sign language
+  processing, PLOS ONE 17~(9) (2022) e0273649.
+
+\bibitem{2023_uthus_youtube_asl}
+D.~Uthus, G.~Tanzer, M.~Georg, Youtube-asl: {A} {Large-Scale,} {Open-Domain}
+  {American} {Sign} {Language-English} {Parallel} {Corpus}, in: Advances in
+  Neural Information Processing Systems 36, Neural Information Processing
+  Systems Foundation, Inc. (NeurIPS), 2023, pp. 29029--29047.
+
+\bibitem{2026_onarkulov_slr_review_uzsl}
+M.~K. Onarkulov, M.~A. Yusupov, L.~A. Umirjonov, {Sign language recognition by
+  computer vision methods: A review and the place of Uzbek Sign Language},
+  Raqamli Transformatsiya va Sun'iy Intellekt ilmiy jurnali 4~(5) (2026)
+  257--270, in Russian.
+
+\bibitem{2007_smith_tesseract}
+R.~Smith, An {Overview} of the {Tesseract} {OCR} {Engine}, in: Ninth
+  International Conference on Document Analysis and Recognition (ICDAR 2007),
+  IEEE, 2007, pp. 629--633.
+
+\bibitem{2023_radford_whisper}
+A.~Radford, J.~W. Kim, T.~Xu, G.~Brockman, C.~McLeavey, I.~Sutskever, Robust
+  {Speech} {Recognition} via {Large-Scale} {Weak} {Supervision}, in:
+  Proceedings of the 40th International Conference on Machine Learning (ICML
+  2023), PMLR 202, 2023, pp. 28492--28518.
+
+\bibitem{2016_efron_hastie_casi}
+B.~Efron, T.~Hastie, Computer {Age} {Statistical} {Inference}, Cambridge
+  University Press, 2016.
+
+\bibitem{1992_polyak_averaging}
+B.~T. Polyak, A.~B. Juditsky, Acceleration of {Stochastic} {Approximation} by
+  {Averaging}, SIAM Journal on Control and Optimization 30~(4) (1992) 838--855.
+
+\bibitem{2023_kaggle_gislr}
+Google, Kaggle, \href{https://www.kaggle.com/competitions/asl-signs}{Google --
+  {Isolated} {Sign} {Language} {Recognition} (competition dataset)} (2023).
+\newline\urlprefix\url{https://www.kaggle.com/competitions/asl-signs}
+
+\bibitem{2026_anthropic_claude}
+Anthropic, \href{https://claude.ai}{Claude} (2026).
+\newline\urlprefix\url{https://claude.ai}
+
+\end{thebibliography}
