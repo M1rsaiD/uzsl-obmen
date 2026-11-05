@@ -825,6 +825,555 @@ group,series,condition,dataset,protocol,fold,seed,recipe,init,window_T,git_commi
 3,M7,slovo_e1tr_e1rec,slovo,slovo_p5,fold5,0,e1rec,scratch,64,fc26807,31acfeb,False,M7/slovo_e1tr_e1rec/fold5/seed0,1333,0.712678,0.913728,E1 на рецепте E1 (M7)
 3,M7,slovo_e1tr_e1rec,slovo,slovo_p5,fold5,1,e1rec,scratch,64,fc26807,31acfeb,False,M7/slovo_e1tr_e1rec/fold5/seed1,1333,0.704426,0.91823,E1 на рецепте E1 (M7)
 3,M7,slovo_e1tr_e1rec,slovo,slovo_p5,fold5,2,e1rec,scratch,64,fc26807,31acfeb,False,M7/slovo_e1tr_e1rec/fold5/seed2,1333,0.713428,0.91898,E1 на рецепте E1 (M7)
+4,M12_2,m12_2_bukva_hybrid,bukva,bukva_p5,fold1,0,mpk,scratch,32,ec66860,184379d,True,M12_2/m12_2_bukva_hybrid/fold1/seed0,750,0.92,0.996,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid,bukva,bukva_p5,fold2,0,mpk,scratch,32,ec66860,184379d,True,M12_2/m12_2_bukva_hybrid/fold2/seed0,747,0.908969,0.98929,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid,bukva,bukva_p5,fold3,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid/fold3/seed0,749,0.914553,0.989319,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid,bukva,bukva_p5,fold4,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid/fold4/seed0,759,0.894598,0.98946,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid,bukva,bukva_p5,fold5,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid/fold5/seed0,752,0.929521,0.994681,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_concat,bukva,bukva_p5,fold1,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_concat/fold1/seed0,750,0.918667,0.998667,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_concat,bukva,bukva_p5,fold2,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_concat/fold2/seed0,747,0.902276,0.993307,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_concat,bukva,bukva_p5,fold3,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_concat/fold3/seed0,749,0.919893,0.990654,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_concat,bukva,bukva_p5,fold4,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_concat/fold4/seed0,759,0.897233,0.986825,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_concat,bukva,bukva_p5,fold5,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_concat/fold5/seed0,752,0.928191,0.99734,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_narrow,bukva,bukva_p5,fold1,0,mpk,scratch,32,c9dcb2c,7481eb1,False,M12_2/m12_2_bukva_hybrid_narrow/fold1/seed0,750,0.913333,0.996,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_narrow,bukva,bukva_p5,fold2,0,mpk,scratch,32,c9dcb2c,7481eb1,False,M12_2/m12_2_bukva_hybrid_narrow/fold2/seed0,747,0.858099,0.991968,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_narrow,bukva,bukva_p5,fold3,0,mpk,scratch,32,c9dcb2c,7481eb1,False,M12_2/m12_2_bukva_hybrid_narrow/fold3/seed0,749,0.905207,0.99466,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_narrow,bukva,bukva_p5,fold4,0,mpk,scratch,32,c9dcb2c,7481eb1,False,M12_2/m12_2_bukva_hybrid_narrow/fold4/seed0,759,0.85639,0.985507,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_narrow,bukva,bukva_p5,fold5,0,mpk,scratch,32,c9dcb2c,7481eb1,False,M12_2/m12_2_bukva_hybrid_narrow/fold5/seed0,752,0.910904,0.996011,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_rest,bukva,bukva_p5,fold1,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_rest/fold1/seed0,750,0.941333,0.998667,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_rest,bukva,bukva_p5,fold2,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_rest/fold2/seed0,747,0.930388,0.994645,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_rest,bukva,bukva_p5,fold3,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_rest/fold3/seed0,749,0.934579,0.99466,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_rest,bukva,bukva_p5,fold4,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_rest/fold4/seed0,759,0.918314,0.990777,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_hybrid_rest,bukva,bukva_p5,fold5,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_hybrid_rest/fold5/seed0,752,0.950798,0.993351,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_whole,bukva,bukva_p5,fold1,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_whole/fold1/seed0,750,0.908,0.994667,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_whole,bukva,bukva_p5,fold2,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_whole/fold2/seed0,747,0.875502,0.991968,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_whole,bukva,bukva_p5,fold3,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_whole/fold3/seed0,749,0.88251,0.991989,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_whole,bukva,bukva_p5,fold4,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_whole/fold4/seed0,759,0.889328,0.98419,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_bukva_whole,bukva,bukva_p5,fold5,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_bukva_whole/fold5/seed0,752,0.901596,0.99734,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid,slovo,slovo_p5,fold1,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_hybrid/fold1/seed0,1529,0.756704,0.928712,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid,slovo,slovo_p5,fold2,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_hybrid/fold2/seed0,1314,0.700152,0.902588,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid,slovo,slovo_p5,fold3,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_hybrid/fold3/seed0,1338,0.724215,0.92003,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid,slovo,slovo_p5,fold4,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_hybrid/fold4/seed0,1360,0.722059,0.926471,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid,slovo,slovo_p5,fold5,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_hybrid/fold5/seed0,1333,0.750938,0.945236,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_narrow,slovo,slovo_p5,fold1,0,mpk,scratch,32,69223a5,7481eb1,False,M12_2/m12_2_slovo_hybrid_narrow/fold1/seed0,1529,0.725311,0.927404,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_narrow,slovo,slovo_p5,fold2,0,mpk,scratch,32,69223a5,7481eb1,False,M12_2/m12_2_slovo_hybrid_narrow/fold2/seed0,1314,0.678843,0.900304,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_narrow,slovo,slovo_p5,fold3,0,mpk,scratch,32,e2f3e71,7481eb1,False,M12_2/m12_2_slovo_hybrid_narrow/fold3/seed0,1338,0.703288,0.901345,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_narrow,slovo,slovo_p5,fold4,0,mpk,scratch,32,e2f3e71,7481eb1,False,M12_2/m12_2_slovo_hybrid_narrow/fold4/seed0,1360,0.696324,0.915441,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_narrow,slovo,slovo_p5,fold5,0,mpk,scratch,32,e2f3e71,7481eb1,False,M12_2/m12_2_slovo_hybrid_narrow/fold5/seed0,1333,0.739685,0.922731,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_rest,slovo,slovo_p5,fold1,0,mpk,scratch,32,b10d21d,184379d,False,M12_2/m12_2_slovo_hybrid_rest/fold1/seed0,1529,0.759974,0.94964,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_rest,slovo,slovo_p5,fold2,0,mpk,scratch,32,b10d21d,184379d,False,M12_2/m12_2_slovo_hybrid_rest/fold2/seed0,1314,0.707002,0.923135,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_rest,slovo,slovo_p5,fold3,0,mpk,scratch,32,b10d21d,184379d,False,M12_2/m12_2_slovo_hybrid_rest/fold3/seed0,1338,0.743647,0.930493,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_rest,slovo,slovo_p5,fold4,0,mpk,scratch,32,b10d21d,184379d,False,M12_2/m12_2_slovo_hybrid_rest/fold4/seed0,1360,0.733824,0.940441,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_hybrid_rest,slovo,slovo_p5,fold5,0,mpk,scratch,32,4775bed,184379d,True,M12_2/m12_2_slovo_hybrid_rest/fold5/seed0,1333,0.756189,0.949737,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_whole,slovo,slovo_p5,fold1,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_whole/fold1/seed0,1529,0.751472,0.939176,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_whole,slovo,slovo_p5,fold2,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_whole/fold2/seed0,1314,0.734399,0.927702,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_whole,slovo,slovo_p5,fold3,0,mpk,scratch,32,2f4717d,184379d,True,M12_2/m12_2_slovo_whole/fold3/seed0,1338,0.749626,0.917788,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_whole,slovo,slovo_p5,fold4,0,mpk,scratch,32,c413221,184379d,True,M12_2/m12_2_slovo_whole/fold4/seed0,1360,0.723529,0.930147,M12-2 гибрид (широкий/узкий) и контроли
+4,M12_2,m12_2_slovo_whole,slovo,slovo_p5,fold5,0,mpk,scratch,32,7707f31,184379d,True,M12_2/m12_2_slovo_whole/fold5/seed0,1333,0.767442,0.955739,M12-2 гибрид (широкий/узкий) и контроли
+4,M12,m12_3p_ensaug,pilot,pilot_ensaug_test002,test002,0,mpk,M8/m83_pretrain_sb_a1/all/seed0,32,e2f3e71,,False,M12/m12_3p_ensaug/test002/seed0,143,0.496503,0.678322,M12-3 на пилоте
+4,M12,m12_3p_ensaug,pilot,pilot_ensaug_test002,test002,1,mpk,M8/m83_pretrain_sb_a1/all/seed1,32,e2f3e71,,False,M12/m12_3p_ensaug/test002/seed1,143,0.538462,0.678322,M12-3 на пилоте
+4,M12,m12_3p_ensaug,pilot,pilot_ensaug_test002,test002,2,mpk,M8/m83_pretrain_sb_a1/all/seed2,32,e2f3e71,,False,M12/m12_3p_ensaug/test002/seed2,143,0.51049,0.706294,M12-3 на пилоте
+4,M12,m12_3p_ensaug,pilot,pilot_ensaug_test003,test003,0,mpk,M8/m83_pretrain_sb_a1/all/seed0,32,e2f3e71,,False,M12/m12_3p_ensaug/test003/seed0,176,0.448864,0.5625,M12-3 на пилоте
+4,M12,m12_3p_ensaug,pilot,pilot_ensaug_test003,test003,1,mpk,M8/m83_pretrain_sb_a1/all/seed1,32,e2f3e71,,False,M12/m12_3p_ensaug/test003/seed1,176,0.4375,0.551136,M12-3 на пилоте
+4,M12,m12_3p_ensaug,pilot,pilot_ensaug_test003,test003,2,mpk,M8/m83_pretrain_sb_a1/all/seed2,32,e2f3e71,,False,M12/m12_3p_ensaug/test003/seed2,176,0.460227,0.596591,M12-3 на пилоте
+4,M12,m12_3p_ft_b,pilot,pilot_ft_b_test002,test002,0,mpk,M12/m12_3p_pre_b/test002/seed0,32,e2f3e71,,False,M12/m12_3p_ft_b/test002/seed0,143,0.503497,0.678322,M12-3 на пилоте
+4,M12,m12_3p_ft_b,pilot,pilot_ft_b_test002,test002,1,mpk,M12/m12_3p_pre_b/test002/seed1,32,e2f3e71,,False,M12/m12_3p_ft_b/test002/seed1,143,0.538462,0.678322,M12-3 на пилоте
+4,M12,m12_3p_ft_b,pilot,pilot_ft_b_test002,test002,2,mpk,M12/m12_3p_pre_b/test002/seed2,32,e2f3e71,,False,M12/m12_3p_ft_b/test002/seed2,143,0.524476,0.685315,M12-3 на пилоте
+4,M12,m12_3p_ft_b,pilot,pilot_ft_b_test003,test003,0,mpk,M12/m12_3p_pre_b/test003/seed0,32,e2f3e71,,False,M12/m12_3p_ft_b/test003/seed0,176,0.443182,0.5625,M12-3 на пилоте
+4,M12,m12_3p_ft_b,pilot,pilot_ft_b_test003,test003,1,mpk,M12/m12_3p_pre_b/test003/seed1,32,e2f3e71,,False,M12/m12_3p_ft_b/test003/seed1,176,0.443182,0.556818,M12-3 на пилоте
+4,M12,m12_3p_ft_b,pilot,pilot_ft_b_test003,test003,2,mpk,M12/m12_3p_pre_b/test003/seed2,32,e2f3e71,,False,M12/m12_3p_ft_b/test003/seed2,176,0.454545,0.539773,M12-3 на пилоте
+4,M12,m12_3p_pre_b,pilot,pilot_pre_b_test002,test002,0,mpk,M8/m83_pretrain_sb_a1/all/seed0,32,e2f3e71,,False,M12/m12_3p_pre_b/test002/seed0,143,0.468531,0.671329,M12-3 на пилоте
+4,M12,m12_3p_pre_b,pilot,pilot_pre_b_test002,test002,1,mpk,M8/m83_pretrain_sb_a1/all/seed1,32,e2f3e71,,False,M12/m12_3p_pre_b/test002/seed1,143,0.51049,0.685315,M12-3 на пилоте
+4,M12,m12_3p_pre_b,pilot,pilot_pre_b_test002,test002,2,mpk,M8/m83_pretrain_sb_a1/all/seed2,32,e2f3e71,,False,M12/m12_3p_pre_b/test002/seed2,143,0.51049,0.706294,M12-3 на пилоте
+4,M12,m12_3p_pre_b,pilot,pilot_pre_b_test003,test003,0,mpk,M8/m83_pretrain_sb_a1/all/seed0,32,e2f3e71,,False,M12/m12_3p_pre_b/test003/seed0,176,0.448864,0.545455,M12-3 на пилоте
+4,M12,m12_3p_pre_b,pilot,pilot_pre_b_test003,test003,1,mpk,M8/m83_pretrain_sb_a1/all/seed1,32,e2f3e71,,False,M12/m12_3p_pre_b/test003/seed1,176,0.397727,0.568182,M12-3 на пилоте
+4,M12,m12_3p_pre_b,pilot,pilot_pre_b_test003,test003,2,mpk,M8/m83_pretrain_sb_a1/all/seed2,32,e2f3e71,,False,M12/m12_3p_pre_b/test003/seed2,176,0.397727,0.579545,M12-3 на пилоте
+4,M12,m12_3p_real,pilot,pilot_real_test002,test002,0,mpk,M8/m83_pretrain_sb_a1/all/seed0,32,e2f3e71,,False,M12/m12_3p_real/test002/seed0,143,0.482517,0.657343,M12-3 на пилоте
+4,M12,m12_3p_real,pilot,pilot_real_test002,test002,1,mpk,M8/m83_pretrain_sb_a1/all/seed1,32,e2f3e71,,False,M12/m12_3p_real/test002/seed1,143,0.524476,0.685315,M12-3 на пилоте
+4,M12,m12_3p_real,pilot,pilot_real_test002,test002,2,mpk,M8/m83_pretrain_sb_a1/all/seed2,32,e2f3e71,,False,M12/m12_3p_real/test002/seed2,143,0.48951,0.713287,M12-3 на пилоте
+4,M12,m12_3p_real,pilot,pilot_real_test003,test003,0,mpk,M8/m83_pretrain_sb_a1/all/seed0,32,e2f3e71,,False,M12/m12_3p_real/test003/seed0,176,0.460227,0.545455,M12-3 на пилоте
+4,M12,m12_3p_real,pilot,pilot_real_test003,test003,1,mpk,M8/m83_pretrain_sb_a1/all/seed1,32,e2f3e71,,False,M12/m12_3p_real/test003/seed1,176,0.443182,0.551136,M12-3 на пилоте
+4,M12,m12_3p_real,pilot,pilot_real_test003,test003,2,mpk,M8/m83_pretrain_sb_a1/all/seed2,32,e2f3e71,,False,M12/m12_3p_real/test003/seed2,176,0.465909,0.607955,M12-3 на пилоте
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold1/seed0,750,0.322667,0.704,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold1/seed1,750,0.338667,0.685333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold1/seed2,750,0.345333,0.696,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold2/seed0,747,0.314592,0.661312,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold2/seed1,747,0.32664,0.658635,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold2/seed2,747,0.302544,0.634538,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold3/seed0,749,0.34713,0.706275,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold3/seed1,749,0.361816,0.753004,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold3/seed2,749,0.359146,0.778371,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold4/seed0,759,0.458498,0.699605,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold4,fold4,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold4/seed1,759,0.474308,0.727273,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold4,fold4,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold4/seed2,759,0.488801,0.73913,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold5,fold5,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold5/seed0,752,0.364362,0.735372,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold5,fold5,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold5/seed1,752,0.333777,0.680851,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ensaug,bukva,n3s1_ensaug_fold5,fold5,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_ensaug/fold5/seed2,752,0.390957,0.731383,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold1,fold1,0,mpk,M12/m12_3s_t1_pre_b/fold1/seed0,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold1/seed0,750,0.314667,0.706667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold1,fold1,1,mpk,M12/m12_3s_t1_pre_b/fold1/seed1,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold1/seed1,750,0.334667,0.678667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold1,fold1,2,mpk,M12/m12_3s_t1_pre_b/fold1/seed2,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold1/seed2,750,0.332,0.706667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold2,fold2,0,mpk,M12/m12_3s_t1_pre_b/fold2/seed0,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold2/seed0,747,0.303882,0.686747,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold2,fold2,1,mpk,M12/m12_3s_t1_pre_b/fold2/seed1,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold2/seed1,747,0.314592,0.682731,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold2,fold2,2,mpk,M12/m12_3s_t1_pre_b/fold2/seed2,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold2/seed2,747,0.329317,0.678715,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold3,fold3,0,mpk,M12/m12_3s_t1_pre_b/fold3/seed0,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold3/seed0,749,0.372497,0.70494,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold3,fold3,1,mpk,M12/m12_3s_t1_pre_b/fold3/seed1,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold3/seed1,749,0.345794,0.699599,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold3,fold3,2,mpk,M12/m12_3s_t1_pre_b/fold3/seed2,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold3/seed2,749,0.384513,0.755674,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold4,fold4,0,mpk,M12/m12_3s_t1_pre_b/fold4/seed0,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold4/seed0,759,0.474308,0.73913,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold4,fold4,1,mpk,M12/m12_3s_t1_pre_b/fold4/seed1,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold4/seed1,759,0.499341,0.740448,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold4,fold4,2,mpk,M12/m12_3s_t1_pre_b/fold4/seed2,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold4/seed2,759,0.499341,0.758893,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold5,fold5,0,mpk,M12/m12_3s_t1_pre_b/fold5/seed0,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold5/seed0,752,0.336436,0.710106,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold5,fold5,1,mpk,M12/m12_3s_t1_pre_b/fold5/seed1,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold5/seed1,752,0.390957,0.755319,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_ft_b,bukva,n3s1_ft_b_fold5,fold5,2,mpk,M12/m12_3s_t1_pre_b/fold5/seed2,32,32bd74c,,True,M12/m12_3s_t1_ft_b/fold5/seed2,752,0.369681,0.707447,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold1/seed0,750,0.298667,0.685333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold1/seed1,750,0.326667,0.681333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold1/seed2,750,0.329333,0.698667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold2/seed0,747,0.289157,0.659973,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold2/seed1,747,0.307898,0.663989,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold2/seed2,747,0.317269,0.67336,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold3/seed0,749,0.360481,0.708945,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold3/seed1,749,0.3498,0.695594,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold3/seed2,749,0.388518,0.758344,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold4/seed0,759,0.458498,0.70224,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold4,fold4,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold4/seed1,759,0.471673,0.725955,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold4,fold4,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold4/seed2,759,0.471673,0.743083,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold5,fold5,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold5/seed0,752,0.336436,0.703457,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold5,fold5,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold5/seed1,752,0.371011,0.708777,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t1_pre_b,bukva,n3s1_pre_b_fold5,fold5,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t1_pre_b/fold5/seed2,752,0.353723,0.692819,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold1/seed0,750,0.342667,0.666667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold1/seed1,750,0.409333,0.706667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold1/seed2,750,0.349333,0.702667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold2/seed0,747,0.364123,0.606426,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold2/seed1,747,0.344043,0.580991,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold2/seed2,747,0.349398,0.625167,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold3/seed0,749,0.328438,0.688919,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold3/seed1,749,0.343124,0.690254,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold3/seed2,749,0.393858,0.744993,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold4/seed0,759,0.378129,0.689065,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold4,fold4,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold4/seed1,759,0.372859,0.727273,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold4,fold4,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold4/seed2,759,0.408432,0.725955,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold5,fold5,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold5/seed0,752,0.295213,0.595745,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold5,fold5,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold5/seed1,752,0.297872,0.5625,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ensaug,bukva,n3s2_ensaug_fold5,fold5,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_ensaug/fold5/seed2,752,0.297872,0.567819,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold1,fold1,0,mpk,M12/m12_3s_t2_pre_b/fold1/seed0,32,67514b7,,False,M12/m12_3s_t2_ft_b/fold1/seed0,750,0.373333,0.690667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold1,fold1,1,mpk,M12/m12_3s_t2_pre_b/fold1/seed1,32,67514b7,,False,M12/m12_3s_t2_ft_b/fold1/seed1,750,0.414667,0.704,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold1,fold1,2,mpk,M12/m12_3s_t2_pre_b/fold1/seed2,32,67514b7,,False,M12/m12_3s_t2_ft_b/fold1/seed2,750,0.376,0.684,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold2,fold2,0,mpk,M12/m12_3s_t2_pre_b/fold2/seed0,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold2/seed0,747,0.364123,0.619813,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold2,fold2,1,mpk,M12/m12_3s_t2_pre_b/fold2/seed1,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold2/seed1,747,0.380187,0.626506,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold2,fold2,2,mpk,M12/m12_3s_t2_pre_b/fold2/seed2,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold2/seed2,747,0.381526,0.641232,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold3,fold3,0,mpk,M12/m12_3s_t2_pre_b/fold3/seed0,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold3/seed0,749,0.371162,0.726302,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold3,fold3,1,mpk,M12/m12_3s_t2_pre_b/fold3/seed1,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold3/seed1,749,0.413885,0.769025,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold3,fold3,2,mpk,M12/m12_3s_t2_pre_b/fold3/seed2,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold3/seed2,749,0.433912,0.774366,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold4,fold4,0,mpk,M12/m12_3s_t2_pre_b/fold4/seed0,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold4/seed0,759,0.393939,0.714097,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold4,fold4,1,mpk,M12/m12_3s_t2_pre_b/fold4/seed1,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold4/seed1,759,0.401845,0.760211,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold4,fold4,2,mpk,M12/m12_3s_t2_pre_b/fold4/seed2,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold4/seed2,759,0.42029,0.774704,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold5,fold5,0,mpk,M12/m12_3s_t2_pre_b/fold5/seed0,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold5/seed0,752,0.299202,0.558511,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold5,fold5,1,mpk,M12/m12_3s_t2_pre_b/fold5/seed1,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold5/seed1,752,0.31383,0.605053,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_ft_b,bukva,n3s2_ft_b_fold5,fold5,2,mpk,M12/m12_3s_t2_pre_b/fold5/seed2,32,43bbc2f,,False,M12/m12_3s_t2_ft_b/fold5/seed2,752,0.321809,0.575798,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold1/seed0,750,0.36,0.678667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold1/seed1,750,0.416,0.704,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold1/seed2,750,0.373333,0.682667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold2/seed0,747,0.356091,0.615797,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold2/seed1,747,0.361446,0.617135,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold2/seed2,747,0.381526,0.641232,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold3/seed0,749,0.335113,0.662216,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold3/seed1,749,0.364486,0.694259,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold3/seed2,749,0.40721,0.716956,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold4/seed0,759,0.378129,0.690382,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold4,fold4,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold4/seed1,759,0.380764,0.703557,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold4,fold4,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold4/seed2,759,0.411067,0.753623,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold5,fold5,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold5/seed0,752,0.273936,0.539894,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold5,fold5,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold5/seed1,752,0.287234,0.578457,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t2_pre_b,bukva,n3s2_pre_b_fold5,fold5,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t2_pre_b/fold5/seed2,752,0.324468,0.573138,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold1/seed0,750,0.348,0.625333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold1/seed1,750,0.372,0.641333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold1/seed2,750,0.372,0.641333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold2/seed0,747,0.29585,0.599732,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold2/seed1,747,0.327979,0.64257,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold2/seed2,747,0.356091,0.690763,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold3/seed0,749,0.321762,0.688919,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold3/seed1,749,0.320427,0.664887,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold3/seed2,749,0.339119,0.695594,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold4/seed0,759,0.316206,0.653491,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold4,fold4,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold4/seed1,759,0.283267,0.656126,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold4,fold4,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold4/seed2,759,0.316206,0.638999,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold5,fold5,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold5/seed0,752,0.430851,0.765957,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold5,fold5,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold5/seed1,752,0.426862,0.777926,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ensaug,bukva,n3s3_ensaug_fold5,fold5,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_ensaug/fold5/seed2,752,0.44016,0.783245,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold1,fold1,0,mpk,M12/m12_3s_t3_pre_b/fold1/seed0,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold1/seed0,750,0.369333,0.690667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold1,fold1,1,mpk,M12/m12_3s_t3_pre_b/fold1/seed1,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold1/seed1,750,0.392,0.686667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold1,fold1,2,mpk,M12/m12_3s_t3_pre_b/fold1/seed2,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold1/seed2,750,0.437333,0.697333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold2,fold2,0,mpk,M12/m12_3s_t3_pre_b/fold2/seed0,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold2/seed0,747,0.348059,0.665328,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold2,fold2,1,mpk,M12/m12_3s_t3_pre_b/fold2/seed1,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold2/seed1,747,0.349398,0.666667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold2,fold2,2,mpk,M12/m12_3s_t3_pre_b/fold2/seed2,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold2/seed2,747,0.361446,0.685408,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold3,fold3,0,mpk,M12/m12_3s_t3_pre_b/fold3/seed0,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold3/seed0,749,0.316422,0.678238,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold3,fold3,1,mpk,M12/m12_3s_t3_pre_b/fold3/seed1,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold3/seed1,749,0.309746,0.655541,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold3,fold3,2,mpk,M12/m12_3s_t3_pre_b/fold3/seed2,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold3/seed2,749,0.323097,0.675567,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold4,fold4,0,mpk,M12/m12_3s_t3_pre_b/fold4/seed0,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold4/seed0,759,0.28722,0.617918,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold4,fold4,1,mpk,M12/m12_3s_t3_pre_b/fold4/seed1,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold4/seed1,759,0.26087,0.640316,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold4,fold4,2,mpk,M12/m12_3s_t3_pre_b/fold4/seed2,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold4/seed2,759,0.299078,0.624506,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold5,fold5,0,mpk,M12/m12_3s_t3_pre_b/fold5/seed0,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold5/seed0,752,0.408245,0.784574,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold5,fold5,1,mpk,M12/m12_3s_t3_pre_b/fold5/seed1,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold5/seed1,752,0.428191,0.787234,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_ft_b,bukva,n3s3_ft_b_fold5,fold5,2,mpk,M12/m12_3s_t3_pre_b/fold5/seed2,32,43bbc2f,,False,M12/m12_3s_t3_ft_b/fold5/seed2,752,0.401596,0.764628,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold1/seed0,750,0.368,0.676,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold1/seed1,750,0.361333,0.658667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold1/seed2,750,0.406667,0.682667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold2/seed0,747,0.342704,0.663989,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold2/seed1,747,0.333333,0.655957,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold2/seed2,747,0.358768,0.659973,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold3/seed0,749,0.311081,0.668892,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold3/seed1,749,0.309746,0.658211,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold3/seed2,749,0.309746,0.636849,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold4/seed0,759,0.288538,0.625823,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold4,fold4,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold4/seed1,759,0.256917,0.615283,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold4,fold4,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold4/seed2,759,0.309618,0.628458,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold5,fold5,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold5/seed0,752,0.401596,0.763298,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold5,fold5,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold5/seed1,752,0.409574,0.760638,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t3_pre_b,bukva,n3s3_pre_b_fold5,fold5,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t3_pre_b/fold5/seed2,752,0.394947,0.757979,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold1,fold1,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold1/seed0,750,0.374667,0.656,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold1,fold1,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold1/seed1,750,0.388,0.645333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold1,fold1,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold1/seed2,750,0.405333,0.674667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold2,fold2,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold2/seed0,747,0.283802,0.639893,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold2,fold2,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold2/seed1,747,0.305221,0.639893,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold2,fold2,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold2/seed2,747,0.298527,0.662651,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold3,fold3,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold3/seed0,749,0.28972,0.635514,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold3,fold3,1,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold3/seed1,749,0.305741,0.634179,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold3,fold3,2,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold3/seed2,749,0.29773,0.619493,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold4,fold4,0,mpk,scratch,32,e2f3e71,,False,M12/m12_3s_t4_ensaug/fold4/seed0,759,0.3083,0.623188,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold4,fold4,1,mpk,scratch,32,e2f3e71,,True,M12/m12_3s_t4_ensaug/fold4/seed1,759,0.30303,0.617918,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold4,fold4,2,mpk,scratch,32,e2f3e71,,True,M12/m12_3s_t4_ensaug/fold4/seed2,759,0.29249,0.617918,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold5,fold5,0,mpk,scratch,32,e2f3e71,,True,M12/m12_3s_t4_ensaug/fold5/seed0,752,0.378989,0.642287,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold5,fold5,1,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_ensaug/fold5/seed1,752,0.365691,0.636968,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ensaug,bukva,n3s4_ensaug_fold5,fold5,2,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_ensaug/fold5/seed2,752,0.414894,0.680851,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold1,fold1,0,mpk,M12/m12_3s_t4_pre_b/fold1/seed0,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold1/seed0,750,0.402667,0.682667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold1,fold1,1,mpk,M12/m12_3s_t4_pre_b/fold1/seed1,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold1/seed1,750,0.414667,0.693333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold1,fold1,2,mpk,M12/m12_3s_t4_pre_b/fold1/seed2,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold1/seed2,750,0.425333,0.68,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold2,fold2,0,mpk,M12/m12_3s_t4_pre_b/fold2/seed0,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold2/seed0,747,0.307898,0.649264,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold2,fold2,1,mpk,M12/m12_3s_t4_pre_b/fold2/seed1,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold2/seed1,747,0.32664,0.662651,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold2,fold2,2,mpk,M12/m12_3s_t4_pre_b/fold2/seed2,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold2/seed2,747,0.338688,0.716198,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold3,fold3,0,mpk,M12/m12_3s_t4_pre_b/fold3/seed0,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold3/seed0,749,0.317757,0.648865,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold3,fold3,1,mpk,M12/m12_3s_t4_pre_b/fold3/seed1,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold3/seed1,749,0.320427,0.664887,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold3,fold3,2,mpk,M12/m12_3s_t4_pre_b/fold3/seed2,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold3/seed2,749,0.320427,0.659546,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold4,fold4,0,mpk,M12/m12_3s_t4_pre_b/fold4/seed0,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold4/seed0,759,0.310935,0.623188,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold4,fold4,1,mpk,M12/m12_3s_t4_pre_b/fold4/seed1,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold4/seed1,759,0.329381,0.627141,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold4,fold4,2,mpk,M12/m12_3s_t4_pre_b/fold4/seed2,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold4/seed2,759,0.346509,0.700922,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold5,fold5,0,mpk,M12/m12_3s_t4_pre_b/fold5/seed0,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold5/seed0,752,0.392287,0.671543,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold5,fold5,1,mpk,M12/m12_3s_t4_pre_b/fold5/seed1,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold5/seed1,752,0.385638,0.652926,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_ft_b,bukva,n3s4_ft_b_fold5,fold5,2,mpk,M12/m12_3s_t4_pre_b/fold5/seed2,32,43bbc2f,,False,M12/m12_3s_t4_ft_b/fold5/seed2,752,0.420213,0.660904,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold1,fold1,0,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold1/seed0,750,0.406667,0.678667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold1,fold1,1,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold1/seed1,750,0.389333,0.666667,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold1,fold1,2,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold1/seed2,750,0.428,0.681333,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold2,fold2,0,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold2/seed0,747,0.302544,0.645248,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold2,fold2,1,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold2/seed1,747,0.310576,0.661312,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold2,fold2,2,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold2/seed2,747,0.321285,0.645248,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold3,fold3,0,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold3/seed0,749,0.303071,0.618158,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold3,fold3,1,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold3/seed1,749,0.308411,0.663551,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold3,fold3,2,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold3/seed2,749,0.315087,0.64753,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold4,fold4,0,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold4/seed0,759,0.3083,0.619236,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold4,fold4,1,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold4/seed1,759,0.329381,0.625823,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold4,fold4,2,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold4/seed2,759,0.320158,0.654809,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold5,fold5,0,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold5/seed0,752,0.392287,0.659574,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold5,fold5,1,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold5/seed1,752,0.365691,0.619681,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3s_t4_pre_b,bukva,n3s4_pre_b_fold5,fold5,2,mpk,scratch,32,32bd74c,,True,M12/m12_3s_t4_pre_b/fold5/seed2,752,0.421543,0.655585,M12-3 устойчивость (затравки/повторы)
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold1,fold1,0,mpk,scratch,32,fd78309,,False,M12/m12_3_n10_ensaug/fold1/seed0,750,0.746667,0.946667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold1/seed1,750,0.773333,0.949333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold1/seed2,750,0.78,0.954667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold2,fold2,0,mpk,scratch,32,fd78309,,False,M12/m12_3_n10_ensaug/fold2/seed0,747,0.737617,0.935743,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold2/seed1,747,0.753681,0.955823,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold2/seed2,747,0.740295,0.947791,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold3,fold3,0,mpk,scratch,32,fd78309,,False,M12/m12_3_n10_ensaug/fold3/seed0,749,0.813084,0.958611,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold3/seed1,749,0.814419,0.961282,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold3/seed2,749,0.810414,0.959947,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold4,fold4,0,mpk,scratch,32,fd78309,,False,M12/m12_3_n10_ensaug/fold4/seed0,759,0.762846,0.944664,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold4/seed1,759,0.761528,0.953887,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold4/seed2,759,0.764163,0.939394,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold5,fold5,0,mpk,scratch,32,fd78309,,False,M12/m12_3_n10_ensaug/fold5/seed0,752,0.796543,0.953457,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold5/seed1,752,0.779255,0.954787,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ensaug,bukva,n10_ensaug_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_ensaug/fold5/seed2,752,0.795213,0.954787,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_a,bukva,n10_ft_a_fold1,fold1,0,mpk,M12/m12_3_n10_pre_a/fold1/seed0,32,ec66860,,False,M12/m12_3_n10_ft_a/fold1/seed0,750,0.737333,0.930667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_a,bukva,n10_ft_a_fold2,fold2,0,mpk,M12/m12_3_n10_pre_a/fold2/seed0,32,ec66860,,False,M12/m12_3_n10_ft_a/fold2/seed0,747,0.714859,0.91834,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_a,bukva,n10_ft_a_fold3,fold3,0,mpk,M12/m12_3_n10_pre_a/fold3/seed0,32,ec66860,,False,M12/m12_3_n10_ft_a/fold3/seed0,749,0.799733,0.955941,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_a,bukva,n10_ft_a_fold4,fold4,0,mpk,M12/m12_3_n10_pre_a/fold4/seed0,32,ec66860,,False,M12/m12_3_n10_ft_a/fold4/seed0,759,0.750988,0.939394,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_a,bukva,n10_ft_a_fold5,fold5,0,mpk,M12/m12_3_n10_pre_a/fold5/seed0,32,ec66860,,False,M12/m12_3_n10_ft_a/fold5/seed0,752,0.759309,0.957447,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_b,bukva,n10_ft_b_fold1,fold1,0,mpk,M12/m12_3_n10_pre_b/fold1/seed0,32,ec66860,,False,M12/m12_3_n10_ft_b/fold1/seed0,750,0.730667,0.933333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_b,bukva,n10_ft_b_fold2,fold2,0,mpk,M12/m12_3_n10_pre_b/fold2/seed0,32,ec66860,,False,M12/m12_3_n10_ft_b/fold2/seed0,747,0.720214,0.930388,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_b,bukva,n10_ft_b_fold3,fold3,0,mpk,M12/m12_3_n10_pre_b/fold3/seed0,32,ec66860,,False,M12/m12_3_n10_ft_b/fold3/seed0,749,0.798398,0.958611,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_b,bukva,n10_ft_b_fold4,fold4,0,mpk,M12/m12_3_n10_pre_b/fold4/seed0,32,ec66860,,False,M12/m12_3_n10_ft_b/fold4/seed0,759,0.757576,0.940711,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_ft_b,bukva,n10_ft_b_fold5,fold5,0,mpk,M12/m12_3_n10_pre_b/fold5/seed0,32,ec66860,,False,M12/m12_3_n10_ft_b/fold5/seed0,752,0.756649,0.950798,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold1,fold1,0,mpk,scratch,32,fd78309,,False,M12/m12_3_n10_mix_a/fold1/seed0,750,0.746667,0.942667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold1/seed1,750,0.757333,0.953333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold1/seed2,750,0.749333,0.950667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_a/fold2/seed0,747,0.729585,0.925033,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold2/seed1,747,0.732262,0.951807,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold2/seed2,747,0.756359,0.933066,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_a/fold3/seed0,749,0.811749,0.962617,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold3/seed1,749,0.818425,0.959947,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold3/seed2,749,0.811749,0.967957,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_a/fold4/seed0,759,0.765481,0.944664,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold4/seed1,759,0.773386,0.952569,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold4/seed2,759,0.766798,0.948617,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_a/fold5/seed0,752,0.772606,0.956117,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold5/seed1,752,0.763298,0.93883,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_a,bukva,n10_mix_a_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n10_mix_a/fold5/seed2,752,0.817819,0.956117,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_b,bukva,n10_mix_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_b/fold1/seed0,750,0.766667,0.948,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_b,bukva,n10_mix_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_b/fold2/seed0,747,0.741633,0.939759,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_b,bukva,n10_mix_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_b/fold3/seed0,749,0.806409,0.958611,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_b,bukva,n10_mix_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_b/fold4/seed0,759,0.756258,0.943347,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_mix_b,bukva,n10_mix_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_mix_b/fold5/seed0,752,0.757979,0.944149,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_norm,bukva,n10_norm_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_norm/fold1/seed0,750,0.645333,0.884,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_norm,bukva,n10_norm_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_norm/fold2/seed0,747,0.681392,0.912985,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_norm,bukva,n10_norm_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_norm/fold3/seed0,749,0.690254,0.905207,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_norm,bukva,n10_norm_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_norm/fold4/seed0,759,0.650856,0.894598,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_norm,bukva,n10_norm_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_norm/fold5/seed0,752,0.680851,0.897606,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_oracle,bukva,n10_oracle_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_oracle/fold1/seed0,750,0.765333,0.942667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_oracle,bukva,n10_oracle_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_oracle/fold2/seed0,747,0.702811,0.931727,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_oracle,bukva,n10_oracle_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_oracle/fold3/seed0,749,0.813084,0.963952,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_oracle,bukva,n10_oracle_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_oracle/fold4/seed0,759,0.740448,0.943347,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_oracle,bukva,n10_oracle_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_oracle/fold5/seed0,752,0.760638,0.930851,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_a,bukva,n10_pre_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_a/fold1/seed0,750,0.74,0.930667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_a,bukva,n10_pre_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_a/fold2/seed0,747,0.716198,0.921017,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_a,bukva,n10_pre_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_a/fold3/seed0,749,0.801068,0.959947,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_a,bukva,n10_pre_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_a/fold4/seed0,759,0.753623,0.942029,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_a,bukva,n10_pre_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_a/fold5/seed0,752,0.75266,0.953457,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_b,bukva,n10_pre_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_b/fold1/seed0,750,0.729333,0.936,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_b,bukva,n10_pre_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_b/fold2/seed0,747,0.717537,0.933066,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_b,bukva,n10_pre_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_b/fold3/seed0,749,0.797063,0.958611,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_b,bukva,n10_pre_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_b/fold4/seed0,759,0.741765,0.939394,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_pre_b,bukva,n10_pre_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_pre_b/fold5/seed0,752,0.757979,0.948138,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_real,bukva,n10_real_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_real/fold1/seed0,750,0.689333,0.929333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_real,bukva,n10_real_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_real/fold2/seed0,747,0.674699,0.904953,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_real,bukva,n10_real_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_real/fold3/seed0,749,0.736983,0.93992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_real,bukva,n10_real_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_real/fold4/seed0,759,0.716733,0.926219,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n10_real,bukva,n10_real_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n10_real/fold5/seed0,752,0.696809,0.926862,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_ensaug/fold1/seed0,750,0.896,0.993333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold1/seed1,750,0.890667,0.994667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold1/seed2,750,0.882667,0.990667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_ensaug/fold2/seed0,747,0.891566,0.982597,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold2/seed1,747,0.880857,0.977242,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold2/seed2,747,0.883534,0.982597,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_ensaug/fold3/seed0,749,0.894526,0.985314,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold3/seed1,749,0.899866,0.993324,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold3/seed2,749,0.901202,0.989319,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_ensaug/fold4/seed0,759,0.8722,0.990777,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold4/seed1,759,0.86693,0.980237,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold4/seed2,759,0.880105,0.985507,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_ensaug/fold5/seed0,752,0.904255,0.996011,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold5/seed1,752,0.888298,0.996011,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ensaug,bukva,n30_ensaug_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_ensaug/fold5/seed2,752,0.909574,0.996011,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_a,bukva,n30_ft_a_fold1,fold1,0,mpk,M12/m12_3_n30_pre_a/fold1/seed0,32,ec66860,,False,M12/m12_3_n30_ft_a/fold1/seed0,750,0.906667,0.992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_a,bukva,n30_ft_a_fold2,fold2,0,mpk,M12/m12_3_n30_pre_a/fold2/seed0,32,ec66860,,False,M12/m12_3_n30_ft_a/fold2/seed0,747,0.900937,0.981258,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_a,bukva,n30_ft_a_fold3,fold3,0,mpk,M12/m12_3_n30_pre_a/fold3/seed0,32,ec66860,,False,M12/m12_3_n30_ft_a/fold3/seed0,749,0.891856,0.987984,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_a,bukva,n30_ft_a_fold4,fold4,0,mpk,M12/m12_3_n30_pre_a/fold4/seed0,32,ec66860,,False,M12/m12_3_n30_ft_a/fold4/seed0,759,0.876153,0.981555,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_a,bukva,n30_ft_a_fold5,fold5,0,mpk,M12/m12_3_n30_pre_a/fold5/seed0,32,ec66860,,False,M12/m12_3_n30_ft_a/fold5/seed0,752,0.901596,0.986702,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold1,fold1,0,mpk,M12/m12_3_n30_pre_b/fold1/seed0,32,ec66860,,False,M12/m12_3_n30_ft_b/fold1/seed0,750,0.9,0.996,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold1,fold1,1,mpk,M12/m12_3_n30_pre_b/fold1/seed1,32,ec66860,,True,M12/m12_3_n30_ft_b/fold1/seed1,750,0.897333,0.996,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold1,fold1,2,mpk,M12/m12_3_n30_pre_b/fold1/seed2,32,ec66860,,True,M12/m12_3_n30_ft_b/fold1/seed2,750,0.912,0.990667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold2,fold2,0,mpk,M12/m12_3_n30_pre_b/fold2/seed0,32,ec66860,,False,M12/m12_3_n30_ft_b/fold2/seed0,747,0.896921,0.983936,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold2,fold2,1,mpk,M12/m12_3_n30_pre_b/fold2/seed1,32,ec66860,,True,M12/m12_3_n30_ft_b/fold2/seed1,747,0.884873,0.978581,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold2,fold2,2,mpk,M12/m12_3_n30_pre_b/fold2/seed2,32,ec66860,,True,M12/m12_3_n30_ft_b/fold2/seed2,747,0.88755,0.981258,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold3,fold3,0,mpk,M12/m12_3_n30_pre_b/fold3/seed0,32,ec66860,,False,M12/m12_3_n30_ft_b/fold3/seed0,749,0.893191,0.986649,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold3,fold3,1,mpk,M12/m12_3_n30_pre_b/fold3/seed1,32,ec66860,,True,M12/m12_3_n30_ft_b/fold3/seed1,749,0.893191,0.986649,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold3,fold3,2,mpk,M12/m12_3_n30_pre_b/fold3/seed2,32,ec66860,,True,M12/m12_3_n30_ft_b/fold3/seed2,749,0.88518,0.973298,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold4,fold4,0,mpk,M12/m12_3_n30_pre_b/fold4/seed0,32,ec66860,,False,M12/m12_3_n30_ft_b/fold4/seed0,759,0.8722,0.980237,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold4,fold4,1,mpk,M12/m12_3_n30_pre_b/fold4/seed1,32,ec66860,,True,M12/m12_3_n30_ft_b/fold4/seed1,759,0.874835,0.97365,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold4,fold4,2,mpk,M12/m12_3_n30_pre_b/fold4/seed2,32,ec66860,,True,M12/m12_3_n30_ft_b/fold4/seed2,759,0.886693,0.982872,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold5,fold5,0,mpk,M12/m12_3_n30_pre_b/fold5/seed0,32,ec66860,,False,M12/m12_3_n30_ft_b/fold5/seed0,752,0.904255,0.984043,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold5,fold5,1,mpk,M12/m12_3_n30_pre_b/fold5/seed1,32,ec66860,,True,M12/m12_3_n30_ft_b/fold5/seed1,752,0.896277,0.982713,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_ft_b,bukva,n30_ft_b_fold5,fold5,2,mpk,M12/m12_3_n30_pre_b/fold5/seed2,32,ec66860,,True,M12/m12_3_n30_ft_b/fold5/seed2,752,0.914894,0.982713,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_a,bukva,n30_mix_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_a/fold1/seed0,750,0.896,0.993333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_a,bukva,n30_mix_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_a/fold2/seed0,747,0.890228,0.985274,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_a,bukva,n30_mix_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_a/fold3/seed0,749,0.886515,0.981308,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_a,bukva,n30_mix_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_a/fold4/seed0,759,0.880105,0.990777,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_a,bukva,n30_mix_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_a/fold5/seed0,752,0.909574,0.994681,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_b,bukva,n30_mix_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_b/fold1/seed0,750,0.910667,0.993333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_b,bukva,n30_mix_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_b/fold2/seed0,747,0.886212,0.97992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_b,bukva,n30_mix_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_b/fold3/seed0,749,0.897196,0.993324,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_b,bukva,n30_mix_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_b/fold4/seed0,759,0.876153,0.986825,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_mix_b,bukva,n30_mix_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_mix_b/fold5/seed0,752,0.918883,0.988032,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_norm,bukva,n30_norm_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_norm/fold1/seed0,750,0.864,0.990667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_norm,bukva,n30_norm_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_norm/fold2/seed0,747,0.876841,0.97992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_norm,bukva,n30_norm_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_norm/fold3/seed0,749,0.862483,0.986649,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_norm,bukva,n30_norm_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_norm/fold4/seed0,759,0.836627,0.981555,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_norm,bukva,n30_norm_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_norm/fold5/seed0,752,0.888298,0.981383,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_oracle,bukva,n30_oracle_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_oracle/fold1/seed0,750,0.897333,0.994667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_oracle,bukva,n30_oracle_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_oracle/fold2/seed0,747,0.888889,0.98929,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_oracle,bukva,n30_oracle_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_oracle/fold3/seed0,749,0.902537,0.991989,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_oracle,bukva,n30_oracle_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_oracle/fold4/seed0,759,0.880105,0.985507,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_oracle,bukva,n30_oracle_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_oracle/fold5/seed0,752,0.909574,0.990691,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_a,bukva,n30_pre_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_a/fold1/seed0,750,0.909333,0.993333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_a,bukva,n30_pre_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_a/fold2/seed0,747,0.900937,0.97992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_a,bukva,n30_pre_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_a/fold3/seed0,749,0.891856,0.987984,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_a,bukva,n30_pre_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_a/fold4/seed0,759,0.878788,0.985507,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_a,bukva,n30_pre_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_a/fold5/seed0,752,0.901596,0.993351,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_b/fold1/seed0,750,0.902667,0.994667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold1/seed1,750,0.904,0.997333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold1/seed2,750,0.912,0.990667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_b/fold2/seed0,747,0.899598,0.98929,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold2/seed1,747,0.883534,0.97992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold2/seed2,747,0.886212,0.985274,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_b/fold3/seed0,749,0.894526,0.987984,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold3/seed1,749,0.894526,0.990654,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold3/seed2,749,0.883845,0.974633,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_b/fold4/seed0,759,0.873518,0.981555,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold4/seed1,759,0.873518,0.974967,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold4/seed2,759,0.886693,0.980237,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_pre_b/fold5/seed0,752,0.904255,0.981383,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold5/seed1,752,0.897606,0.982713,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_pre_b,bukva,n30_pre_b_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n30_pre_b/fold5/seed2,752,0.914894,0.992021,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_real,bukva,n30_real_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_real/fold1/seed0,750,0.878667,0.992,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_real,bukva,n30_real_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_real/fold2/seed0,747,0.876841,0.982597,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_real,bukva,n30_real_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_real/fold3/seed0,749,0.88251,0.983979,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_real,bukva,n30_real_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_real/fold4/seed0,759,0.85639,0.972332,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n30_real,bukva,n30_real_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n30_real/fold5/seed0,752,0.892287,0.985372,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_ensaug/fold1/seed0,750,0.422667,0.676,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold1/seed1,750,0.430667,0.676,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold1/seed2,750,0.412,0.68,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_ensaug/fold2/seed0,747,0.321285,0.548862,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold2/seed1,747,0.394913,0.576975,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold2/seed2,747,0.358768,0.558233,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_ensaug/fold3/seed0,749,0.437917,0.774366,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold3/seed1,749,0.448598,0.76235,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold3/seed2,749,0.439252,0.753004,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_ensaug/fold4/seed0,759,0.386034,0.71805,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold4/seed1,759,0.396574,0.704875,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold4/seed2,759,0.408432,0.719368,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_ensaug/fold5/seed0,752,0.327128,0.650266,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold5/seed1,752,0.368351,0.718085,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ensaug,bukva,n3_ensaug_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_ensaug/fold5/seed2,752,0.386968,0.732713,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_a,bukva,n3_ft_a_fold1,fold1,0,mpk,M12/m12_3_n3_pre_a/fold1/seed0,32,ec66860,,False,M12/m12_3_n3_ft_a/fold1/seed0,750,0.405333,0.682667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_a,bukva,n3_ft_a_fold2,fold2,0,mpk,M12/m12_3_n3_pre_a/fold2/seed0,32,ec66860,,False,M12/m12_3_n3_ft_a/fold2/seed0,747,0.368139,0.586345,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_a,bukva,n3_ft_a_fold3,fold3,0,mpk,M12/m12_3_n3_pre_a/fold3/seed0,32,ec66860,,False,M12/m12_3_n3_ft_a/fold3/seed0,749,0.425901,0.797063,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_a,bukva,n3_ft_a_fold4,fold4,0,mpk,M12/m12_3_n3_pre_a/fold4/seed0,32,ec66860,,False,M12/m12_3_n3_ft_a/fold4/seed0,759,0.392622,0.722003,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_a,bukva,n3_ft_a_fold5,fold5,0,mpk,M12/m12_3_n3_pre_a/fold5/seed0,32,ec66860,,False,M12/m12_3_n3_ft_a/fold5/seed0,752,0.357713,0.716755,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold1,fold1,0,mpk,M12/m12_3_n3_pre_b/fold1/seed0,32,ec66860,,False,M12/m12_3_n3_ft_b/fold1/seed0,750,0.417333,0.674667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold1,fold1,1,mpk,M12/m12_3_n3_pre_b/fold1/seed1,32,ec66860,,True,M12/m12_3_n3_ft_b/fold1/seed1,750,0.438667,0.669333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold1,fold1,2,mpk,M12/m12_3_n3_pre_b/fold1/seed2,32,ec66860,,True,M12/m12_3_n3_ft_b/fold1/seed2,750,0.414667,0.678667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold2,fold2,0,mpk,M12/m12_3_n3_pre_b/fold2/seed0,32,ec66860,,False,M12/m12_3_n3_ft_b/fold2/seed0,747,0.34672,0.567604,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold2,fold2,1,mpk,M12/m12_3_n3_pre_b/fold2/seed1,32,ec66860,,True,M12/m12_3_n3_ft_b/fold2/seed1,747,0.378849,0.566265,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold2,fold2,2,mpk,M12/m12_3_n3_pre_b/fold2/seed2,32,ec66860,,True,M12/m12_3_n3_ft_b/fold2/seed2,747,0.364123,0.586345,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold3,fold3,0,mpk,M12/m12_3_n3_pre_b/fold3/seed0,32,ec66860,,False,M12/m12_3_n3_ft_b/fold3/seed0,749,0.432577,0.781041,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold3,fold3,1,mpk,M12/m12_3_n3_pre_b/fold3/seed1,32,ec66860,,True,M12/m12_3_n3_ft_b/fold3/seed1,749,0.480641,0.793057,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold3,fold3,2,mpk,M12/m12_3_n3_pre_b/fold3/seed2,32,ec66860,,True,M12/m12_3_n3_ft_b/fold3/seed2,749,0.492657,0.810414,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold4,fold4,0,mpk,M12/m12_3_n3_pre_b/fold4/seed0,32,ec66860,,False,M12/m12_3_n3_ft_b/fold4/seed0,759,0.428195,0.72332,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold4,fold4,1,mpk,M12/m12_3_n3_pre_b/fold4/seed1,32,ec66860,,True,M12/m12_3_n3_ft_b/fold4/seed1,759,0.421607,0.745718,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold4,fold4,2,mpk,M12/m12_3_n3_pre_b/fold4/seed2,32,ec66860,,True,M12/m12_3_n3_ft_b/fold4/seed2,759,0.454545,0.754941,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold5,fold5,0,mpk,M12/m12_3_n3_pre_b/fold5/seed0,32,ec66860,,False,M12/m12_3_n3_ft_b/fold5/seed0,752,0.375,0.700798,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold5,fold5,1,mpk,M12/m12_3_n3_pre_b/fold5/seed1,32,ec66860,,True,M12/m12_3_n3_ft_b/fold5/seed1,752,0.344415,0.695479,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_ft_b,bukva,n3_ft_b_fold5,fold5,2,mpk,M12/m12_3_n3_pre_b/fold5/seed2,32,ec66860,,True,M12/m12_3_n3_ft_b/fold5/seed2,752,0.382979,0.74734,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_a,bukva,n3_mix_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_a/fold1/seed0,750,0.412,0.665333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_a,bukva,n3_mix_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_a/fold2/seed0,747,0.338688,0.568942,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_a,bukva,n3_mix_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_a/fold3/seed0,749,0.445928,0.790387,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_a,bukva,n3_mix_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_a/fold4/seed0,759,0.405797,0.690382,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_a,bukva,n3_mix_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_a/fold5/seed0,752,0.360372,0.702128,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_b,bukva,n3_mix_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_b/fold1/seed0,750,0.430667,0.674667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_b,bukva,n3_mix_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_b/fold2/seed0,747,0.31593,0.556894,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_b,bukva,n3_mix_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_b/fold3/seed0,749,0.432577,0.785047,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_b,bukva,n3_mix_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_b/fold4/seed0,759,0.392622,0.71278,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_mix_b,bukva,n3_mix_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_mix_b/fold5/seed0,752,0.378989,0.720745,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_norm,bukva,n3_norm_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_norm/fold1/seed0,750,0.337333,0.626667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_norm,bukva,n3_norm_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_norm/fold2/seed0,747,0.329317,0.527443,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_norm,bukva,n3_norm_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_norm/fold3/seed0,749,0.385848,0.723632,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_norm,bukva,n3_norm_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_norm/fold4/seed0,759,0.329381,0.674572,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_norm,bukva,n3_norm_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_norm/fold5/seed0,752,0.246011,0.593085,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_oracle,bukva,n3_oracle_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_oracle/fold1/seed0,750,0.381333,0.657333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_oracle,bukva,n3_oracle_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_oracle/fold2/seed0,747,0.368139,0.566265,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_oracle,bukva,n3_oracle_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_oracle/fold3/seed0,749,0.399199,0.76502,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_oracle,bukva,n3_oracle_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_oracle/fold4/seed0,759,0.400527,0.689065,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_oracle,bukva,n3_oracle_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_oracle/fold5/seed0,752,0.37367,0.731383,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_a,bukva,n3_pre_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_a/fold1/seed0,750,0.397333,0.672,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_a,bukva,n3_pre_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_a/fold2/seed0,747,0.353414,0.567604,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_a,bukva,n3_pre_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_a/fold3/seed0,749,0.411215,0.76769,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_a,bukva,n3_pre_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_a/fold4/seed0,759,0.378129,0.674572,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_a,bukva,n3_pre_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_a/fold5/seed0,752,0.365691,0.726064,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_b/fold1/seed0,750,0.386667,0.657333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold1/seed1,750,0.433333,0.682667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold1/seed2,750,0.413333,0.676,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_b/fold2/seed0,747,0.34672,0.570281,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold2/seed1,747,0.374833,0.563588,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold2/seed2,747,0.344043,0.579652,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_b/fold3/seed0,749,0.429907,0.781041,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold3/seed1,749,0.480641,0.787717,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold3/seed2,749,0.491322,0.811749,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_b/fold4/seed0,759,0.405797,0.70751,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold4/seed1,759,0.41502,0.71805,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold4/seed2,759,0.453228,0.756258,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_pre_b/fold5/seed0,752,0.378989,0.707447,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold5/seed1,752,0.343085,0.691489,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_pre_b,bukva,n3_pre_b_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n3_pre_b/fold5/seed2,752,0.382979,0.742021,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_real,bukva,n3_real_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_real/fold1/seed0,750,0.362667,0.633333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_real,bukva,n3_real_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_real/fold2/seed0,747,0.307898,0.56091,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_real,bukva,n3_real_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_real/fold3/seed0,749,0.359146,0.726302,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_real,bukva,n3_real_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_real/fold4/seed0,759,0.341238,0.679842,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n3_real,bukva,n3_real_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n3_real/fold5/seed0,752,0.240691,0.545213,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_ensaug/fold1/seed0,750,0.536,0.828,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold1/seed1,750,0.552,0.833333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold1/seed2,750,0.552,0.836,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_ensaug/fold2/seed0,747,0.53012,0.834003,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold2/seed1,747,0.547523,0.844712,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold2/seed2,747,0.555556,0.870147,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_ensaug/fold3/seed0,749,0.624833,0.915888,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold3/seed1,749,0.662216,0.911883,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold3/seed2,749,0.678238,0.911883,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_ensaug/fold4/seed0,759,0.520422,0.847167,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold4/seed1,759,0.527009,0.814229,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold4/seed2,759,0.513834,0.860343,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_ensaug/fold5/seed0,752,0.514628,0.808511,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold5/seed1,752,0.535904,0.831117,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ensaug,bukva,n5_ensaug_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_ensaug/fold5/seed2,752,0.546543,0.832447,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_a,bukva,n5_ft_a_fold1,fold1,0,mpk,M12/m12_3_n5_pre_a/fold1/seed0,32,ec66860,,False,M12/m12_3_n5_ft_a/fold1/seed0,750,0.492,0.788,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_a,bukva,n5_ft_a_fold2,fold2,0,mpk,M12/m12_3_n5_pre_a/fold2/seed0,32,ec66860,,False,M12/m12_3_n5_ft_a/fold2/seed0,747,0.570281,0.843373,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_a,bukva,n5_ft_a_fold3,fold3,0,mpk,M12/m12_3_n5_pre_a/fold3/seed0,32,ec66860,,False,M12/m12_3_n5_ft_a/fold3/seed0,749,0.612817,0.902537,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_a,bukva,n5_ft_a_fold4,fold4,0,mpk,M12/m12_3_n5_pre_a/fold4/seed0,32,ec66860,,False,M12/m12_3_n5_ft_a/fold4/seed0,759,0.504611,0.827404,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_a,bukva,n5_ft_a_fold5,fold5,0,mpk,M12/m12_3_n5_pre_a/fold5/seed0,32,ec66860,,False,M12/m12_3_n5_ft_a/fold5/seed0,752,0.49867,0.81516,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_b,bukva,n5_ft_b_fold1,fold1,0,mpk,M12/m12_3_n5_pre_b/fold1/seed0,32,ec66860,,False,M12/m12_3_n5_ft_b/fold1/seed0,750,0.505333,0.794667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_b,bukva,n5_ft_b_fold2,fold2,0,mpk,M12/m12_3_n5_pre_b/fold2/seed0,32,ec66860,,False,M12/m12_3_n5_ft_b/fold2/seed0,747,0.535475,0.834003,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_b,bukva,n5_ft_b_fold3,fold3,0,mpk,M12/m12_3_n5_pre_b/fold3/seed0,32,ec66860,,False,M12/m12_3_n5_ft_b/fold3/seed0,749,0.606142,0.890521,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_b,bukva,n5_ft_b_fold4,fold4,0,mpk,M12/m12_3_n5_pre_b/fold4/seed0,32,ec66860,,False,M12/m12_3_n5_ft_b/fold4/seed0,759,0.519104,0.83531,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_ft_b,bukva,n5_ft_b_fold5,fold5,0,mpk,M12/m12_3_n5_pre_b/fold5/seed0,32,ec66860,,False,M12/m12_3_n5_ft_b/fold5/seed0,752,0.530585,0.829787,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_a/fold1/seed0,750,0.532,0.810667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold1,fold1,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold1/seed1,750,0.528,0.809333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold1,fold1,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold1/seed2,750,0.564,0.836,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_a/fold2/seed0,747,0.534137,0.829987,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold2,fold2,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold2/seed1,747,0.532798,0.850067,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold2,fold2,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold2/seed2,747,0.567604,0.866131,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_a/fold3/seed0,749,0.643525,0.907877,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold3,fold3,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold3/seed1,749,0.651535,0.905207,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold3,fold3,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold3/seed2,749,0.668892,0.918558,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_a/fold4/seed0,759,0.525692,0.84585,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold4,fold4,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold4/seed1,759,0.517787,0.847167,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold4,fold4,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold4/seed2,759,0.528327,0.837945,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_a/fold5/seed0,752,0.542553,0.819149,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold5,fold5,1,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold5/seed1,752,0.527926,0.827128,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_a,bukva,n5_mix_a_fold5,fold5,2,mpk,scratch,32,ec66860,,True,M12/m12_3_n5_mix_a/fold5/seed2,752,0.571809,0.844415,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_b,bukva,n5_mix_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_b/fold1/seed0,750,0.552,0.829333,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_b,bukva,n5_mix_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_b/fold2/seed0,747,0.548862,0.842035,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_b,bukva,n5_mix_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_b/fold3/seed0,749,0.611482,0.895861,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_b,bukva,n5_mix_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_b/fold4/seed0,759,0.508564,0.83004,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_mix_b,bukva,n5_mix_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_mix_b/fold5/seed0,752,0.484043,0.791223,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_norm,bukva,n5_norm_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_norm/fold1/seed0,750,0.452,0.76,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_norm,bukva,n5_norm_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_norm/fold2/seed0,747,0.495315,0.78581,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_norm,bukva,n5_norm_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_norm/fold3/seed0,749,0.510013,0.842457,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_norm,bukva,n5_norm_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_norm/fold4/seed0,759,0.429513,0.760211,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_norm,bukva,n5_norm_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_norm/fold5/seed0,752,0.426862,0.743351,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_oracle,bukva,n5_oracle_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_oracle/fold1/seed0,750,0.546667,0.822667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_oracle,bukva,n5_oracle_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_oracle/fold2/seed0,747,0.535475,0.820616,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_oracle,bukva,n5_oracle_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_oracle/fold3/seed0,749,0.604806,0.886515,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_oracle,bukva,n5_oracle_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_oracle/fold4/seed0,759,0.509881,0.831357,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_oracle,bukva,n5_oracle_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_oracle/fold5/seed0,752,0.49867,0.781915,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_a,bukva,n5_pre_a_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_a/fold1/seed0,750,0.490667,0.798667,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_a,bukva,n5_pre_a_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_a/fold2/seed0,747,0.556894,0.832664,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_a,bukva,n5_pre_a_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_a/fold3/seed0,749,0.620828,0.897196,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_a,bukva,n5_pre_a_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_a/fold4/seed0,759,0.509881,0.827404,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_a,bukva,n5_pre_a_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_a/fold5/seed0,752,0.493351,0.807181,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_b,bukva,n5_pre_b_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_b/fold1/seed0,750,0.524,0.796,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_b,bukva,n5_pre_b_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_b/fold2/seed0,747,0.54083,0.835341,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_b,bukva,n5_pre_b_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_b/fold3/seed0,749,0.603471,0.891856,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_b,bukva,n5_pre_b_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_b/fold4/seed0,759,0.508564,0.836627,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_pre_b,bukva,n5_pre_b_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_pre_b/fold5/seed0,752,0.530585,0.827128,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_real,bukva,n5_real_fold1,fold1,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_real/fold1/seed0,750,0.468,0.744,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_real,bukva,n5_real_fold2,fold2,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_real/fold2/seed0,747,0.455154,0.791165,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_real,bukva,n5_real_fold3,fold3,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_real/fold3/seed0,749,0.558077,0.875834,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_real,bukva,n5_real_fold4,fold4,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_real/fold4/seed0,759,0.442688,0.798419,"M12-3 синтез длин костей, N = 3/5/10/30"
+4,M12,m12_3_n5_real,bukva,n5_real_fold5,fold5,0,mpk,scratch,32,ec66860,,False,M12/m12_3_n5_real/fold5/seed0,752,0.470745,0.785904,"M12-3 синтез длин костей, N = 3/5/10/30"
 5,M9,slovo_official_a1,slovo,slovo_official,main,0,mpk,scratch,32,4dd60bd,4dd60bd,False,M9/slovo_official_a1/main/seed0,5100,0.645294,0.869804,M9.3 A1
 5,M9,slovo_official_a1,slovo,slovo_official,main,1,mpk,scratch,32,4dd60bd,4dd60bd,False,M9/slovo_official_a1/main/seed1,5100,0.639412,0.862157,M9.3 A1
 5,M9,slovo_official_a1,slovo,slovo_official,main,2,mpk,scratch,32,4dd60bd,4dd60bd,False,M9/slovo_official_a1/main/seed2,5100,0.639608,0.865294,M9.3 A1
@@ -1623,6 +2172,37 @@ group,series,condition,dataset,protocol,fold,seed,recipe,init,window_T,git_commi
 8,UZ_modelV,loso,uzsl,uzsl_loso,S09,0,mpk,modelV/pretrain/seed0,32,95dce5b,,False,UZ_modelV/loso/S09/seed0,74,0.405405,0.527027,"модель В: предобучение S+B+ASL → УзЖЯ, 682"
 8,UZ_modelV,loso,uzsl,uzsl_loso,S09,1,mpk,modelV/pretrain/seed1,32,95dce5b,,False,UZ_modelV/loso/S09/seed1,74,0.364865,0.594595,"модель В: предобучение S+B+ASL → УзЖЯ, 682"
 8,UZ_modelV,loso,uzsl,uzsl_loso,S09,2,mpk,modelV/pretrain/seed2,32,95dce5b,,False,UZ_modelV/loso/S09/seed2,74,0.378378,0.594595,"модель В: предобучение S+B+ASL → УзЖЯ, 682"
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold1,0,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1/fold1/seed0,18764,0.62087,0.797271,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold1,1,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1/fold1/seed1,18764,0.617885,0.793594,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold1,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold1/seed2,18764,0.611916,0.789864,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold2,0,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1/fold2/seed0,21509,0.632665,0.850016,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold2,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold2/seed1,21509,0.633037,0.844716,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold2,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold2/seed2,21509,0.629318,0.840764,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold3,0,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1/fold3/seed0,17859,0.649868,0.859679,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold3,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold3/seed1,17859,0.65166,0.857607,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold3,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold3/seed2,17859,0.647293,0.861694,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold4,0,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1/fold4/seed0,17744,0.713537,0.877761,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold4,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold4/seed1,17744,0.705647,0.878381,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold4,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold4/seed2,17744,0.707,0.878212,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold5,0,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1/fold5/seed0,18601,0.625396,0.842052,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold5,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold5/seed1,18601,0.634052,0.843611,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1,asl_signs,asl_signs_cv5,fold5,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1/fold5/seed2,18601,0.611795,0.809903,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold1,0,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold1/seed0,18764,0.617139,0.799883,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold1,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold1/seed1,18764,0.620124,0.797751,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold1,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold1/seed2,18764,0.612449,0.801055,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold2,0,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold2/seed0,21509,0.628481,0.8383,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold2,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold2/seed1,21509,0.624157,0.831698,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold2,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold2/seed2,21509,0.632061,0.843879,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold3,0,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold3/seed0,17859,0.647405,0.858839,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold3,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold3/seed1,17859,0.645949,0.849712,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold3,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold3/seed2,17859,0.646229,0.858783,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold4,0,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold4/seed0,17744,0.708916,0.877142,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold4,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold4/seed1,17744,0.703393,0.87252,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold4,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold4/seed2,17744,0.711001,0.874549,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold5,0,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold5/seed0,18601,0.6233,0.836299,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold5,1,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold5/seed1,18601,0.629213,0.84818,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_bez_tokenov,asl_signs,asl_signs_cv5,fold5,2,mpk,scratch,32,744c7b2,5edd581,False,M11B/asl_cv_a1_bez_tokenov/fold5/seed2,18601,0.633622,0.853986,M11-Б CV по исполнителям asl-signs
+10,M11B,asl_cv_a1_recept,asl_signs,asl_signs_cv5,fold1,0,mpk,scratch,32,1eac773,5edd581,False,M11B/asl_cv_a1_recept/fold1/seed0,18764,0.611916,0.789597,M11-Б CV по исполнителям asl-signs
 11,M9_4,A1_bukva_p0.25_s0,,,fold1,0,mpk,M7/bukva_a_ema/fold1/seed0,,,,,M9_4/A1_bukva_p0.25_s0/fold1/seed0,750,0.954667,0.998667,"M9.4 шум: p — доля пропуска кадров, s — σ шума"
 11,M9_4,A1_bukva_p0.25_s0,,,fold1,1,mpk,M7/bukva_a_ema/fold1/seed1,,,,,M9_4/A1_bukva_p0.25_s0/fold1/seed1,750,0.950667,0.997333,"M9.4 шум: p — доля пропуска кадров, s — σ шума"
 11,M9_4,A1_bukva_p0.25_s0,,,fold1,2,mpk,M7/bukva_a_ema/fold1/seed2,,,,,M9_4/A1_bukva_p0.25_s0/fold1/seed2,750,0.949333,0.998667,"M9.4 шум: p — доля пропуска кадров, s — σ шума"
@@ -2171,8 +2751,6 @@ group,series,condition,dataset,protocol,fold,seed,recipe,init,window_T,git_commi
 9,EXT_IMO,B,IMO,external,all,0,mpk,scratch,,,,,EXT_IMO/B/all/seed0,1556,0.017352,0.040488,"итоговая модель на всех данных корпуса, 1 затравка; true — метка внешнего теста (может быть вне головы, см. in_head / labels.json)"
 9,EXT_IMO,step1,IMO,external,all,0,mpk,scratch,,,,,EXT_IMO/step1/all/seed0,1556,0.044344,0.079049,"итоговая модель на всех данных корпуса, 1 затравка; true — метка внешнего теста (может быть вне головы, см. in_head / labels.json)"
 9,EXT_IMO,modelV,IMO,external,all,0,mpk,scratch,,,,,EXT_IMO/modelV/all/seed0,1556,0.052057,0.083548,"итоговая модель на всех данных корпуса, 1 затравка; true — метка внешнего теста (может быть вне головы, см. in_head / labels.json)"
-4,M12_2 / M12 (m12_3_n*),*,,,,,,,,,,,,,,,"отложено: включение M12-2/M12-3 — после решения автора (к3 0002, п. 2.1-6); есть predictions.csv (M12-2 45 прогонов, M12-3 N = 3/5/10/30 ≈ 300); выгрузка — тем же скриптом с --all"
-10,M11B,asl_cv_*,,,,,,,,,,,,,,,"отложено: asl-signs — после решения автора (к3 0002, п. 2.1-6); есть predictions.csv (31 прогон CV); выгрузка — тем же скриптом с --all"
 8,UZ_A2,loso,,,,,,,,,,,,,,,НЕТ predictions.csv: A2 на LOSO не прогонялся
 10,M11B,b4_sb_ft,,,,,,,,,,,,,,,"НЕТ predictions.csv: Б-4 (Slovo+Bukva → asl-signs): только итоговая модель на всех данных (оценка — Kaggle), CV нет"
 10,M11B,asl_final_*,,,,,,,,,,,,,,,НЕТ predictions.csv: итоговые модели asl-signs без теста (has_test: false) — не выгружены

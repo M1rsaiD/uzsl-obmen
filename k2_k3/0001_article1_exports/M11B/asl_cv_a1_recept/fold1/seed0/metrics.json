@@ -1,0 +1,263 @@
+{
+ "proto_top1": 0.6064271926879883,
+ "best_step": 10512,
+ "best_val_top1": 0.6998308300971985,
+ "steps": 52553,
+ "steps_done": 52553,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3492771,
+  "encoder": 3138113,
+  "inference_heads": 97658,
+  "train_only": 257000
+ },
+ "cost": {
+  "gflops_per_window": 0.757782272,
+  "cpu_latency_ms_median": 4.079167498275638,
+  "cpu_threads": 16,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 0,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "1eac773",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 882.5032289139926,
+ "train_steps_per_s": 63.23429204639014,
+ "test": {
+  "asl_signs": {
+   "top1": {
+    "mean": 0.6119164357279898,
+    "ci_low": 0.4358476313801662,
+    "ci_high": 0.7837211751079288,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.7895971008313792,
+    "ci_low": 0.6311762830729997,
+    "ci_high": 0.9269242918816468,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.6099567485677169,
+    "ci_low": 0.437493272834272,
+    "ci_high": 0.7824202243011618,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 4,
+    "per_signer": {
+     "asl26734": 0.8492047097707085,
+     "asl29302": 0.3513341804320203,
+     "asl34503": 0.5236523652365237,
+     "asl53618": 0.7156357388316151
+    }
+   },
+   "macro_top1_by_class": 0.6105425877967788,
+   "worst_signer": {
+    "signer_id": "asl29302",
+    "top1": 0.3513341804320203,
+    "min_clips": 10,
+    "n_signers_eligible": 4
+   },
+   "seen_classes": {
+    "top1": 0.6119164357279898,
+    "n_clips": 18764,
+    "n_classes_train": 250,
+    "chance": 0.004
+   },
+   "n_clips": 18764,
+   "n_signers": 4,
+   "proto_top1": 0.6064271926879883
+  }
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 52553,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 2628,
+   "compile": true,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "ema_warmup": false,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M11B",
+  "condition": "asl_cv_a1_recept",
+  "data": {
+   "dataset": "asl_signs",
+   "split": "asl_signs_cv5.json",
+   "fold": "fold1",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false,
+   "extractor": "asl-signs:kaggle-legacy-holistic-543"
+  }
+ },
+ "export": {
+  "n": 18764,
+  "top1": 0.6119164357279898,
+  "top5": 0.7895971008313792,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}
