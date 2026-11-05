@@ -1,0 +1,602 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[T2A,T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian,english]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,longtable,float,textcomp}
+\usepackage[hidelinks]{hyperref}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thesection}{S\arabic{section}}
+\setlength{\tabcolsep}{4pt}\sloppy
+\newcommand{\ruT}[1]{{\fontencoding{T2A}\selectfont #1}}
+\title{Supplementary Material for\\ \emph{Signer-disjoint evaluation and Russian-to-Uzbek transfer for isolated sign recognition: a multi-signer Uzbek Sign Language corpus and a compact pose encoder}}
+\author{Mirsaid A. Yusupov \and Maksadjon K. Onarkulov\\ \small Fergana State University, Fergana, Uzbekistan}
+\date{}
+\begin{document}
+\maketitle
+\noindent All numbers were computed from the per-recording predictions of the runs by the analysis script released with the code (\texttt{tools/analyze.py}); confidence intervals are percentile bootstrap intervals with 2,000 resamples over test signers (SD-5) or 10,000 resamples over signers (LOSO).
+\section{Full ablation sweep on Slovo (SD-5)}
+Table~\ref{tab:s_abl} lists every input, architecture, training and capacity variant trained on Slovo under SD-5 with one seed and compared with MPE-A0 (no weight averaging) by the paired difference over test signers; the five main ablations of MPE-A1 with three seeds are in Fig.~5 of the article. The last column gives the number of test signers (of 188) for which the variant is more accurate than MPE-A0.
+\begin{table}[H]
+\caption{Variants of MPE-A0 on Slovo under SD-5 (one seed, five folds): top-1 accuracy [95\% CI over test signers], paired difference $\Delta$ to MPE-A0 [95\% CI] and the number of test signers with a positive difference.}\label{tab:s_abl}
+\centering
+\footnotesize
+\begin{tabular}{llll}
+\toprule
+\textbf{Variant} & \textbf{Top-1 [95\% CI]} & \textbf{$\Delta$ vs MPE-A0 [95\% CI]} & \textbf{Signers $+$} \\
+\midrule
+\multicolumn{4}{l}{\textit{Reference: MPE-A0 (69.3 [67.2; 71.2], three seeds)}} \\
+\multicolumn{4}{l}{\textit{Input and normalisation}} \\
+No normalisation (raw coordinates) & 64.3 [61.8; 66.5] & $-$5.0 [$-$6.3; $-$3.7] & 52 / 188 \\
+Per-frame instead of per-clip normalisation & 68.7 [66.4; 70.8] & $-$0.6 [$-$1.3; +0.2] & 78 / 188 \\
+Hands only (no body, no face points) & 60.9 [58.8; 62.8] & $-$8.4 [$-$9.6; $-$7.2] & 34 / 188 \\
+No body points & 66.8 [64.6; 68.9] & $-$2.5 [$-$3.5; $-$1.7] & 60 / 188 \\
+No face points & 68.9 [66.7; 71.0] & $-$0.5 [$-$1.1; +0.3] & 86 / 188 \\
+No mask channel & 69.5 [67.3; 71.5] & +0.2 [$-$0.6; +1.0] & 78 / 188 \\
+Depth $z$ added & 69.6 [67.4; 71.7] & +0.3 [$-$0.6; +1.2] & 83 / 188 \\
+Joint angles added & 69.5 [67.6; 71.4] & +0.2 [$-$0.6; +0.9] & 83 / 188 \\
+Motion (frame-difference) features added & 70.1 [68.0; 72.1] & +0.8 [$-$0.0; +1.6] & 92 / 188 \\
+Dominant-hand mirroring & 68.6 [66.4; 70.6] & $-$0.7 [$-$1.6; +0.1] & 74 / 188 \\
+\multicolumn{4}{l}{\textit{Spatial encoder}} \\
+No graph: per-part MLP (as in MPE-A2) & 68.4 [66.3; 70.6] & $-$0.9 [$-$1.8; +0.0] & 73 / 188 \\
+No long-range edges & 67.2 [64.8; 69.3] & $-$2.1 [$-$3.1; $-$1.1] & 64 / 188 \\
+No part tokens: one token per frame & 67.3 [65.0; 69.5] & $-$2.0 [$-$2.9; $-$1.0] & 67 / 188 \\
+No bone stream & 68.5 [66.2; 70.6] & $-$0.8 [$-$1.6; $-$0.0] & 74 / 188 \\
+Alternative set of hand nodes & 68.8 [66.5; 71.0] & $-$0.5 [$-$1.3; +0.2] & 77 / 188 \\
+Shared weights for the two hands & 68.9 [66.8; 70.9] & $-$0.4 [$-$1.2; +0.3] & 79 / 188 \\
+Mask-aware batch normalisation & 69.0 [67.0; 70.9] & $-$0.3 [$-$0.9; +0.4] & 77 / 188 \\
+Late fusion of joint and bone streams & 70.3 [68.4; 72.1] & +1.0 [+0.3; +1.8] & 87 / 188 \\
+\multicolumn{4}{l}{\textit{Temporal encoder and pooling}} \\
+No depthwise temporal convolution & 68.3 [66.3; 70.1] & $-$1.0 [$-$1.8; $-$0.2] & 71 / 188 \\
+Transformer layers in place of Conformer layers & 67.8 [65.8; 69.8] & $-$1.5 [$-$2.2; $-$0.6] & 81 / 188 \\
+Mean pooling in place of attention pooling & 67.1 [64.8; 69.3] & $-$2.2 [$-$3.3; $-$1.2] & 61 / 188 \\
+\multicolumn{4}{l}{\textit{Training}} \\
+No augmentation & 68.5 [66.5; 70.4] & $-$0.8 [$-$1.8; +0.1] & 72 / 188 \\
+No auxiliary heads & 68.5 [66.5; 70.5] & $-$0.8 [$-$1.6; +0.1] & 75 / 188 \\
+\multicolumn{4}{l}{\textit{Capacity and window}} \\
+$D = 128$ & 68.8 [66.6; 70.9] & $-$0.5 [$-$1.3; +0.3] & 82 / 188 \\
+$D = 256$ & 69.3 [67.3; 71.3] & +0.0 [$-$0.7; +0.8] & 83 / 188 \\
+$N = 2$ & 68.8 [66.7; 71.0] & $-$0.6 [$-$1.2; +0.2] & 74 / 188 \\
+$N = 4$ & 69.9 [67.7; 72.1] & +0.6 [$-$0.2; +1.4] & 93 / 188 \\
+$T = 48$ & 68.7 [66.5; 70.8] & $-$0.6 [$-$1.6; +0.3] & 75 / 188 \\
+$D = 256$, $N = 6$ & 72.0 [69.8; 73.9] & +2.6 [+2.0; +3.3] & 114 / 188 \\
+$D = 384$, $N = 8$ & 72.1 [70.2; 74.0] & +2.8 [+1.9; +3.7] & 109 / 188 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Accuracy per held-out signer on the UzSL corpus}
+Table~\ref{tab:s_loso} gives the top-1 accuracy of every condition of Table~5 of the article on each held-out signer (mean of three seeds), the number of evaluation-set recordings per signer, and the accuracy on words and on fingerspelling for the main model. S06 and S10 (fewer than 20 recordings) form the "other" fold and are excluded from the macro-average.
+\begin{table}[H]
+\caption{LOSO on the UzSL corpus: top-1 accuracy (\%) per held-out signer, mean of three seeds; last column: macro-average over the ten signers.}\label{tab:s_loso}
+\centering
+\scriptsize
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Condition} & \textbf{S01} & \textbf{S02} & \textbf{S03} & \textbf{S04} & \textbf{S05} & \textbf{S07} & \textbf{S08} & \textbf{S09} & \textbf{S11} & \textbf{S12} & \textbf{Macro} \\
+\midrule
+Recordings (evaluation set) & 382 & 1,095 & 590 & 125 & 183 & 648 & 71 & 74 & 118 & 118 & 3,404 \\
+MPE-A1, pretrained (Slovo + Bukva), 682-class head & 24.9 & 21.0 & 17.2 & 18.1 & 31.3 & 27.4 & 42.7 & 40.5 & 51.1 & 45.5 & 32.0 \\
+MPE-A1, from scratch, 682-class head & 11.9 & 8.7 & 9.1 & 9.9 & 15.7 & 15.5 & 16.0 & 16.7 & 34.5 & 35.3 & 17.3 \\
+SL-GCN (released), pretrained, 682-class head & 24.8 & 22.6 & 21.0 & 18.9 & 33.5 & 29.4 & 49.3 & 42.3 & 53.4 & 53.7 & 34.9 \\
+MPE-A1, pretrained (Slovo + Bukva + ASL), 682-class head & 25.0 & 21.7 & 19.5 & 22.4 & 34.2 & 28.8 & 40.4 & 38.3 & 39.3 & 33.9 & 30.3 \\
+MPE-A1, pretrained, all recordings (2,033–2,378-class head) & 19.8 & 16.8 & 13.1 & 14.9 & 27.1 & 22.7 & 40.9 & 29.3 & 44.1 & 33.0 & 26.2 \\
+MPE-A1, from scratch, all recordings & 6.7 & 5.7 & 5.7 & 7.7 & 12.6 & 12.4 & 11.7 & 8.6 & 31.9 & 37.0 & 14.0 \\
+\multicolumn{12}{l}{\textit{Top-1 on words / fingerspelling, MPE-A1 pretrained (signers with at least ten recordings of the group)}} \\
+Words & 24.9 & 21.0 & 17.5 & 18.1 & 31.5 & 27.8 & 42.7 & 40.5 & --- & --- & 28.0 \\
+Fingerspelling & --- & --- & 8.3 & --- & --- & --- & --- & --- & 51.1 & 45.5 & 35.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Per-class precision, recall and $F_1$}
+Tables~\ref{tab:s_pc1} and~\ref{tab:s_pc2} give, for every class, the number of test recordings per seed (support), precision, recall and $F_1$ averaged over seeds: Bukva under SD-5 (MPE-A1, pooled over the five folds), the UzSL pilot (MPE-A1 pretrained on Slovo + Bukva and fine-tuned on all recordings, pooled over the two test participants) and the 682-class evaluation set of the UzSL corpus under LOSO (MPE-A1 pretrained on Slovo + Bukva, pooled over the ten folds). Pilot classes with zero support in the training data of their fold have precision and recall equal to zero. The same tables are provided as CSV files with the code.
+\begin{table}[H]
+\caption{Per-class metrics (\%) on Bukva (left; 33 letters of the RSL manual alphabet, SD-5) and on the UzSL pilot (right; 29 letters and 11 numerals). $n$: test recordings per seed.}\label{tab:s_pc1}
+\centering
+\scriptsize
+\begin{tabular}{lrrrr|lrrrr}
+\toprule
+\textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} & \textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} \\
+\midrule
+\ruT{Ё} & 123 & 97.0 & 95.9 & 96.5 & 0 & 4 & 0.0 & 0.0 & 0.0 \\
+\ruT{А} & 118 & 99.4 & 99.2 & 99.3 & 1 & 6 & 0.0 & 0.0 & 0.0 \\
+\ruT{Б} & 109 & 95.5 & 97.9 & 96.7 & 10 & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{В} & 116 & 98.6 & 99.4 & 99.0 & 2 & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{Г} & 112 & 97.6 & 97.3 & 97.5 & 3 & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{Д} & 102 & 92.9 & 94.1 & 93.5 & 4 & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{Е} & 119 & 89.5 & 93.0 & 91.2 & 5 & 6 & 0.0 & 0.0 & 0.0 \\
+\ruT{Ж} & 118 & 93.3 & 89.5 & 91.4 & 6 & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{З} & 108 & 97.2 & 97.2 & 97.2 & 7 & 5 & 33.3 & 33.3 & 33.3 \\
+\ruT{И} & 118 & 95.1 & 92.9 & 94.0 & 8 & 7 & 0.0 & 0.0 & 0.0 \\
+\ruT{Й} & 107 & 98.8 & 99.7 & 99.2 & 9 & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{К} & 107 & 96.0 & 90.0 & 92.9 & A & 10 & 75.1 & 100.0 & 85.7 \\
+\ruT{Л} & 117 & 82.7 & 84.0 & 83.3 & B & 10 & 23.8 & 16.7 & 19.6 \\
+\ruT{М} & 104 & 83.8 & 82.4 & 83.0 & CH & 10 & 66.7 & 33.3 & 37.2 \\
+\ruT{Н} & 118 & 98.3 & 95.8 & 97.0 & D & 10 & 40.0 & 80.0 & 53.3 \\
+\ruT{О} & 120 & 97.5 & 98.1 & 97.8 & E & 10 & 0.0 & 0.0 & 0.0 \\
+\ruT{П} & 118 & 85.2 & 86.2 & 85.7 & F & 10 & 97.0 & 100.0 & 98.4 \\
+\ruT{Р} & 115 & 98.5 & 96.2 & 97.4 & G & 10 & 46.1 & 80.0 & 57.6 \\
+\ruT{С} & 125 & 100.0 & 97.9 & 98.9 & G\textquotesingle{} & 10 & 31.8 & 20.0 & 21.4 \\
+\ruT{Т} & 114 & 82.7 & 84.2 & 83.5 & H & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{У} & 113 & 98.2 & 97.9 & 98.1 & I & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{Ф} & 116 & 96.0 & 97.1 & 96.6 & J & 9 & 50.9 & 100.0 & 65.6 \\
+\ruT{Х} & 121 & 95.4 & 96.7 & 96.0 & K & 10 & 63.9 & 76.7 & 69.7 \\
+\ruT{Ц} & 112 & 98.5 & 98.5 & 98.5 & L & 11 & 0.0 & 0.0 & 0.0 \\
+\ruT{Ч} & 107 & 97.2 & 99.1 & 98.1 & M & 10 & 64.1 & 86.7 & 69.7 \\
+\ruT{Ш} & 119 & 68.2 & 75.9 & 71.8 & N & 10 & 80.8 & 46.7 & 58.5 \\
+\ruT{Щ} & 103 & 70.6 & 61.5 & 65.6 & NG & 9 & 89.2 & 81.5 & 84.7 \\
+\ruT{Ъ} & 115 & 96.2 & 96.5 & 96.4 & O & 10 & 65.0 & 93.3 & 76.5 \\
+\ruT{Ы} & 123 & 99.2 & 100.0 & 99.6 & O\textquotesingle{} & 10 & 73.8 & 30.0 & 40.2 \\
+\ruT{Ь} & 101 & 94.7 & 95.0 & 94.9 & P & 9 & 47.3 & 44.4 & 44.7 \\
+\ruT{Э} & 110 & 95.4 & 93.9 & 94.7 & Q & 5 & 0.0 & 0.0 & 0.0 \\
+\ruT{Ю} & 117 & 94.8 & 98.3 & 96.5 & R & 10 & 57.8 & 90.0 & 66.4 \\
+\ruT{Я} & 112 & 90.2 & 90.2 & 90.2 & S & 10 & 93.9 & 100.0 & 96.8 \\
+ &  &  &  &  & SH & 10 & 65.1 & 96.7 & 76.0 \\
+ &  &  &  &  & T & 8 & 55.1 & 25.0 & 31.2 \\
+ &  &  &  &  & U & 10 & 53.8 & 93.3 & 68.3 \\
+ &  &  &  &  & V & 5 & 0.0 & 0.0 & 0.0 \\
+ &  &  &  &  & X & 10 & 32.6 & 50.0 & 39.3 \\
+ &  &  &  &  & Y & 5 & 0.0 & 0.0 & 0.0 \\
+ &  &  &  &  & Z & 10 & 55.6 & 83.3 & 66.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\tiny
+\begin{longtable}{lrrrr|lrrrr|lrrrr}
+\caption{Per-class metrics (\%) on the 682-class evaluation set of the UzSL corpus (LOSO, MPE-A1 pretrained on Slovo + Bukva, 682 classes in alphabetical order; "harf:" marks fingerspelled letters, "raqam:" numerals). $n$: test recordings per seed.}\label{tab:s_pc2}\\
+\toprule
+\textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} & \textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} & \textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} \\
+\midrule
+\endfirsthead
+\caption[]{(continued)}\\
+\toprule
+\textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} & \textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} & \textbf{Class} & \textbf{$n$} & \textbf{P} & \textbf{R} & \textbf{$F_1$} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+abadiy & 6 & 33.3 & 27.8 & 30.3 & ishtaha & 4 & 0.0 & 0.0 & 0.0 & qo\textquotesingle{}y & 9 & 53.2 & 55.6 & 54.0 \\
+abort & 3 & 0.0 & 0.0 & 0.0 & ism & 5 & 52.8 & 26.7 & 34.8 & qog\textquotesingle{}oz & 4 & 33.3 & 8.3 & 13.3 \\
+adabiyot & 3 & 33.3 & 11.1 & 16.7 & ispaniya & 4 & 15.0 & 16.7 & 15.7 & qoida & 4 & 73.9 & 91.7 & 81.3 \\
+advokat & 4 & 18.7 & 25.0 & 21.1 & issiq & 6 & 0.0 & 0.0 & 0.0 & qon ketish & 5 & 4.2 & 6.7 & 5.1 \\
+afrika & 3 & 0.0 & 0.0 & 0.0 & it & 3 & 0.0 & 0.0 & 0.0 & qonun & 5 & 69.0 & 66.7 & 66.7 \\
+aka & 4 & 0.0 & 0.0 & 0.0 & italiya & 3 & 33.3 & 22.2 & 26.7 & qor & 6 & 17.6 & 16.7 & 16.2 \\
+akrobatika & 6 & 0.0 & 0.0 & 0.0 & iyul & 3 & 0.0 & 0.0 & 0.0 & qora & 6 & 11.1 & 16.7 & 13.3 \\
+aktyor & 3 & 46.7 & 55.6 & 50.0 & iyun & 7 & 30.3 & 38.1 & 33.7 & qoshiq & 9 & 34.8 & 51.9 & 41.0 \\
+albom & 3 & 17.3 & 33.3 & 22.3 & jadval & 5 & 15.5 & 26.7 & 19.5 & qovun & 4 & 31.1 & 33.3 & 31.7 \\
+amaki & 4 & 36.8 & 75.0 & 49.1 & jarima & 7 & 37.0 & 42.9 & 39.4 & qovurmoq & 4 & 34.0 & 41.7 & 36.5 \\
+analiz & 4 & 0.0 & 0.0 & 0.0 & jazolamoq & 4 & 0.0 & 0.0 & 0.0 & qozon & 11 & 15.7 & 18.2 & 16.5 \\
+anar & 3 & 0.0 & 0.0 & 0.0 & jigarrang & 4 & 33.9 & 50.0 & 40.0 & qulf & 3 & 0.0 & 0.0 & 0.0 \\
+angina & 3 & 0.0 & 0.0 & 0.0 & jirafa & 5 & 33.3 & 33.3 & 32.5 & quloqchin & 4 & 59.3 & 75.0 & 65.4 \\
+angliya & 3 & 22.2 & 22.2 & 20.7 & jismoniy tarbiya & 5 & 0.0 & 0.0 & 0.0 & qulupnay & 3 & 0.0 & 0.0 & 0.0 \\
+aniq & 10 & 42.2 & 36.7 & 38.8 & jiyan & 5 & 0.0 & 0.0 & 0.0 & qum & 4 & 0.0 & 0.0 & 0.0 \\
+apelsin & 4 & 0.0 & 0.0 & 0.0 & juma & 6 & 7.9 & 11.1 & 9.2 & qurbaqa & 7 & 15.2 & 14.3 & 13.7 \\
+aprel & 5 & 39.7 & 46.7 & 41.7 & kabob & 4 & 57.4 & 50.0 & 49.1 & qurt & 6 & 41.7 & 11.1 & 16.2 \\
+archa & 5 & 24.4 & 46.7 & 32.1 & kafel & 5 & 0.0 & 0.0 & 0.0 & qush & 4 & 0.0 & 0.0 & 0.0 \\
+aroq & 5 & 33.3 & 6.7 & 11.1 & kalbasa & 4 & 0.0 & 0.0 & 0.0 & quymoq & 4 & 0.0 & 0.0 & 0.0 \\
+arzon & 5 & 30.0 & 20.0 & 22.9 & kalendar & 3 & 0.0 & 0.0 & 0.0 & quyon & 5 & 8.3 & 6.7 & 7.4 \\
+asalari & 3 & 0.0 & 0.0 & 0.0 & kalish & 4 & 45.6 & 41.7 & 43.1 & quyosh & 8 & 44.3 & 58.3 & 49.7 \\
+avgust & 3 & 33.3 & 11.1 & 16.7 & kalit & 4 & 8.3 & 8.3 & 8.3 & radio & 4 & 6.7 & 8.3 & 7.4 \\
+avlod & 3 & 0.0 & 0.0 & 0.0 & kam & 3 & 0.0 & 0.0 & 0.0 & rahbar & 5 & 20.0 & 20.0 & 20.0 \\
+avtobus & 10 & 43.9 & 66.7 & 52.8 & kamalak & 6 & 0.0 & 0.0 & 0.0 & rahmat & 6 & 25.8 & 55.6 & 34.9 \\
+avtomobil & 4 & 0.0 & 0.0 & 0.0 & karam & 4 & 0.0 & 0.0 & 0.0 & rais & 5 & 27.6 & 40.0 & 32.6 \\
+ayiq & 6 & 44.4 & 27.8 & 32.8 & karate & 5 & 0.0 & 0.0 & 0.0 & rasm & 8 & 19.6 & 25.0 & 21.7 \\
+ayol & 6 & 24.9 & 50.0 & 33.2 & karidor & 5 & 30.6 & 20.0 & 24.1 & rejissyor & 3 & 57.8 & 66.7 & 61.1 \\
+aytmoq & 4 & 26.4 & 33.3 & 29.2 & karta & 4 & 0.0 & 0.0 & 0.0 & restoran & 3 & 83.3 & 100.0 & 88.9 \\
+ayyor & 3 & 16.5 & 33.3 & 19.7 & kartoshka & 7 & 0.0 & 0.0 & 0.0 & riga & 3 & 0.0 & 0.0 & 0.0 \\
+ba\textquotesingle{}zan & 7 & 45.6 & 90.5 & 60.6 & katta & 8 & 11.1 & 4.2 & 6.1 & ritmika & 3 & 25.0 & 33.3 & 28.0 \\
+baho & 5 & 0.0 & 0.0 & 0.0 & kayfiyat & 4 & 0.0 & 0.0 & 0.0 & ro\textquotesingle{}mol & 5 & 27.0 & 26.7 & 26.0 \\
+bahor & 8 & 45.2 & 75.0 & 56.4 & kech & 3 & 0.0 & 0.0 & 0.0 & rossiya & 5 & 49.0 & 66.7 & 56.1 \\
+baliq & 7 & 0.0 & 0.0 & 0.0 & kecha & 6 & 61.3 & 83.3 & 70.3 & ruchka & 7 & 27.7 & 61.9 & 37.2 \\
+balkon & 5 & 0.0 & 0.0 & 0.0 & kekkaygan & 5 & 16.7 & 13.3 & 14.8 & sabzavotlar & 4 & 29.8 & 50.0 & 36.6 \\
+banan & 3 & 0.0 & 0.0 & 0.0 & kenguru & 7 & 46.2 & 52.4 & 49.0 & sabzi & 5 & 0.0 & 0.0 & 0.0 \\
+bank & 6 & 29.1 & 50.0 & 36.8 & kepka & 6 & 0.0 & 0.0 & 0.0 & sakramoq & 5 & 0.0 & 0.0 & 0.0 \\
+banka & 8 & 45.2 & 41.7 & 42.1 & kerak & 5 & 24.3 & 33.3 & 28.0 & sakson & 4 & 0.0 & 0.0 & 0.0 \\
+bantik & 4 & 0.0 & 0.0 & 0.0 & keyin & 4 & 0.0 & 0.0 & 0.0 & salom & 6 & 11.1 & 5.6 & 7.4 \\
+basketbol & 6 & 0.0 & 0.0 & 0.0 & kichik & 8 & 3.0 & 4.2 & 3.5 & samalyot & 3 & 0.0 & 0.0 & 0.0 \\
+basseyn & 4 & 0.0 & 0.0 & 0.0 & kim & 4 & 39.7 & 41.7 & 39.4 & samolyot & 3 & 0.0 & 0.0 & 0.0 \\
+baxtsiz & 3 & 11.1 & 11.1 & 11.1 & kimyo & 3 & 0.0 & 0.0 & 0.0 & sana & 4 & 73.3 & 33.3 & 43.0 \\
+begemot & 3 & 16.7 & 11.1 & 13.3 & kimyoviy tozalash & 5 & 0.0 & 0.0 & 0.0 & sanchqi & 7 & 36.6 & 38.1 & 36.8 \\
+bekat & 4 & 41.7 & 83.3 & 54.7 & kino & 3 & 0.0 & 0.0 & 0.0 & sarafan & 3 & 33.3 & 33.3 & 32.4 \\
+belarus & 4 & 25.0 & 16.7 & 19.4 & kiryuvish mashinasi & 4 & 33.7 & 41.7 & 36.0 & sarimsoq & 3 & 0.0 & 0.0 & 0.0 \\
+belbog & 3 & 0.0 & 0.0 & 0.0 & kiyik & 5 & 0.0 & 0.0 & 0.0 & sariq & 6 & 49.2 & 50.0 & 49.1 \\
+bermayman & 3 & 0.0 & 0.0 & 0.0 & kiyinmoq & 5 & 0.0 & 0.0 & 0.0 & saryog & 3 & 0.0 & 0.0 & 0.0 \\
+besh & 5 & 25.0 & 26.7 & 25.6 & ko\textquotesingle{}cha & 4 & 72.5 & 91.7 & 79.6 & saxiy & 4 & 0.0 & 0.0 & 0.0 \\
+bilmoq & 5 & 18.6 & 33.3 & 23.6 & ko\textquotesingle{}k & 8 & 29.6 & 33.3 & 30.7 & sekin & 6 & 0.0 & 0.0 & 0.0 \\
+bir kun & 4 & 33.3 & 16.7 & 22.2 & ko\textquotesingle{}l & 4 & 6.7 & 8.3 & 7.4 & sen & 3 & 0.0 & 0.0 & 0.0 \\
+bir yildan keyin & 3 & 0.0 & 0.0 & 0.0 & ko\textquotesingle{}p & 3 & 46.7 & 55.6 & 50.0 & senda & 2 & 0.0 & 0.0 & 0.0 \\
+bit & 3 & 33.3 & 11.1 & 16.7 & ko\textquotesingle{}prik & 6 & 54.1 & 55.6 & 53.2 & sentyabr & 5 & 21.4 & 20.0 & 20.4 \\
+biz & 4 & 27.8 & 25.0 & 26.2 & ko\textquotesingle{}rpa & 6 & 41.1 & 55.6 & 45.5 & seshanba & 6 & 11.1 & 5.6 & 7.4 \\
+blinchik & 5 & 0.0 & 0.0 & 0.0 & ko\textquotesingle{}ylak & 6 & 36.5 & 66.7 & 46.8 & shafqatsiz & 3 & 0.0 & 0.0 & 0.0 \\
+bo\textquotesingle{}ladi & 4 & 0.0 & 0.0 & 0.0 & ko\textquotesingle{}zgu & 3 & 0.0 & 0.0 & 0.0 & shaftoli & 5 & 6.7 & 6.7 & 6.7 \\
+bo\textquotesingle{}ri & 4 & 47.6 & 75.0 & 58.2 & ko\textquotesingle{}zoynak & 3 & 0.0 & 0.0 & 0.0 & shahar & 3 & 0.0 & 0.0 & 0.0 \\
+bo\textquotesingle{}tqa & 5 & 0.0 & 0.0 & 0.0 & kofe & 3 & 0.0 & 0.0 & 0.0 & shakar & 6 & 47.2 & 44.4 & 44.4 \\
+bo\textquotesingle{}ydoq & 3 & 66.7 & 44.4 & 50.0 & kofta & 6 & 25.2 & 33.3 & 28.3 & shalgam & 4 & 33.3 & 8.3 & 13.3 \\
+bobo & 8 & 21.1 & 25.0 & 22.9 & kolgotka & 3 & 0.0 & 0.0 & 0.0 & shamol & 4 & 29.4 & 50.0 & 36.0 \\
+boks & 5 & 29.4 & 46.7 & 35.7 & konfet & 4 & 0.0 & 0.0 & 0.0 & shampan vinosi & 4 & 16.7 & 16.7 & 16.7 \\
+bola & 6 & 25.0 & 22.2 & 22.5 & konki & 5 & 0.0 & 0.0 & 0.0 & shanba & 6 & 8.4 & 16.7 & 11.2 \\
+bolalar & 3 & 0.0 & 0.0 & 0.0 & konserva & 9 & 37.9 & 33.3 & 35.4 & shapka & 4 & 67.9 & 100.0 & 80.5 \\
+boshlamoq & 3 & 33.3 & 11.1 & 16.7 & koreya & 3 & 52.8 & 44.4 & 47.3 & sharf & 5 & 61.0 & 66.7 & 63.3 \\
+botinka & 4 & 45.1 & 50.0 & 46.0 & kostyum & 9 & 22.8 & 22.2 & 21.3 & sharq & 3 & 0.0 & 0.0 & 0.0 \\
+boy & 5 & 42.2 & 33.3 & 35.9 & koza & 3 & 0.0 & 0.0 & 0.0 & shaxmat & 6 & 39.5 & 33.3 & 35.7 \\
+bozor & 5 & 46.7 & 33.3 & 38.3 & kredit & 5 & 0.0 & 0.0 & 0.0 & sher & 9 & 64.3 & 59.3 & 60.7 \\
+bug\textquotesingle{}doy yormasi & 4 & 0.0 & 0.0 & 0.0 & kreslo & 11 & 69.5 & 60.6 & 64.5 & shifokor & 5 & 22.6 & 33.3 & 26.9 \\
+bugun & 8 & 58.1 & 54.2 & 54.7 & krujka & 4 & 0.0 & 0.0 & 0.0 & shift & 3 & 0.0 & 0.0 & 0.0 \\
+buka & 6 & 15.9 & 11.1 & 12.5 & kuchli & 5 & 0.0 & 0.0 & 0.0 & shim & 7 & 0.0 & 0.0 & 0.0 \\
+bulut & 4 & 44.4 & 25.0 & 31.7 & kulrang & 5 & 39.5 & 46.7 & 42.6 & shippak & 8 & 10.1 & 12.5 & 11.1 \\
+butilka & 6 & 0.0 & 0.0 & 0.0 & kun & 5 & 27.0 & 20.0 & 22.2 & shirin & 7 & 4.8 & 4.8 & 4.8 \\
+buvi & 3 & 0.0 & 0.0 & 0.0 & kurash & 7 & 15.9 & 14.3 & 15.0 & shkaf & 3 & 0.0 & 0.0 & 0.0 \\
+buxoro & 3 & 0.0 & 0.0 & 0.0 & kurka & 6 & 28.4 & 27.8 & 27.9 & shlyapa & 3 & 0.0 & 0.0 & 0.0 \\
+chang & 4 & 0.0 & 0.0 & 0.0 & kurtka & 8 & 37.8 & 29.2 & 31.7 & sho\textquotesingle{}rva & 8 & 23.3 & 37.5 & 28.0 \\
+chang\textquotesingle{}i & 7 & 18.7 & 19.0 & 18.8 & kutubxona & 4 & 38.9 & 25.0 & 30.2 & shvetsiya & 3 & 0.0 & 0.0 & 0.0 \\
+changyutgich & 4 & 38.9 & 33.3 & 35.7 & kuz & 11 & 54.2 & 48.5 & 50.9 & sibir & 4 & 16.7 & 8.3 & 11.1 \\
+chaqmoq & 5 & 31.7 & 33.3 & 32.0 & kvartira & 5 & 0.0 & 0.0 & 0.0 & sichqon & 5 & 20.7 & 40.0 & 27.3 \\
+chashka & 4 & 53.3 & 33.3 & 35.6 & lagan & 3 & 0.0 & 0.0 & 0.0 & sigir & 7 & 95.2 & 85.7 & 90.1 \\
+chempion & 4 & 61.1 & 25.0 & 34.0 & laqab & 4 & 36.1 & 25.0 & 29.0 & sinf & 3 & 0.0 & 0.0 & 0.0 \\
+chet el & 3 & 0.0 & 0.0 & 0.0 & latvia & 3 & 0.0 & 0.0 & 0.0 & siz & 6 & 0.0 & 0.0 & 0.0 \\
+chigirtka & 4 & 0.0 & 0.0 & 0.0 & lift & 6 & 54.2 & 66.7 & 59.7 & so\textquotesingle{}z & 3 & 46.7 & 55.6 & 49.0 \\
+chipta & 4 & 0.0 & 0.0 & 0.0 & likopcha & 5 & 0.0 & 0.0 & 0.0 & soat & 11 & 3.5 & 6.1 & 4.4 \\
+chiroq & 5 & 63.3 & 53.3 & 56.2 & limon & 6 & 41.3 & 55.6 & 47.2 & sochiq & 8 & 0.0 & 0.0 & 0.0 \\
+chiroyli & 5 & 0.0 & 0.0 & 0.0 & litva & 4 & 56.1 & 100.0 & 71.4 & somsa & 4 & 33.3 & 8.3 & 13.3 \\
+chivin & 3 & 0.0 & 0.0 & 0.0 & loy & 4 & 0.0 & 0.0 & 0.0 & soniya & 3 & 4.2 & 11.1 & 6.1 \\
+chizg\textquotesingle{}ich & 4 & 8.3 & 8.3 & 8.3 & magnitafon & 3 & 35.6 & 44.4 & 38.9 & sosiska & 6 & 62.7 & 61.1 & 61.2 \\
+cho\textquotesingle{}chqa & 5 & 54.8 & 66.7 & 59.0 & majlis & 4 & 44.4 & 41.7 & 42.4 & sotib olmoq & 3 & 0.0 & 0.0 & 0.0 \\
+cho\textquotesingle{}mich & 4 & 4.2 & 8.3 & 5.6 & makaron & 7 & 28.8 & 33.3 & 30.1 & sotmoq & 3 & 0.0 & 0.0 & 0.0 \\
+chodir & 4 & 8.3 & 8.3 & 8.3 & maktab & 3 & 0.0 & 0.0 & 0.0 & sovuq & 4 & 0.0 & 0.0 & 0.0 \\
+chorraha & 6 & 24.6 & 38.9 & 30.1 & mamont & 3 & 0.0 & 0.0 & 0.0 & sport & 7 & 13.3 & 23.8 & 17.0 \\
+chorshanba & 6 & 8.3 & 5.6 & 6.7 & manti & 4 & 5.6 & 8.3 & 6.7 & stadion & 5 & 0.0 & 0.0 & 0.0 \\
+choy & 13 & 40.8 & 53.8 & 46.2 & manzil & 4 & 63.3 & 33.3 & 39.3 & stakan & 5 & 22.6 & 26.7 & 24.1 \\
+choynak & 9 & 0.0 & 0.0 & 0.0 & maosh & 5 & 61.1 & 46.7 & 51.5 & stol & 7 & 74.6 & 52.4 & 59.6 \\
+choyshab & 3 & 0.0 & 0.0 & 0.0 & maqtamoq & 5 & 6.7 & 6.7 & 6.7 & stul & 6 & 39.8 & 44.4 & 41.1 \\
+chuchvara & 5 & 0.0 & 0.0 & 0.0 & maqtanchoq & 3 & 16.7 & 11.1 & 13.3 & sud & 3 & 27.8 & 33.3 & 30.2 \\
+chumoli & 6 & 0.0 & 0.0 & 0.0 & markaz & 4 & 13.3 & 16.7 & 14.8 & supurgi & 12 & 9.2 & 11.1 & 10.1 \\
+daftar & 5 & 0.0 & 0.0 & 0.0 & mart & 8 & 17.8 & 37.5 & 24.1 & sut & 4 & 44.4 & 50.0 & 46.6 \\
+dam olmoq & 4 & 8.3 & 8.3 & 8.3 & masala & 3 & 0.0 & 0.0 & 0.0 & sutka & 3 & 0.0 & 0.0 & 0.0 \\
+daniya & 4 & 20.6 & 33.3 & 25.5 & mashina & 5 & 0.0 & 0.0 & 0.0 & suv & 5 & 6.7 & 6.7 & 6.7 \\
+daqiqa & 6 & 0.0 & 0.0 & 0.0 & mavzu & 3 & 83.3 & 100.0 & 90.5 & suyak & 3 & 0.0 & 0.0 & 0.0 \\
+dars & 6 & 6.7 & 11.1 & 8.3 & may & 6 & 14.1 & 27.8 & 18.7 & suzish & 3 & 38.1 & 22.2 & 23.3 \\
+darvoza & 10 & 18.1 & 20.0 & 18.9 & mayka & 7 & 31.5 & 47.6 & 37.5 & ta\textquotesingle{}til & 3 & 11.1 & 11.1 & 11.1 \\
+darvozabon & 3 & 61.7 & 100.0 & 75.8 & maymun & 8 & 29.4 & 29.2 & 29.2 & tabiat & 3 & 63.3 & 55.6 & 52.4 \\
+daryo & 3 & 0.0 & 0.0 & 0.0 & mazali & 5 & 41.0 & 60.0 & 47.8 & taklif & 3 & 0.0 & 0.0 & 0.0 \\
+dastro\textquotesingle{}mol & 4 & 41.1 & 75.0 & 53.0 & mebel & 5 & 0.0 & 0.0 & 0.0 & taksi & 7 & 27.3 & 28.6 & 27.6 \\
+dasturxon & 8 & 35.4 & 37.5 & 36.2 & mehmonxona & 3 & 33.3 & 22.2 & 26.7 & tana & 3 & 68.9 & 66.7 & 65.6 \\
+davlat & 3 & 66.7 & 88.9 & 75.0 & men & 5 & 0.0 & 0.0 & 0.0 & tanaffus & 5 & 64.9 & 66.7 & 62.6 \\
+dekabr & 6 & 32.4 & 38.9 & 33.4 & menda & 3 & 0.0 & 0.0 & 0.0 & tarelka & 4 & 0.0 & 0.0 & 0.0 \\
+delfin & 7 & 62.1 & 61.9 & 60.9 & menga & 2 & 16.7 & 16.7 & 16.7 & tarix & 3 & 66.7 & 66.7 & 64.8 \\
+dengiz & 3 & 13.2 & 44.4 & 20.2 & metro & 7 & 46.7 & 33.3 & 38.9 & tarjimon & 4 & 0.0 & 0.0 & 0.0 \\
+deraza & 5 & 52.5 & 33.3 & 33.2 & mevalar & 3 & 42.9 & 66.7 & 50.4 & tartibli & 4 & 0.0 & 0.0 & 0.0 \\
+devor & 12 & 36.0 & 41.7 & 37.0 & milliard & 7 & 0.0 & 0.0 & 0.0 & tarvuz & 3 & 0.0 & 0.0 & 0.0 \\
+diqqat & 3 & 0.0 & 0.0 & 0.0 & milliy & 3 & 0.0 & 0.0 & 0.0 & tayyorlamoq & 5 & 0.0 & 0.0 & 0.0 \\
+direktor & 3 & 0.0 & 0.0 & 0.0 & moldova & 4 & 57.6 & 91.7 & 70.0 & teatr & 4 & 100.0 & 75.0 & 85.7 \\
+divan & 7 & 0.0 & 0.0 & 0.0 & moskva & 3 & 0.0 & 0.0 & 0.0 & tekshirmoq & 4 & 0.0 & 0.0 & 0.0 \\
+do\textquotesingle{}kon & 4 & 8.3 & 8.3 & 8.3 & mototsikl & 4 & 8.3 & 8.3 & 8.3 & telefon & 5 & 40.0 & 33.3 & 36.3 \\
+do\textquotesingle{}l & 3 & 0.0 & 0.0 & 0.0 & mushuk & 8 & 0.0 & 0.0 & 0.0 & telegraf & 5 & 10.8 & 13.3 & 11.8 \\
+do\textquotesingle{}st & 4 & 0.0 & 0.0 & 0.0 & musiqa & 3 & 0.0 & 0.0 & 0.0 & televizor & 7 & 72.0 & 85.7 & 78.0 \\
+doim & 8 & 0.0 & 0.0 & 0.0 & musobaqa & 4 & 0.0 & 0.0 & 0.0 & temir yo\textquotesingle{}l & 3 & 0.0 & 0.0 & 0.0 \\
+domino & 6 & 19.4 & 11.1 & 14.1 & muzlatgich & 11 & 35.8 & 21.2 & 26.5 & tennis & 3 & 0.0 & 0.0 & 0.0 \\
+dori & 3 & 6.7 & 11.1 & 8.3 & muzqaymoq & 3 & 0.0 & 0.0 & 0.0 & terapevt & 4 & 33.3 & 8.3 & 13.3 \\
+dorixona & 7 & 0.0 & 0.0 & 0.0 & nafratlanmoq & 3 & 0.0 & 0.0 & 0.0 & teri & 4 & 6.7 & 8.3 & 7.4 \\
+doska & 3 & 0.0 & 0.0 & 0.0 & namangan & 3 & 0.0 & 0.0 & 0.0 & terma & 3 & 0.0 & 0.0 & 0.0 \\
+dush & 3 & 64.3 & 55.6 & 50.0 & navbatchi & 4 & 50.4 & 66.7 & 56.5 & tez & 9 & 0.0 & 0.0 & 0.0 \\
+dushanba & 6 & 55.9 & 77.8 & 63.6 & nima & 6 & 49.2 & 44.4 & 45.8 & tez-tez & 3 & 0.0 & 0.0 & 0.0 \\
+echki & 6 & 4.2 & 5.6 & 4.8 & nok & 3 & 48.9 & 66.7 & 55.6 & tikuvchi & 3 & 13.9 & 22.2 & 16.9 \\
+egizaklar & 4 & 61.1 & 25.0 & 34.0 & nol & 3 & 0.0 & 0.0 & 0.0 & timsoh & 4 & 38.7 & 58.3 & 46.3 \\
+ekologiya & 3 & 83.3 & 100.0 & 88.9 & non & 5 & 3.7 & 6.7 & 4.8 & tipratikan & 3 & 0.0 & 0.0 & 0.0 \\
+elak & 6 & 42.5 & 38.9 & 39.7 & novosibirsk & 3 & 0.0 & 0.0 & 0.0 & to\textquotesingle{}qimoq & 3 & 0.0 & 0.0 & 0.0 \\
+elektir & 4 & 0.0 & 0.0 & 0.0 & noyabr & 6 & 23.3 & 44.4 & 30.5 & to\textquotesingle{}qqiz & 5 & 55.0 & 53.3 & 53.7 \\
+erkak & 8 & 34.5 & 33.3 & 33.9 & o\textquotesingle{}g\textquotesingle{}lim & 7 & 0.0 & 0.0 & 0.0 & to\textquotesingle{}qson & 3 & 0.0 & 0.0 & 0.0 \\
+erkaklar ko\textquotesingle{}ylagi & 3 & 80.6 & 77.8 & 77.5 & o\textquotesingle{}g\textquotesingle{}rilik & 8 & 0.0 & 0.0 & 0.0 & to\textquotesingle{}rt & 7 & 13.1 & 9.5 & 10.8 \\
+ertaga & 4 & 9.5 & 16.7 & 12.1 & o\textquotesingle{}lim & 6 & 53.5 & 77.8 & 62.1 & to\textquotesingle{}satdan & 3 & 0.0 & 0.0 & 0.0 \\
+ertage & 3 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}n olti & 3 & 61.7 & 88.9 & 72.6 & to\textquotesingle{}y & 7 & 39.2 & 57.1 & 45.7 \\
+ertak & 4 & 86.7 & 100.0 & 92.6 & o\textquotesingle{}n to\textquotesingle{}rt & 4 & 0.0 & 0.0 & 0.0 & tom & 3 & 59.7 & 88.9 & 69.0 \\
+ertalab & 3 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}n uch & 3 & 0.0 & 0.0 & 0.0 & tong & 5 & 20.6 & 26.7 & 23.2 \\
+eshik & 7 & 25.8 & 38.1 & 30.7 & o\textquotesingle{}qimoq & 5 & 11.1 & 13.3 & 11.3 & topshiriq & 4 & 0.0 & 0.0 & 0.0 \\
+eshitmoq & 3 & 25.4 & 44.4 & 31.7 & o\textquotesingle{}qlov & 8 & 51.0 & 66.7 & 57.6 & tova & 5 & 23.3 & 26.7 & 23.4 \\
+eslamoq & 5 & 39.3 & 60.0 & 47.4 & o\textquotesingle{}quvchi & 4 & 4.8 & 8.3 & 6.1 & tovuq & 6 & 58.3 & 83.3 & 68.5 \\
+estoniya & 4 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}rdak & 8 & 29.4 & 33.3 & 30.9 & tozalamoq & 7 & 72.2 & 14.3 & 21.8 \\
+etik & 6 & 38.1 & 50.0 & 43.2 & o\textquotesingle{}rganmoq & 3 & 0.0 & 0.0 & 0.0 & tramvay & 3 & 0.0 & 0.0 & 0.0 \\
+fabrika & 3 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}rgimchak & 7 & 13.9 & 19.0 & 15.9 & trolleybus & 5 & 0.0 & 0.0 & 0.0 \\
+faks & 6 & 17.8 & 11.1 & 13.5 & o\textquotesingle{}rik & 4 & 11.1 & 8.3 & 9.5 & tufli & 6 & 0.0 & 0.0 & 0.0 \\
+falaj & 4 & 16.7 & 8.3 & 11.1 & o\textquotesingle{}rmon & 3 & 33.3 & 11.1 & 16.7 & tug\textquotesingle{}ilmoq & 3 & 0.0 & 0.0 & 0.0 \\
+familiya & 4 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}simlik yog\textquotesingle{}i & 4 & 0.0 & 0.0 & 0.0 & tulki & 5 & 0.0 & 0.0 & 0.0 \\
+farrosh & 8 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}smir & 3 & 0.0 & 0.0 & 0.0 & tumov & 4 & 83.3 & 33.3 & 43.3 \\
+fevral & 5 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}tgan kuni & 3 & 52.8 & 77.8 & 62.4 & tun & 3 & 80.0 & 66.7 & 70.0 \\
+figurali uchish & 6 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}tgan yil & 4 & 42.9 & 50.0 & 45.5 & turmoq & 5 & 43.5 & 73.3 & 54.3 \\
+fikr & 3 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}yin & 6 & 49.0 & 72.2 & 58.3 & tushlik & 3 & 72.2 & 55.6 & 62.2 \\
+fil & 7 & 27.2 & 38.1 & 31.2 & o\textquotesingle{}z & 2 & 0.0 & 0.0 & 0.0 & tushunmaslik & 4 & 59.3 & 75.0 & 65.4 \\
+finlandiya & 3 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}zbekiston & 4 & 0.0 & 0.0 & 0.0 & tushunmoq & 4 & 0.0 & 0.0 & 0.0 \\
+foyda & 3 & 0.0 & 0.0 & 0.0 & o\textquotesingle{}zimniki & 3 & 33.3 & 66.7 & 44.4 & tuxum & 10 & 20.2 & 16.7 & 17.9 \\
+futbol & 6 & 35.4 & 27.8 & 29.5 & oddiy & 4 & 0.0 & 0.0 & 0.0 & tuya & 4 & 0.0 & 0.0 & 0.0 \\
+futbolka & 7 & 39.8 & 66.7 & 49.7 & odessa & 3 & 0.0 & 0.0 & 0.0 & tuz & 7 & 10.8 & 23.8 & 14.9 \\
+g\textquotesingle{}alaba & 5 & 57.8 & 40.0 & 44.5 & oila & 6 & 6.7 & 5.6 & 6.1 & tvorog & 4 & 61.1 & 41.7 & 49.2 \\
+g\textquotesingle{}amgin & 4 & 44.4 & 41.7 & 42.4 & oktabr & 4 & 55.6 & 25.0 & 32.4 & uch & 5 & 58.3 & 26.7 & 33.3 \\
+g\textquotesingle{}arb & 3 & 33.3 & 11.1 & 16.7 & oldin & 3 & 0.0 & 0.0 & 0.0 & uka & 3 & 0.0 & 0.0 & 0.0 \\
+g\textquotesingle{}oz & 4 & 0.0 & 0.0 & 0.0 & olimpiada & 6 & 41.2 & 66.7 & 50.3 & ukraina & 3 & 0.0 & 0.0 & 0.0 \\
+galstuk & 4 & 70.0 & 58.3 & 61.1 & olma & 9 & 0.0 & 0.0 & 0.0 & ular & 6 & 0.0 & 0.0 & 0.0 \\
+geografiya & 4 & 30.6 & 33.3 & 31.2 & olomon & 3 & 0.0 & 0.0 & 0.0 & un & 5 & 0.0 & 0.0 & 0.0 \\
+gilam & 7 & 17.8 & 28.6 & 21.5 & olti & 4 & 0.0 & 0.0 & 0.0 & uning & 3 & 5.6 & 11.1 & 7.4 \\
+gimnastika & 4 & 56.5 & 66.7 & 59.5 & olxo\textquotesingle{}ri & 4 & 38.3 & 58.3 & 45.9 & unutmoq & 3 & 83.3 & 77.8 & 80.0 \\
+go\textquotesingle{}sht & 9 & 14.8 & 14.8 & 14.7 & ona & 4 & 0.0 & 0.0 & 0.0 & urishmoq & 3 & 41.1 & 55.6 & 44.8 \\
+gol & 4 & 0.0 & 0.0 & 0.0 & opa & 3 & 0.0 & 0.0 & 0.0 & usta & 4 & 0.0 & 0.0 & 0.0 \\
+gollandiya & 3 & 0.0 & 0.0 & 0.0 & oq & 7 & 28.3 & 23.8 & 25.6 & uy & 4 & 50.0 & 50.0 & 49.0 \\
+grechka & 5 & 5.6 & 6.7 & 6.1 & orqada qolmoq & 3 & 22.2 & 22.2 & 22.2 & uyqusizlik & 5 & 4.8 & 6.7 & 5.6 \\
+gul & 5 & 0.0 & 0.0 & 0.0 & oshpaz & 4 & 27.5 & 25.0 & 24.1 & uzoq & 7 & 41.7 & 28.6 & 33.6 \\
+guruch & 3 & 0.0 & 0.0 & 0.0 & oshxona & 13 & 27.2 & 33.3 & 29.6 & uzum & 5 & 0.0 & 0.0 & 0.0 \\
+guvoh & 4 & 69.4 & 58.3 & 63.1 & osmon & 5 & 20.4 & 26.7 & 22.4 & vagon & 3 & 22.2 & 22.2 & 22.2 \\
+ha & 3 & 0.0 & 0.0 & 0.0 & oson & 7 & 15.7 & 19.0 & 17.2 & vaqt & 7 & 0.0 & 0.0 & 0.0 \\
+hafta & 6 & 54.6 & 88.9 & 67.4 & ot & 11 & 27.7 & 27.3 & 26.5 & vaza & 3 & 63.3 & 88.9 & 72.2 \\
+hammom & 7 & 5.6 & 4.8 & 5.1 & ota & 5 & 50.4 & 80.0 & 61.1 & vazir & 3 & 77.8 & 66.7 & 71.1 \\
+har-xil & 5 & 0.0 & 0.0 & 0.0 & ota-ona & 4 & 27.8 & 16.7 & 20.6 & velosiped & 5 & 0.0 & 0.0 & 0.0 \\
+harf:a & 10 & 66.1 & 96.7 & 78.1 & oy & 5 & 0.0 & 0.0 & 0.0 & vertolyot & 5 & 50.8 & 80.0 & 61.2 \\
+harf:b & 10 & 50.0 & 16.7 & 24.6 & oyna & 4 & 0.0 & 0.0 & 0.0 & vino & 5 & 0.0 & 0.0 & 0.0 \\
+harf:ch & 12 & 28.2 & 22.2 & 24.4 & ozarbayjon & 3 & 16.7 & 11.1 & 13.3 & viza & 3 & 0.0 & 0.0 & 0.0 \\
+harf:d & 10 & 35.8 & 40.0 & 37.4 & palto & 10 & 11.1 & 10.0 & 10.5 & vokzal & 5 & 15.1 & 20.0 & 17.2 \\
+harf:e & 10 & 0.0 & 0.0 & 0.0 & panama & 8 & 45.5 & 45.8 & 44.8 & voleybol & 6 & 38.9 & 16.7 & 22.2 \\
+harf:f & 10 & 100.0 & 96.7 & 98.2 & panjara & 6 & 47.6 & 50.0 & 48.7 & xato & 3 & 0.0 & 0.0 & 0.0 \\
+harf:g & 10 & 45.9 & 73.3 & 55.9 & parda & 6 & 45.2 & 88.9 & 59.7 & xayr & 4 & 40.0 & 66.7 & 49.1 \\
+harf:g\textquotesingle{} & 10 & 12.8 & 16.7 & 14.5 & pardalar & 3 & 0.0 & 0.0 & 0.0 & xindiston & 3 & 55.6 & 66.7 & 56.3 \\
+harf:j & 9 & 75.3 & 100.0 & 85.8 & parket & 4 & 75.0 & 33.3 & 43.9 & xo\textquotesingle{}roz & 5 & 6.7 & 6.7 & 6.7 \\
+harf:k & 10 & 13.9 & 10.0 & 11.6 & pasport & 4 & 34.7 & 66.7 & 45.4 & xokkey & 5 & 8.3 & 6.7 & 7.4 \\
+harf:l & 11 & 0.0 & 0.0 & 0.0 & paypoq & 5 & 32.8 & 40.0 & 35.7 & xola & 3 & 0.0 & 0.0 & 0.0 \\
+harf:m & 10 & 56.7 & 50.0 & 53.0 & payshanba & 5 & 25.4 & 33.3 & 28.8 & xona & 4 & 0.0 & 0.0 & 0.0 \\
+harf:n & 10 & 44.4 & 13.3 & 20.2 & pechene & 6 & 0.0 & 0.0 & 0.0 & yakshanba & 7 & 39.4 & 52.4 & 44.6 \\
+harf:ng & 9 & 81.3 & 55.6 & 64.1 & pichoq & 7 & 20.1 & 28.6 & 23.6 & yana & 10 & 41.0 & 33.3 & 36.6 \\
+harf:o & 10 & 79.1 & 100.0 & 88.3 & pirog & 5 & 0.0 & 0.0 & 0.0 & yanvar & 7 & 4.2 & 4.8 & 4.4 \\
+harf:o\textquotesingle{} & 10 & 0.0 & 0.0 & 0.0 & pivo & 4 & 0.0 & 0.0 & 0.0 & yaponiya & 3 & 44.4 & 22.2 & 27.8 \\
+harf:p & 9 & 0.0 & 0.0 & 0.0 & piyodalar o\textquotesingle{}tish yo\textquotesingle{}li & 5 & 0.0 & 0.0 & 0.0 & yashamoq & 4 & 31.7 & 25.0 & 26.9 \\
+harf:r & 10 & 90.6 & 90.0 & 90.2 & piyola & 5 & 13.3 & 13.3 & 13.3 & yashil & 4 & 37.3 & 58.3 & 44.9 \\
+harf:s & 10 & 70.1 & 90.0 & 78.6 & piyoz & 7 & 43.6 & 81.0 & 56.7 & yaxshi & 12 & 5.1 & 5.6 & 5.2 \\
+harf:sh & 12 & 60.5 & 69.4 & 64.0 & pochta & 3 & 0.0 & 0.0 & 0.0 & yemoq & 7 & 39.3 & 66.7 & 49.4 \\
+harf:t & 8 & 16.7 & 8.3 & 11.1 & pol & 4 & 62.2 & 33.3 & 39.8 & yengil & 4 & 0.0 & 0.0 & 0.0 \\
+harf:u & 10 & 40.2 & 30.0 & 30.5 & pomidor & 4 & 0.0 & 0.0 & 0.0 & yer & 5 & 0.0 & 0.0 & 0.0 \\
+harf:x & 10 & 57.6 & 73.3 & 64.3 & pora & 3 & 0.0 & 0.0 & 0.0 & yer osti yo\textquotesingle{}li & 5 & 0.0 & 0.0 & 0.0 \\
+harf:z & 10 & 75.9 & 86.7 & 80.7 & poshna & 3 & 0.0 & 0.0 & 0.0 & yetmish & 3 & 0.0 & 0.0 & 0.0 \\
+\ruT{harf:ж} & 4 & 0.0 & 0.0 & 0.0 & prokuror & 7 & 22.6 & 19.0 & 20.3 & yetti & 4 & 0.0 & 0.0 & 0.0 \\
+\ruT{harf:к} & 3 & 0.0 & 0.0 & 0.0 & pul & 4 & 0.0 & 0.0 & 0.0 & yiqilmoq & 5 & 23.3 & 13.3 & 16.2 \\
+\ruT{harf:н} & 3 & 0.0 & 0.0 & 0.0 & pushti & 6 & 23.3 & 11.1 & 14.4 & yo\textquotesingle{}lbars & 5 & 56.5 & 93.3 & 70.3 \\
+\ruT{harf:с} & 3 & 0.0 & 0.0 & 0.0 & qabziyat & 4 & 25.0 & 25.0 & 25.0 & yo\textquotesingle{}q & 12 & 0.0 & 0.0 & 0.0 \\
+\ruT{harf:ф} & 3 & 0.0 & 0.0 & 0.0 & qachon & 10 & 71.9 & 70.0 & 70.5 & yod olmoq & 4 & 33.3 & 8.3 & 13.3 \\
+\ruT{harf:ц} & 3 & 23.3 & 44.4 & 30.6 & qadah & 3 & 0.0 & 0.0 & 0.0 & yomg\textquotesingle{}ir & 5 & 6.7 & 6.7 & 6.7 \\
+\ruT{harf:ъ} & 3 & 0.0 & 0.0 & 0.0 & qalam & 13 & 0.0 & 0.0 & 0.0 & yomon & 4 & 0.0 & 0.0 & 0.0 \\
+\ruT{harf:ь} & 4 & 13.9 & 16.7 & 15.0 & qalampir & 3 & 0.0 & 0.0 & 0.0 & yonalish & 4 & 0.0 & 0.0 & 0.0 \\
+\ruT{harf:я} & 3 & 0.0 & 0.0 & 0.0 & qamoq & 3 & 6.7 & 11.1 & 8.3 & yoqadi & 4 & 18.8 & 41.7 & 25.6 \\
+haydovchi & 3 & 0.0 & 0.0 & 0.0 & qamoqxona & 3 & 0.0 & 0.0 & 0.0 & yosh & 3 & 0.0 & 0.0 & 0.0 \\
+hech kim & 4 & 21.6 & 50.0 & 30.0 & qancha & 3 & 0.0 & 0.0 & 0.0 & yostiq & 4 & 10.8 & 16.7 & 13.0 \\
+hech qachon & 4 & 0.0 & 0.0 & 0.0 & qandil & 6 & 50.0 & 50.0 & 49.4 & yovvoyi hayvonlar & 4 & 0.0 & 0.0 & 0.0 \\
+hikoya & 3 & 16.7 & 11.1 & 13.3 & qari & 3 & 0.0 & 0.0 & 0.0 & yoz & 9 & 57.4 & 55.6 & 56.4 \\
+hojatxona & 8 & 57.8 & 75.0 & 64.8 & qarindosh & 4 & 35.6 & 41.7 & 37.7 & yugoslaviya & 3 & 0.0 & 0.0 & 0.0 \\
+hujjat & 4 & 37.1 & 58.3 & 45.1 & qaror & 3 & 38.3 & 55.6 & 45.2 & yugurish & 6 & 17.5 & 16.7 & 16.9 \\
+hujum & 3 & 0.0 & 0.0 & 0.0 & qarz & 4 & 0.0 & 0.0 & 0.0 & yugurmoq & 6 & 4.2 & 5.6 & 4.8 \\
+hukm & 3 & 0.0 & 0.0 & 0.0 & qattiqqo\textquotesingle{}l & 4 & 0.0 & 0.0 & 0.0 & yuk tashuvchi & 4 & 33.3 & 33.3 & 32.9 \\
+id & 3 & 0.0 & 0.0 & 0.0 & qavat & 8 & 18.6 & 16.7 & 17.4 & yulduz & 6 & 24.4 & 22.2 & 23.2 \\
+ijara & 3 & 100.0 & 77.8 & 86.7 & qayerda & 13 & 4.5 & 5.1 & 4.8 & yupqa & 4 & 0.0 & 0.0 & 0.0 \\
+ikki & 6 & 0.0 & 0.0 & 0.0 & qayerga & 6 & 10.5 & 22.2 & 13.9 & yuqumli kasallik & 3 & 0.0 & 0.0 & 0.0 \\
+ikki yildan keyin & 4 & 15.0 & 16.7 & 15.7 & qayiq & 9 & 0.0 & 0.0 & 0.0 & yurak & 4 & 48.9 & 50.0 & 48.7 \\
+ilan & 6 & 0.0 & 0.0 & 0.0 & qaynatmoq & 3 & 0.0 & 0.0 & 0.0 & yurist & 3 & 0.0 & 0.0 & 0.0 \\
+iliq & 3 & 0.0 & 0.0 & 0.0 & qilichbozlik & 7 & 0.0 & 0.0 & 0.0 & yurmoq & 4 & 0.0 & 0.0 & 0.0 \\
+ilon & 5 & 0.0 & 0.0 & 0.0 & qish & 14 & 13.3 & 11.9 & 12.5 & yutmoq & 3 & 0.0 & 0.0 & 0.0 \\
+iltimos & 11 & 70.6 & 57.6 & 63.3 & qisqa & 5 & 17.9 & 20.0 & 18.5 & yutqazmoq & 3 & 0.0 & 0.0 & 0.0 \\
+imtiyoz & 7 & 25.9 & 19.0 & 21.4 & qiyin & 5 & 30.6 & 33.3 & 31.6 & yuz & 3 & 3.7 & 11.1 & 5.6 \\
+indinga & 3 & 0.0 & 0.0 & 0.0 & qiz & 5 & 0.0 & 0.0 & 0.0 & zaharlanish & 3 & 0.0 & 0.0 & 0.0 \\
+infarkt & 5 & 40.1 & 53.3 & 45.4 & qiz bola & 5 & 0.0 & 0.0 & 0.0 & zaif & 3 & 0.0 & 0.0 & 0.0 \\
+inson & 3 & 0.0 & 0.0 & 0.0 & qizil & 8 & 5.7 & 12.5 & 7.8 & zavod & 3 & 0.0 & 0.0 & 0.0 \\
+ish & 3 & 0.0 & 0.0 & 0.0 & qo\textquotesingle{}lqop & 7 & 35.4 & 52.4 & 41.9 & zina & 7 & 0.0 & 0.0 & 0.0 \\
+ishchi & 3 & 51.0 & 100.0 & 67.2 & qo\textquotesingle{}rqmoq & 6 & 0.0 & 0.0 & 0.0 &  &  &  &  &  \\
+ishlab chiqarish & 5 & 4.8 & 6.7 & 5.6 & qo\textquotesingle{}shni & 3 & 63.9 & 66.7 & 64.1 &  &  &  &  &  \\
+\end{longtable}
+\normalsize
+
+\section{Most frequent confusions}
+Tables~\ref{tab:s_conf1} and~\ref{tab:s_conf2} list the most frequent (true class $\rightarrow$ predicted class) pairs: for Slovo and Bukva under SD-5 (MPE-A1; number of errors per seed, pooled over the five folds), for the UzSL corpus under LOSO (MPE-A1 pretrained on Slovo + Bukva, 682-class head; errors per seed, pooled over the ten folds) and for the UzSL pilot (share of the test recordings of the true class, pooled over the two test participants and three seeds).
+\begin{table}[H]
+\caption{Most frequent confusions of MPE-A1 under SD-5 on Slovo (left, 20 pairs) and Bukva (right, 20 pairs); errors per seed.}\label{tab:s_conf1}
+\centering
+\scriptsize
+\begin{tabular}{llr|llr}
+\toprule
+\textbf{Slovo: true} & \textbf{predicted} & \textbf{errors} & \textbf{Bukva: true} & \textbf{predicted} & \textbf{errors} \\
+\midrule
+\ruT{остановить} & \ruT{остановиться} & 7.0 & \ruT{Щ} & \ruT{Ш} & 39.0 \\
+\ruT{наверху} & \ruT{вверх} & 6.3 & \ruT{Ш} & \ruT{Щ} & 26.0 \\
+\ruT{краткий} & \ruT{короткий} & 5.7 & \ruT{М} & \ruT{Т} & 13.3 \\
+\ruT{остановиться} & \ruT{остановить} & 5.7 & \ruT{Л} & \ruT{П} & 13.0 \\
+\ruT{прекрасный} & \ruT{чудесный} & 5.3 & \ruT{Т} & \ruT{М} & 12.3 \\
+\ruT{резервирование; бронирование} & \ruT{занятый} & 5.3 & \ruT{П} & \ruT{Л} & 11.3 \\
+\ruT{этот} & \ruT{эти} & 5.3 & \ruT{Ж} & \ruT{Е} & 7.0 \\
+\ruT{эти} & \ruT{этот} & 5.0 & \ruT{Е} & \ruT{Ж} & 6.0 \\
+\ruT{прием пищи} & \ruT{еда} & 4.7 & \ruT{К} & \ruT{Я} & 4.7 \\
+\ruT{хотеть} & \ruT{желание} & 4.7 & \ruT{П} & \ruT{Т} & 4.7 \\
+\ruT{иметь} & \ruT{Обладать} & 4.7 & \ruT{Ъ} & \ruT{Ь} & 3.7 \\
+\ruT{Выигрыш} & \ruT{найти} & 4.3 & \ruT{Т} & \ruT{П} & 3.7 \\
+\ruT{коричневый} & \ruT{повар} & 4.3 & \ruT{Я} & \ruT{Б} & 3.7 \\
+\ruT{начало} & \ruT{сначала} & 4.3 & \ruT{И} & \ruT{Ю} & 3.7 \\
+\ruT{любовь} & \ruT{любовный} & 4.0 & \ruT{М} & \ruT{Л} & 3.3 \\
+\ruT{отложенный} & \ruT{отложить} & 4.0 & \ruT{К} & \ruT{Д} & 3.3 \\
+\ruT{уверен} & \ruT{уверенный} & 3.7 & \ruT{Ь} & \ruT{Ъ} & 3.3 \\
+\ruT{взять} & \ruT{одолжить} & 3.7 & \ruT{Ж} & \ruT{Ф} & 3.0 \\
+\ruT{чудесный} & \ruT{прекрасный} & 3.7 & \ruT{Д} & \ruT{Я} & 3.0 \\
+\ruT{нога} & no\_event & 3.7 & \ruT{Р} & \ruT{И} & 2.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}[H]
+\caption{Most frequent confusions on the UzSL corpus (left, LOSO, 20 pairs; errors per seed) and on the UzSL pilot (right, 15 pairs; per cent of the test recordings of the true class).}\label{tab:s_conf2}
+\centering
+\scriptsize
+\begin{tabular}{llr|llr}
+\toprule
+\textbf{Corpus: true} & \textbf{predicted} & \textbf{errors} & \textbf{Pilot: true} & \textbf{predicted} & \textbf{\% of class} \\
+\midrule
+harf:g\textquotesingle{} & harf:g & 5.3 & 0 & O & 100.0 \\
+harf:e & may & 5.0 & H & X & 100.0 \\
+harf:u & qayerga & 4.7 & I & E & 100.0 \\
+harf:e & harf:x & 4.0 & V & 5 & 100.0 \\
+harf:o\textquotesingle{} & qayerga & 4.0 & Y & E & 80.0 \\
+harf:b & pichoq & 3.7 & G\textquotesingle{} & G & 73.3 \\
+blinchik & quymoq & 3.7 & 9 & R & 66.7 \\
+harf:k & \ruT{harf:к} & 3.7 & O\textquotesingle{} & U & 66.7 \\
+harf:l & mart & 3.3 & 2 & D & 60.0 \\
+likopcha & tarelka & 3.3 & 3 & SH & 60.0 \\
+pechene & yemoq & 3.0 & 5 & V & 55.6 \\
+kreslo & rais & 3.0 & 10 & R & 53.3 \\
+harf:o\textquotesingle{} & shanba & 3.0 & 4 & SH & 53.3 \\
+ona & ayol & 3.0 & E & Y & 46.7 \\
+harf:n & noyabr & 3.0 & E & X & 40.0 \\
+shim & sichqon & 2.7 &  &  &  \\
+laqab & hujjat & 2.7 &  &  &  \\
+milliard & qayerda & 2.7 &  &  &  \\
+harf:g & harf:g\textquotesingle{} & 2.7 &  &  &  \\
+harf:n & harf:k & 2.7 &  &  &  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Label verification}
+The label check of Section~3.4 of the article covered 300 recordings (30 per LOSO signer; see Table~\ref{tab:s_lab}). For 113 of them a reference recording of the same sign existed in the video dictionary (pilot pairs: 57, all judged the same sign; lesson pairs: 56, 54 the same); the reviewer judged 111 of the 113 pairs as the same sign and 2 as different, an accuracy of 98.2\% [94.7; 100.0] (percentile bootstrap over signers). For the 187 recordings without a dictionary reference the reviewer compared the recording with the written label alone: 182 judged correct, 3 wrong and 2 uncertain; these judgements are not used as an accuracy estimate.
+\begin{table}[H]
+\caption{Label check by signer: number of reviewed recordings and the reviewer's judgement (same sign / different sign / uncertain), with and without a dictionary reference combined.}\label{tab:s_lab}
+\centering
+\footnotesize
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Signer} & \textbf{Reviewed} & \textbf{Same} & \textbf{Different} & \textbf{Uncertain} \\
+\midrule
+S01 & 30 & 27 & 3 & 0 \\
+S02 & 30 & 30 & 0 & 0 \\
+S03 & 30 & 29 & 0 & 1 \\
+S04 & 30 & 30 & 0 & 0 \\
+S05 & 30 & 30 & 0 & 0 \\
+S07 & 30 & 29 & 1 & 0 \\
+S08 & 30 & 29 & 0 & 1 \\
+S09 & 30 & 29 & 1 & 0 \\
+S11 & 30 & 30 & 0 & 0 \\
+S12 & 30 & 30 & 0 & 0 \\
+\textbf{Total} & 300 & 293 & 5 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Pilot recordings: paired comparisons}
+Table~\ref{tab:s_pilot} gives, for each training condition of the pilot, the pooled top-1 accuracy of MPE-A1, of the released SL-GCN and of the graph-free MPE-A2 (all pretrained on Slovo + Bukva where applicable), and the outcome of the pre-registered sign rule: the number of seed--fold pairs (of six) in which the first model is more accurate, less accurate, or equal. A difference is established only when all six pairs have the same sign. Because some test classes do not occur in the training data of a fold, the accuracy reachable on the test participant is bounded by 82.5\% (participant 002) and 67.0\% (participant 003).
+\begin{table}[H]
+\caption{UzSL pilot: pooled top-1 accuracy (\%) and sign-rule outcomes over the six seed--fold pairs (more / less / equal).}\label{tab:s_pilot}
+\centering
+\footnotesize
+\begin{tabular}{lrrcrc}
+\toprule
+\textbf{Condition} & \textbf{MPE-A1} & \textbf{SL-GCN} & \textbf{A1 vs SL-GCN} & \textbf{MPE-A2} & \textbf{A2 vs A1} \\
+\midrule
+One example per class, fine-tuning & 40.3 & 34.2 & 5 / 1 / 0 & 35.4 & 1 / 5 / 0 \\
+One example per class, linear probe & 37.2 & 41.3 & 1 / 5 / 0 & 38.0 & 4 / 2 / 0 \\
+One example per class, from scratch & 9.5 & 5.5 & 5 / 1 / 0 & --- & --- \\
+Two examples per class, fine-tuning & 41.2 & 39.5 & 3 / 3 / 0 & 40.5 & 3 / 2 / 1 \\
+Two examples per class, linear probe & 39.4 & 47.2 & 0 / 6 / 0 & 40.3 & 4 / 2 / 0 \\
+Two examples per class, from scratch & 11.7 & 5.3 & 5 / 1 / 0 & --- & --- \\
+All recordings, fine-tuning & 47.5 & 45.9 & 6 / 0 / 0 & 45.8 & 1 / 4 / 1 \\
+All recordings, linear probe & 45.4 & 49.8 & 0 / 5 / 1 & 47.9 & 4 / 2 / 0 \\
+All recordings, from scratch & 24.7 & 15.2 & 6 / 0 / 0 & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Simulation of transfer on Bukva}
+Table~\ref{tab:s_few} gives the numbers behind Fig.~7a of the article: MPE-A0 under SD-5 trained from scratch, as a linear probe and with full fine-tuning after pretraining on Slovo, with 1, 3 and 10 training recordings per class and with all training recordings (three seeds; CIs and paired differences over test signers).
+\begin{table}[H]
+\caption{Bukva under SD-5 with reduced training data (MPE-A0, three seeds): top-1 accuracy [95\% CI] and paired differences to training from scratch.}\label{tab:s_few}
+\centering
+\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llllll}
+\toprule
+\textbf{Recordings per class} & \textbf{From scratch} & \textbf{Linear probe (Slovo)} & \textbf{Fine-tuning (Slovo)} & \textbf{$\Delta$ probe} & \textbf{$\Delta$ fine-tuning} \\
+\midrule
+1 & 10.9 [10.0; 11.9] & 70.2 [68.6; 71.7] & 70.7 [69.2; 72.1] & +59.2 [+57.2; +61.0] & +59.7 [+57.9; +61.5] \\
+3 & 26.3 [24.6; 28.0] & 81.9 [80.5; 83.2] & 81.8 [80.4; 83.0] & +55.6 [+53.6; +57.6] & +55.5 [+53.6; +57.4] \\
+10 & 63.7 [62.0; 65.4] & 86.1 [84.7; 87.3] & 86.8 [85.5; 88.0] & +22.4 [+20.6; +24.3] & +23.1 [+21.4; +24.8] \\
+all (about 68) & 92.9 [92.0; 93.7] & 89.4 [88.4; 90.5] & 90.9 [89.9; 91.8] & $-$3.4 [$-$4.3; $-$2.5] & $-$2.0 [$-$2.8; $-$1.2] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Computational cost and exported models}
+Table~\ref{tab:s_cost} gives the measured parameters at inference, floating-point operations per window (\texttt{torch.utils.flop\_counter}, a multiply--add counted as two operations) and the median CPU latency of 100 runs after 10 warm-up runs (Intel Core i9-14900KF, float32, batch 1, eager PyTorch 2.14.1, default thread count), for the Slovo models at the window used at test time. Latencies of the same model differed by 1--2 ms between sessions. Table~\ref{tab:s_tflite} gives the TensorFlow Lite exports (float32, tflite-runtime 2.9.1) on the same CPU and the agreement of their argmax with the PyTorch model on the checked recordings.
+\begin{table}[H]
+\caption{Measured cost of the keypoint models (Slovo) and of the released video model.}\label{tab:s_cost}
+\centering
+\footnotesize
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Model} & \textbf{Params (M)} & \textbf{GFLOPs / window} & \textbf{CPU (ms)} & \textbf{Frames} \\
+\midrule
+MPE-A1 & 3.38 & 0.76 & 9.3 & 32 \\
+MPE, $D = 256$, $N = 6$ & 10.27 & 1.33 & 14.1 & 32 \\
+MPE-A2 (no graph) & 3.14 & 0.196 & 4.7 & 32 \\
+ST-GCN, re-implemented & 3.41 & 1.98 & 5.1 & 32 \\
+SL-GCN, re-implemented & 3.93 & 2.03 & 19.2 & 32 \\
+ST-GCN, released, 32 frames & 3.34 & 1.98 & 5.7 & 32 \\
+ST-GCN, released, authors' recipe (300 frames) & 3.34 & 18.54 & 23.2 & 300 \\
+SL-GCN, released, 32 frames & 5.07 & 2.19 & 23.0 & 32 \\
+SL-GCN, released, authors' recipe (150 frames) & 5.07 & 9.70 & 26.5 & 150 \\
+MPE-A1, SL-GCN recipe (150 frames) & 3.40 & 3.59 & 21.2 & 150 \\
+Keypoint Transformer & 3.53 & 0.43 & 1.8 & 64 \\
+Two-layer Transformer & 1.98 & 0.11 & 1.7 & 32 \\
+BiLSTM with attention & 11.00 & 0.62 & 5.2 & 32 \\
+MLP & 1.55 & 0.004 & 1.0 & 32 \\
+MViTv2-S (RGB video, released) & 35.0 & --- & 929.7 & 32 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}[H]
+\caption{TensorFlow Lite exports: size, median latency per 32-frame window (default threads / one thread) and argmax agreement with PyTorch.}\label{tab:s_tflite}
+\centering
+\footnotesize
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Export} & \textbf{Size (MiB)} & \textbf{Latency (ms)} & \textbf{1 thread (ms)} & \textbf{Checked} & \textbf{Agree (\%)} \\
+\midrule
+MPE-A1 (Slovo + Bukva heads) & 12.5 & 24.4 & 29.1 & 1051 & 100.0 \\
+MPE-A2 (no graph) & 11.6 & 6.6 & 6.6 & 1051 & 100.0 \\
+MPE-A1 fine-tuned on the pilot & 12.5 & 24.4 & 29.1 & 1051 & 100.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:s_ort} gives the latency of the ONNX exports in ONNX Runtime 1.31.1 (CPUExecutionProvider, opset 17, batch 1, 32-frame window, trained Slovo weights of fold 1, 10 warm-up and 100 timed runs) with one and four intra-op threads on the same CPU. The measurement was taken while the machine was partly loaded by training jobs (1-minute load average 2.5--4.7 on 32 logical cores), so the values are upper bounds; the maximum absolute difference between ONNX and PyTorch logits is given in the last column.
+\begin{table}[H]
+\caption{ONNX Runtime latency per 32-frame window: median (P90) in ms with one and four threads.}\label{tab:s_ort}
+\centering
+\footnotesize
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Model} & \textbf{ONNX (MB)} & \textbf{1 thread} & \textbf{4 threads} & \textbf{max $|\Delta$ logit$|$} \\
+\midrule
+MPE-A1 & 13.0 & 10.8 (11.4) & 7.2 (7.4) & 2.4e-06 \\
+MPE-A2 (no graph) & 12.1 & 1.8 (2.2) & 1.0 (1.1) & 4.8e-06 \\
+ST-GCN, released & 13.0 & 15.0 (15.2) & 7.6 (7.8) & 8.6e-06 \\
+SL-GCN, released & 17.1 & 25.6 (26.3) & 19.3 (19.7) & 4.1e-06 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Keypoint availability in the UzSL corpus}
+Table~\ref{tab:s_qc} summarises, over the 5,993 recordings of the corpus, the length in frames and the share of frames in which MediaPipe Holistic returned each body part (the detector's presence flags at the default thresholds).
+\begin{table}[H]
+\caption{Length and keypoint availability of the corpus recordings.}\label{tab:s_qc}
+\centering
+\footnotesize
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Quantity} & \textbf{Mean} & \textbf{SD} & \textbf{Min} & \textbf{Q1} & \textbf{Median} & \textbf{Q3} & \textbf{Max} \\
+\midrule
+Frames per recording & 67 & 50 & 9 & 36 & 52 & 78 & 509 \\
+Share of frames with pose & 1.000 & 0.000 & 0.981 & 1.000 & 1.000 & 1.000 & 1.000 \\
+Share of frames with face & 0.998 & 0.020 & 0.353 & 1.000 & 1.000 & 1.000 & 1.000 \\
+Share of frames with right hand & 0.936 & 0.130 & 0.000 & 0.933 & 1.000 & 1.000 & 1.000 \\
+Share of frames with left hand & 0.777 & 0.361 & 0.000 & 0.762 & 0.980 & 1.000 & 1.000 \\
+Share of frames with at least one hand & 0.972 & 0.088 & 0.062 & 1.000 & 1.000 & 1.000 & 1.000 \\
+Share of frames with both hands & 0.741 & 0.359 & 0.000 & 0.638 & 0.928 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

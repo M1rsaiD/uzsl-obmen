@@ -1,0 +1,1464 @@
+[
+ {
+  "id": "1992_polyak_averaging",
+  "type": "article-journal",
+  "title": "Acceleration of Stochastic Approximation by Averaging",
+  "author": [
+   {
+    "given": "B. T.",
+    "family": "Polyak"
+   },
+   {
+    "given": "A. B.",
+    "family": "Juditsky"
+   }
+  ],
+  "container-title": "SIAM Journal on Control and Optimization",
+  "volume": "30",
+  "issue": "4",
+  "page": "838-855",
+  "issued": {
+   "date-parts": [
+    [
+     1992,
+     7
+    ]
+   ]
+  },
+  "DOI": "10.1137/0330046",
+  "publisher": "Society for Industrial & Applied Mathematics (SIAM)"
+ },
+ {
+  "id": "2016_efron_hastie_casi",
+  "type": "book",
+  "title": "Computer Age Statistical Inference",
+  "author": [
+   {
+    "given": "Bradley",
+    "family": "Efron"
+   },
+   {
+    "given": "Trevor",
+    "family": "Hastie"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2016,
+     7,
+     5
+    ]
+   ]
+  },
+  "DOI": "10.1017/cbo9781316576533",
+  "publisher": "Cambridge University Press"
+ },
+ {
+  "id": "2017_vaswani_attention",
+  "type": "paper-conference",
+  "title": "Attention is all you need",
+  "author": [
+   {
+    "family": "Vaswani",
+    "given": "Ashish"
+   },
+   {
+    "family": "Shazeer",
+    "given": "Noam"
+   },
+   {
+    "family": "Parmar",
+    "given": "Niki"
+   },
+   {
+    "family": "Uszkoreit",
+    "given": "Jakob"
+   },
+   {
+    "family": "Jones",
+    "given": "Llion"
+   },
+   {
+    "family": "Gomez",
+    "given": "Aidan N."
+   },
+   {
+    "family": "Kaiser",
+    "given": "Łukasz"
+   },
+   {
+    "family": "Polosukhin",
+    "given": "Illia"
+   }
+  ],
+  "container-title": "Advances in Neural Information Processing Systems 30",
+  "publisher": "Curran Associates",
+  "issued": {
+   "date-parts": [
+    [
+     2017
+    ]
+   ]
+  },
+  "URL": "https://proceedings.neurips.cc/paper_files/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html"
+ },
+ {
+  "id": "2018_yan_stgcn",
+  "type": "article-journal",
+  "title": "Spatial Temporal Graph Convolutional Networks for Skeleton-Based Action Recognition",
+  "author": [
+   {
+    "given": "Sijie",
+    "family": "Yan"
+   },
+   {
+    "given": "Yuanjun",
+    "family": "Xiong"
+   },
+   {
+    "given": "Dahua",
+    "family": "Lin"
+   }
+  ],
+  "container-title": "Proceedings of the AAAI Conference on Artificial Intelligence",
+  "volume": "32",
+  "issue": "1",
+  "issued": {
+   "date-parts": [
+    [
+     2018,
+     4,
+     27
+    ]
+   ]
+  },
+  "DOI": "10.1609/aaai.v32i1.12328",
+  "publisher": "Association for the Advancement of Artificial Intelligence (AAAI)"
+ },
+ {
+  "id": "2019_joze_msasl",
+  "type": "paper-conference",
+  "title": "MS-ASL: A large-scale data set and benchmark for understanding American Sign Language",
+  "author": [
+   {
+    "family": "Vaezi Joze",
+    "given": "Hamid Reza"
+   },
+   {
+    "family": "Koller",
+    "given": "Oscar"
+   }
+  ],
+  "container-title": "Proceedings of the British Machine Vision Conference (BMVC 2019)",
+  "publisher-place": "Cardiff, UK",
+  "issued": {
+   "date-parts": [
+    [
+     2019
+    ]
+   ]
+  },
+  "URL": "https://arxiv.org/abs/1812.01053"
+ },
+ {
+  "id": "2020_gulati_conformer",
+  "type": "paper-conference",
+  "title": "Conformer: Convolution-augmented Transformer for Speech Recognition",
+  "author": [
+   {
+    "given": "Anmol",
+    "family": "Gulati"
+   },
+   {
+    "given": "James",
+    "family": "Qin"
+   },
+   {
+    "given": "Chung-Cheng",
+    "family": "Chiu"
+   },
+   {
+    "given": "Niki",
+    "family": "Parmar"
+   },
+   {
+    "given": "Yu",
+    "family": "Zhang"
+   },
+   {
+    "given": "Jiahui",
+    "family": "Yu"
+   },
+   {
+    "given": "Wei",
+    "family": "Han"
+   },
+   {
+    "given": "Shibo",
+    "family": "Wang"
+   },
+   {
+    "given": "Zhengdong",
+    "family": "Zhang"
+   },
+   {
+    "given": "Yonghui",
+    "family": "Wu"
+   },
+   {
+    "given": "Ruoming",
+    "family": "Pang"
+   }
+  ],
+  "container-title": "Interspeech 2020",
+  "page": "5036-5040",
+  "issued": {
+   "date-parts": [
+    [
+     2020,
+     10,
+     25
+    ]
+   ]
+  },
+  "DOI": "10.21437/interspeech.2020-3015",
+  "publisher": "ISCA"
+ },
+ {
+  "id": "2020_imashev_krsl_dataset",
+  "type": "paper-conference",
+  "title": "A Dataset for Linguistic Understanding, Visual Evaluation, and Recognition of Sign Languages: The K-RSL",
+  "author": [
+   {
+    "given": "Alfarabi",
+    "family": "Imashev"
+   },
+   {
+    "given": "Medet",
+    "family": "Mukushev"
+   },
+   {
+    "given": "Vadim",
+    "family": "Kimmelman"
+   },
+   {
+    "given": "Anara",
+    "family": "Sandygulova"
+   }
+  ],
+  "container-title": "Proceedings of the 24th Conference on Computational Natural Language Learning",
+  "page": "631-640",
+  "issued": {
+   "date-parts": [
+    [
+     2020
+    ]
+   ]
+  },
+  "DOI": "10.18653/v1/2020.conll-1.51",
+  "publisher": "Association for Computational Linguistics"
+ },
+ {
+  "id": "2020_li_wlasl",
+  "type": "paper-conference",
+  "title": "Word-level Deep Sign Language Recognition from Video: A New Large-scale Dataset and Methods Comparison",
+  "author": [
+   {
+    "given": "Dongxu",
+    "family": "Li"
+   },
+   {
+    "family": "Rodriguez Opazo",
+    "given": "Cristian"
+   },
+   {
+    "given": "Xin",
+    "family": "Yu"
+   },
+   {
+    "given": "Hongdong",
+    "family": "Li"
+   }
+  ],
+  "container-title": "2020 IEEE Winter Conference on Applications of Computer Vision (WACV)",
+  "page": "1448-1458",
+  "issued": {
+   "date-parts": [
+    [
+     2020,
+     3
+    ]
+   ]
+  },
+  "DOI": "10.1109/wacv45572.2020.9093512",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2020_sincan_autsl",
+  "type": "article-journal",
+  "title": "AUTSL: A Large Scale Multi-Modal Turkish Sign Language Dataset and Baseline Methods",
+  "author": [
+   {
+    "given": "Ozge Mercanoglu",
+    "family": "Sincan"
+   },
+   {
+    "given": "Hacer Yalim",
+    "family": "Keles"
+   }
+  ],
+  "container-title": "IEEE Access",
+  "volume": "8",
+  "page": "181340-181355",
+  "issued": {
+   "date-parts": [
+    [
+     2020
+    ]
+   ]
+  },
+  "DOI": "10.1109/access.2020.3028072",
+  "publisher": "Institute of Electrical and Electronics Engineers (IEEE)"
+ },
+ {
+  "id": "2020_zhang_mediapipe_hands",
+  "type": "article",
+  "title": "MediaPipe Hands: On-device Real-time Hand Tracking",
+  "author": [
+   {
+    "family": "Zhang",
+    "given": "Fan"
+   },
+   {
+    "family": "Bazarevsky",
+    "given": "Valentin"
+   },
+   {
+    "family": "Vakunov",
+    "given": "Andrey"
+   },
+   {
+    "family": "Tkachenka",
+    "given": "Andrei"
+   },
+   {
+    "family": "Sung",
+    "given": "George"
+   },
+   {
+    "family": "Chang",
+    "given": "Chuo-Ling"
+   },
+   {
+    "family": "Grundmann",
+    "given": "Matthias"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2020
+    ]
+   ]
+  },
+  "DOI": "10.48550/ARXIV.2006.10214",
+  "publisher": "arXiv",
+  "number": "arXiv:2006.10214"
+ },
+ {
+  "id": "2021_jiang_sam_slr",
+  "type": "paper-conference",
+  "title": "Skeleton Aware Multi-modal Sign Language Recognition",
+  "author": [
+   {
+    "given": "Songyao",
+    "family": "Jiang"
+   },
+   {
+    "given": "Bin",
+    "family": "Sun"
+   },
+   {
+    "given": "Lichen",
+    "family": "Wang"
+   },
+   {
+    "given": "Yue",
+    "family": "Bai"
+   },
+   {
+    "given": "Kunpeng",
+    "family": "Li"
+   },
+   {
+    "given": "Yun",
+    "family": "Fu"
+   }
+  ],
+  "container-title": "2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)",
+  "page": "3408-3418",
+  "issued": {
+   "date-parts": [
+    [
+     2021,
+     6
+    ]
+   ]
+  },
+  "DOI": "10.1109/cvprw53098.2021.00380",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2021_sincan_chalearn_lap_islr",
+  "type": "paper-conference",
+  "title": "ChaLearn LAP Large Scale Signer Independent Isolated Sign Language Recognition Challenge: Design, Results and Future Research",
+  "author": [
+   {
+    "given": "Ozge Mercanoglu",
+    "family": "Sincan"
+   },
+   {
+    "family": "Jacques Junior",
+    "given": "Julio C. S."
+   },
+   {
+    "given": "Sergio",
+    "family": "Escalera"
+   },
+   {
+    "given": "Hacer Yalim",
+    "family": "Keles"
+   }
+  ],
+  "container-title": "2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)",
+  "page": "3467-3476",
+  "issued": {
+   "date-parts": [
+    [
+     2021,
+     6
+    ]
+   ]
+  },
+  "DOI": "10.1109/cvprw53098.2021.00386",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2022_li_mvitv2",
+  "type": "paper-conference",
+  "title": "MViTv2: Improved Multiscale Vision Transformers for Classification and Detection",
+  "author": [
+   {
+    "given": "Yanghao",
+    "family": "Li"
+   },
+   {
+    "given": "Chao-Yuan",
+    "family": "Wu"
+   },
+   {
+    "given": "Haoqi",
+    "family": "Fan"
+   },
+   {
+    "given": "Karttikeya",
+    "family": "Mangalam"
+   },
+   {
+    "given": "Bo",
+    "family": "Xiong"
+   },
+   {
+    "given": "Jitendra",
+    "family": "Malik"
+   },
+   {
+    "given": "Christoph",
+    "family": "Feichtenhofer"
+   }
+  ],
+  "container-title": "2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)",
+  "page": "4794-4804",
+  "issued": {
+   "date-parts": [
+    [
+     2022,
+     6
+    ]
+   ]
+  },
+  "DOI": "10.1109/cvpr52688.2022.00476",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2022_selvaraj_openhands",
+  "type": "paper-conference",
+  "title": "OpenHands: Making Sign Language Recognition Accessible with Pose-based Pretrained Models across Languages",
+  "author": [
+   {
+    "given": "Prem",
+    "family": "Selvaraj"
+   },
+   {
+    "family": "NC",
+    "given": "Gokul"
+   },
+   {
+    "given": "Pratyush",
+    "family": "Kumar"
+   },
+   {
+    "given": "Mitesh",
+    "family": "Khapra"
+   }
+  ],
+  "container-title": "Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+  "page": "2114-2133",
+  "issued": {
+   "date-parts": [
+    [
+     2022
+    ]
+   ]
+  },
+  "DOI": "10.18653/v1/2022.acl-long.150",
+  "publisher": "Association for Computational Linguistics"
+ },
+ {
+  "id": "2023_desai_asl_citizen",
+  "type": "paper-conference",
+  "title": "ASL Citizen: A Community-Sourced Dataset for Advancing Isolated Sign Language Recognition",
+  "author": [
+   {
+    "given": "Aashaka",
+    "family": "Desai"
+   },
+   {
+    "given": "Lauren",
+    "family": "Berger"
+   },
+   {
+    "given": "Fyodor",
+    "family": "Minakov"
+   },
+   {
+    "given": "Nessa",
+    "family": "Milano"
+   },
+   {
+    "given": "Chinmay",
+    "family": "Singh"
+   },
+   {
+    "given": "Kriston",
+    "family": "Pumphrey"
+   },
+   {
+    "given": "Richard",
+    "family": "Ladner"
+   },
+   {
+    "family": "Daumé III",
+    "given": "Hal"
+   },
+   {
+    "given": "Alex X",
+    "family": "Lu"
+   },
+   {
+    "given": "Naomi",
+    "family": "Caselli"
+   },
+   {
+    "given": "Danielle",
+    "family": "Bragg"
+   }
+  ],
+  "container-title": "Advances in Neural Information Processing Systems 36",
+  "page": "76893-76907",
+  "issued": {
+   "date-parts": [
+    [
+     2023
+    ]
+   ]
+  },
+  "DOI": "10.52202/075280-3360",
+  "publisher": "Neural Information Processing Systems Foundation, Inc. (NeurIPS)"
+ },
+ {
+  "id": "2023_hu_signbert_plus",
+  "type": "article-journal",
+  "title": "SignBERT+: Hand-Model-Aware Self-Supervised Pre-Training for Sign Language Understanding",
+  "author": [
+   {
+    "given": "Hezhen",
+    "family": "Hu"
+   },
+   {
+    "given": "Weichao",
+    "family": "Zhao"
+   },
+   {
+    "given": "Wengang",
+    "family": "Zhou"
+   },
+   {
+    "given": "Houqiang",
+    "family": "Li"
+   }
+  ],
+  "container-title": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+  "volume": "45",
+  "issue": "9",
+  "page": "11221-11239",
+  "issued": {
+   "date-parts": [
+    [
+     2023,
+     9,
+     1
+    ]
+   ]
+  },
+  "DOI": "10.1109/tpami.2023.3269220",
+  "publisher": "Institute of Electrical and Electronics Engineers (IEEE)"
+ },
+ {
+  "id": "2023_kapitanov_slovo",
+  "type": "chapter",
+  "title": "Slovo: Russian Sign Language Dataset",
+  "author": [
+   {
+    "given": "Alexander",
+    "family": "Kapitanov"
+   },
+   {
+    "family": "Kvanchiani",
+    "given": "Karina"
+   },
+   {
+    "given": "Alexander",
+    "family": "Nagaev"
+   },
+   {
+    "family": "Petrova",
+    "given": "Elizaveta"
+   }
+  ],
+  "container-title": "Computer Vision Systems (ICVS 2023)",
+  "page": "63-73",
+  "issued": {
+   "date-parts": [
+    [
+     2023
+    ]
+   ]
+  },
+  "DOI": "10.1007/978-3-031-44137-0_6",
+  "publisher": "Springer",
+  "collection-title": "Lecture Notes in Computer Science",
+  "publisher-place": "Cham, Switzerland"
+ },
+ {
+  "id": "2023_uthus_youtube_asl",
+  "type": "paper-conference",
+  "title": "YouTube-ASL: A Large-Scale, Open-Domain American Sign Language-English Parallel Corpus",
+  "author": [
+   {
+    "given": "Dave",
+    "family": "Uthus"
+   },
+   {
+    "given": "Garrett",
+    "family": "Tanzer"
+   },
+   {
+    "given": "Manfred",
+    "family": "Georg"
+   }
+  ],
+  "container-title": "Advances in Neural Information Processing Systems 36",
+  "page": "29029-29047",
+  "issued": {
+   "date-parts": [
+    [
+     2023
+    ]
+   ]
+  },
+  "DOI": "10.52202/075280-1264",
+  "publisher": "Neural Information Processing Systems Foundation, Inc. (NeurIPS)"
+ },
+ {
+  "id": "2023_zuo_nla_slr",
+  "type": "paper-conference",
+  "title": "Natural Language-Assisted Sign Language Recognition",
+  "author": [
+   {
+    "given": "Ronglai",
+    "family": "Zuo"
+   },
+   {
+    "given": "Fangyun",
+    "family": "Wei"
+   },
+   {
+    "given": "Brian",
+    "family": "Mak"
+   }
+  ],
+  "container-title": "2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)",
+  "page": "14890-14900",
+  "issued": {
+   "date-parts": [
+    [
+     2023,
+     6
+    ]
+   ]
+  },
+  "DOI": "10.1109/cvpr52729.2023.01430",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2024_akhmedov_uzsl_dactyl_yolo",
+  "type": "paper-conference",
+  "title": "An Algorithm of Recognition Uzbek Sign Language",
+  "author": [
+   {
+    "given": "Farrukh",
+    "family": "Akhmedov"
+   },
+   {
+    "given": "Mukhriddin",
+    "family": "Umarov"
+   },
+   {
+    "given": "Elmurod",
+    "family": "Urinov"
+   },
+   {
+    "given": "Bekzod",
+    "family": "Turgunov"
+   }
+  ],
+  "container-title": "2024 International Conference on Information Science and Communications Technologies (ICISCT)",
+  "page": "220-225",
+  "issued": {
+   "date-parts": [
+    [
+     2024,
+     11,
+     7
+    ]
+   ]
+  },
+  "DOI": "10.1109/icisct64202.2024.10956783",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2024_imashev_krsl_retrospective",
+  "type": "paper-conference",
+  "title": "Retrospective of Kazakh-Russian Sign Language Corpus Formation",
+  "author": [
+   {
+    "given": "Alfarabi",
+    "family": "Imashev"
+   },
+   {
+    "given": "Aigerim",
+    "family": "Kydyrbekova"
+   },
+   {
+    "given": "Medet",
+    "family": "Mukushev"
+   },
+   {
+    "given": "Anara",
+    "family": "Sandygulova"
+   },
+   {
+    "given": "Shynggys",
+    "family": "Islam"
+   },
+   {
+    "given": "Khassan",
+    "family": "Israilov"
+   },
+   {
+    "given": "Aibek",
+    "family": "Makazhanov"
+   },
+   {
+    "given": "Zhandos",
+    "family": "Yessenbayev"
+   }
+  ],
+  "container-title": "Proceedings of the LREC-COLING 2024 11th Workshop on the Representation and Processing of Sign Languages: Evaluation of Sign Language Resources",
+  "page": "111-122",
+  "issued": {
+   "date-parts": [
+    [
+     2024,
+     5
+    ]
+   ]
+  },
+  "DOI": "10.63317/4mebvh4fp43n",
+  "publisher": "European Language Resources Association (ELRA) and ICCL",
+  "publisher-place": "Torino, Italy"
+ },
+ {
+  "id": "2024_kayumov_uzsl_latin_angular_signs",
+  "type": "article-journal",
+  "title": "Algorithm and model of Latin alphabet recognition in Uzbek Sign Language (UzSL) based on angular signs obtained from finger joint and wrist coordinates",
+  "author": [
+   {
+    "family": "Kayumov",
+    "given": "Oybek Achilovich"
+   },
+   {
+    "family": "Kayumova",
+    "given": "Nazokat Rashitovna"
+   }
+  ],
+  "container-title": "International Journal of Artificial Intelligence",
+  "volume": "4",
+  "issue": "3",
+  "page": "628-633",
+  "issued": {
+   "date-parts": [
+    [
+     2024,
+     6,
+     7
+    ]
+   ]
+  },
+  "URL": "https://www.academicpublishers.org/journals/index.php/ijai/article/view/745"
+ },
+ {
+  "id": "2024_kvanchiani_bukva",
+  "type": "article",
+  "title": "Bukva: Russian Sign Language Alphabet",
+  "author": [
+   {
+    "family": "Kvanchiani",
+    "given": "Karina"
+   },
+   {
+    "family": "Surovtsev",
+    "given": "Petr"
+   },
+   {
+    "family": "Nagaev",
+    "given": "Alexander"
+   },
+   {
+    "family": "Petrova",
+    "given": "Elizaveta"
+   },
+   {
+    "family": "Kapitanov",
+    "given": "Alexander"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2024
+    ]
+   ]
+  },
+  "DOI": "10.48550/ARXIV.2410.08675",
+  "publisher": "arXiv",
+  "number": "arXiv:2410.08675"
+ },
+ {
+  "id": "2025_akkomron_uzslr_isolated_dynamic",
+  "type": "software",
+  "author": [
+   {
+    "given": "Komron",
+    "family": "Akmalov"
+   }
+  ],
+  "title": "Uzbek Sign Language Recognition (UzSLR): uzslr-isolated-dynamic",
+  "publisher": "GitHub",
+  "URL": "https://github.com/akkomron/uzslr-isolated-dynamic",
+  "issued": {
+   "date-parts": [
+    [
+     2025
+    ]
+   ]
+  },
+  "accessed": {
+   "date-parts": [
+    [
+     2026,
+     11,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "id": "2025_gueuwou_shubert",
+  "type": "paper-conference",
+  "title": "SHuBERT: Self-Supervised Sign Language Representation Learning via Multi-Stream Cluster Prediction",
+  "author": [
+   {
+    "given": "Shester",
+    "family": "Gueuwou"
+   },
+   {
+    "given": "Xiaodan",
+    "family": "Du"
+   },
+   {
+    "given": "Greg",
+    "family": "Shakhnarovich"
+   },
+   {
+    "given": "Karen",
+    "family": "Livescu"
+   },
+   {
+    "given": "Alexander H.",
+    "family": "Liu"
+   }
+  ],
+  "container-title": "Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+  "page": "28792-28810",
+  "issued": {
+   "date-parts": [
+    [
+     2025
+    ]
+   ]
+  },
+  "DOI": "10.18653/v1/2025.acl-long.1397",
+  "publisher": "Association for Computational Linguistics"
+ },
+ {
+  "id": "2025_isharah_signer_invariant_conformer",
+  "type": "paper-conference",
+  "title": "A Signer-Invariant Conformer and Multi-Scale Fusion Transformer for Continuous Sign Language Recognition",
+  "author": [
+   {
+    "given": "Md Rezwanul",
+    "family": "Haque"
+   },
+   {
+    "given": "Md. Milon",
+    "family": "Islam"
+   },
+   {
+    "family": "Raju",
+    "given": "S. M. Taslim Uddin"
+   },
+   {
+    "given": "Fakhri",
+    "family": "Karray"
+   }
+  ],
+  "container-title": "2025 IEEE/CVF International Conference on Computer Vision Workshops (ICCVW)",
+  "page": "4990-4999",
+  "issued": {
+   "date-parts": [
+    [
+     2025,
+     10,
+     19
+    ]
+   ]
+  },
+  "DOI": "10.1109/iccvw69036.2025.00518",
+  "publisher": "IEEE"
+ },
+ {
+  "id": "2025_li_uni_sign",
+  "type": "paper-conference",
+  "title": "Uni-Sign: Toward unified sign language understanding at scale",
+  "author": [
+   {
+    "family": "Li",
+    "given": "Zecheng"
+   },
+   {
+    "family": "Zhou",
+    "given": "Wengang"
+   },
+   {
+    "family": "Zhao",
+    "given": "Weichao"
+   },
+   {
+    "family": "Wu",
+    "given": "Kepeng"
+   },
+   {
+    "family": "Hu",
+    "given": "Hezhen"
+   },
+   {
+    "family": "Li",
+    "given": "Houqiang"
+   }
+  ],
+  "container-title": "Proceedings of the 13th International Conference on Learning Representations (ICLR 2025)",
+  "publisher-place": "Singapore",
+  "page": "14611-14630",
+  "issued": {
+   "date-parts": [
+    [
+     2025
+    ]
+   ]
+  },
+  "URL": "https://openreview.net/forum?id=0Xt7uT04cQ"
+ },
+ {
+  "id": "2025_ovodov_logos",
+  "type": "paper-conference",
+  "title": "Logos as a Well-Tempered Pre-train for Sign Language Recognition",
+  "author": [
+   {
+    "given": "Ilya",
+    "family": "Ovodov"
+   },
+   {
+    "given": "Petr",
+    "family": "Surovtsev"
+   },
+   {
+    "given": "Karina",
+    "family": "Kvanchiani"
+   },
+   {
+    "given": "Alexander",
+    "family": "Kapitanov"
+   },
+   {
+    "given": "Alexander",
+    "family": "Nagaev"
+   }
+  ],
+  "container-title": "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing",
+  "page": "24340-24353",
+  "issued": {
+   "date-parts": [
+    [
+     2025
+    ]
+   ]
+  },
+  "DOI": "10.18653/v1/2025.emnlp-main.1238",
+  "publisher": "Association for Computational Linguistics"
+ },
+ {
+  "id": "2026_ergashev_cnnlstm_vs_squeezeformer_uzsl",
+  "type": "article",
+  "title": "Comparative evaluation of CNN-LSTM and Squeezeformer-Transformer architectures for real-time Uzbek sign language recognition",
+  "author": [
+   {
+    "family": "Ergashev",
+    "given": "Jasurbek"
+   },
+   {
+    "family": "Rakhmatova",
+    "given": "Munira"
+   },
+   {
+    "family": "Eshimov",
+    "given": "Mukhtor"
+   }
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2026,
+     9,
+     1
+    ]
+   ]
+  },
+  "DOI": "10.5281/ZENODO.22840569",
+  "publisher": "Zenodo"
+ },
+ {
+  "id": "2026_jovlieva_webcam_uzbek_fingerspelling",
+  "type": "article-journal",
+  "title": "A webcam-based recognition system for the Uzbek fingerspelling alphabet",
+  "author": [
+   {
+    "family": "Jovliyeva",
+    "given": "Sevinch"
+   }
+  ],
+  "container-title": "Innovative Multidisciplinary Journal of Applied Technology",
+  "volume": "4",
+  "issue": "3",
+  "page": "44-48",
+  "issued": {
+   "date-parts": [
+    [
+     2026,
+     3,
+     31
+    ]
+   ]
+  },
+  "URL": "https://multijournals.org/index.php/innovative/article/view/3973"
+ },
+ {
+  "id": "2026_ni_sign_language_datasets_survey",
+  "type": "paper-conference",
+  "title": "Sign-Language Datasets at Scale: A Comprehensive Survey on Resources, Benchmarks, and Annotation Standards",
+  "author": [
+   {
+    "given": "Yiming",
+    "family": "Ni"
+   },
+   {
+    "given": "Zhi-Qi",
+    "family": "Cheng"
+   },
+   {
+    "given": "Jiayu",
+    "family": "Li"
+   },
+   {
+    "given": "Wei",
+    "family": "Cheng"
+   }
+  ],
+  "container-title": "Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+  "page": "41578-41604",
+  "issued": {
+   "date-parts": [
+    [
+     2026
+    ]
+   ]
+  },
+  "DOI": "10.18653/v1/2026.acl-long.1928",
+  "publisher": "Association for Computational Linguistics"
+ },
+ {
+  "id": "docs_mediapipe_holistic_landmarker",
+  "type": "webpage",
+  "author": [
+   {
+    "literal": "Google AI Edge"
+   }
+  ],
+  "title": "Holistic landmark detection guide",
+  "container-title": "MediaPipe Solutions",
+  "URL": "https://ai.google.dev/edge/mediapipe/solutions/vision/holistic_landmarker",
+  "issued": {
+   "date-parts": [
+    [
+     2026,
+     10,
+     1
+    ]
+   ]
+  },
+  "accessed": {
+   "date-parts": [
+    [
+     2026,
+     10,
+     26
+    ]
+   ]
+  }
+ },
+ {
+  "id": "2026_onarkulov_slr_review_uzsl",
+  "type": "article-journal",
+  "title": "Sign language recognition by computer vision methods: A review and the place of Uzbek Sign Language",
+  "language": "ru",
+  "note": "in Russian",
+  "author": [
+   {
+    "family": "Onarkulov",
+    "given": "M. K."
+   },
+   {
+    "family": "Yusupov",
+    "given": "M. A."
+   },
+   {
+    "family": "Umirjonov",
+    "given": "L. A."
+   }
+  ],
+  "container-title": "Raqamli Transformatsiya va Sun'iy Intellekt ilmiy jurnali",
+  "volume": "4",
+  "issue": "5",
+  "page": "257-270",
+  "ISSN": "3030-3346",
+  "issued": {
+   "date-parts": [
+    [
+     2026,
+     10
+    ]
+   ]
+  }
+ },
+ {
+  "id": "2026_anthropic_claude",
+  "type": "software",
+  "author": [
+   {
+    "literal": "Anthropic"
+   }
+  ],
+  "title": "Claude",
+  "genre": "Large language model",
+  "URL": "https://claude.ai",
+  "issued": {
+   "date-parts": [
+    [
+     2026
+    ]
+   ]
+  }
+ },
+ {
+  "id": "2026_artiaga_signer_dependence_slt",
+  "type": "paper-conference",
+  "title": "Rethinking Sign Language Translation: The Impact of Signer Dependence on Model Evaluation",
+  "author": [
+   {
+    "family": "Artiaga",
+    "given": "Keren"
+   },
+   {
+    "family": "Kamila",
+    "given": "Sabyasachi"
+   },
+   {
+    "family": "Afli",
+    "given": "Haithem"
+   },
+   {
+    "family": "Lynch",
+    "given": "Conor"
+   },
+   {
+    "family": "Hasanuzzaman",
+    "given": "Mohammed"
+   }
+  ],
+  "container-title": "Findings of the Association for Computational Linguistics: EMNLP 2025",
+  "publisher": "Association for Computational Linguistics",
+  "page": "18379-18391",
+  "issued": {
+   "date-parts": [
+    [
+     2025
+    ]
+   ]
+  },
+  "DOI": "10.18653/v1/2025.findings-emnlp.997"
+ },
+ {
+  "id": "2022_mukushev_fluentsigners50",
+  "type": "article-journal",
+  "title": "FluentSigners-50: A signer independent benchmark dataset for sign language processing",
+  "author": [
+   {
+    "family": "Mukushev",
+    "given": "Medet"
+   },
+   {
+    "family": "Kydyrbekova",
+    "given": "Aigerim"
+   },
+   {
+    "family": "Imashev",
+    "given": "Alfarabi"
+   },
+   {
+    "family": "Kimmelman",
+    "given": "Vadim"
+   },
+   {
+    "family": "Sandygulova",
+    "given": "Anara"
+   }
+  ],
+  "container-title": "PLOS ONE",
+  "volume": "17",
+  "issue": "9",
+  "page": "e0273649",
+  "issued": {
+   "date-parts": [
+    [
+     2022
+    ]
+   ]
+  },
+  "DOI": "10.1371/journal.pone.0273649"
+ },
+ {
+  "id": "2024_kindiroglu_cross_dataset_transfer",
+  "type": "paper-conference",
+  "title": "Transfer Learning for Cross-dataset Isolated Sign Language Recognition in Under-Resourced Datasets",
+  "author": [
+   {
+    "family": "Kindiroglu",
+    "given": "Ahmet Alp"
+   },
+   {
+    "family": "Kara",
+    "given": "Ozgur"
+   },
+   {
+    "family": "Ozdemir",
+    "given": "Ogulcan"
+   },
+   {
+    "family": "Akarun",
+    "given": "Lale"
+   }
+  ],
+  "container-title": "2024 IEEE 18th International Conference on Automatic Face and Gesture Recognition (FG)",
+  "publisher": "IEEE",
+  "issued": {
+   "date-parts": [
+    [
+     2024
+    ]
+   ]
+  },
+  "note": "arXiv:2403.14534"
+ },
+ {
+  "id": "2023_ryumin_cross_language_transfer",
+  "type": "article-journal",
+  "title": "Cross-Language Transfer Learning Using Visual Information for Automatic Sign Gesture Recognition",
+  "author": [
+   {
+    "family": "Ryumin",
+    "given": "Dmitry"
+   },
+   {
+    "family": "Ivanko",
+    "given": "Denis"
+   },
+   {
+    "family": "Axyonov",
+    "given": "Alexandr"
+   }
+  ],
+  "container-title": "The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences",
+  "volume": "XLVIII-2/W3-2023",
+  "page": "209-216",
+  "issued": {
+   "date-parts": [
+    [
+     2023
+    ]
+   ]
+  },
+  "DOI": "10.5194/isprs-archives-XLVIII-2-W3-2023-209-2023"
+ },
+ {
+  "id": "2007_smith_tesseract",
+  "type": "paper-conference",
+  "title": "An Overview of the Tesseract OCR Engine",
+  "author": [
+   {
+    "family": "Smith",
+    "given": "Ray"
+   }
+  ],
+  "container-title": "Ninth International Conference on Document Analysis and Recognition (ICDAR 2007)",
+  "publisher": "IEEE",
+  "page": "629-633",
+  "issued": {
+   "date-parts": [
+    [
+     2007
+    ]
+   ]
+  },
+  "DOI": "10.1109/ICDAR.2007.4376991"
+ },
+ {
+  "id": "2023_radford_whisper",
+  "type": "paper-conference",
+  "title": "Robust Speech Recognition via Large-Scale Weak Supervision",
+  "author": [
+   {
+    "family": "Radford",
+    "given": "Alec"
+   },
+   {
+    "family": "Kim",
+    "given": "Jong Wook"
+   },
+   {
+    "family": "Xu",
+    "given": "Tao"
+   },
+   {
+    "family": "Brockman",
+    "given": "Greg"
+   },
+   {
+    "family": "McLeavey",
+    "given": "Christine"
+   },
+   {
+    "family": "Sutskever",
+    "given": "Ilya"
+   }
+  ],
+  "container-title": "Proceedings of the 40th International Conference on Machine Learning (ICML 2023), PMLR 202",
+  "page": "28492-28518",
+  "issued": {
+   "date-parts": [
+    [
+     2023
+    ]
+   ]
+  }
+ },
+ {
+  "id": "2023_kaggle_gislr",
+  "type": "webpage",
+  "title": "Google – Isolated Sign Language Recognition (competition dataset)",
+  "author": [
+   {
+    "literal": "Google and Kaggle"
+   }
+  ],
+  "container-title": "Kaggle",
+  "issued": {
+   "date-parts": [
+    [
+     2023
+    ]
+   ]
+  },
+  "URL": "https://www.kaggle.com/competitions/asl-signs",
+  "accessed": {
+   "date-parts": [
+    [
+     2026,
+     11,
+     5
+    ]
+   ]
+  }
+ }
+]
