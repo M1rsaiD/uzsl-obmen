@@ -1,0 +1,288 @@
+{
+ "proto_top1": 0.9252336621284485,
+ "best_step": 1404,
+ "best_val_top1": 0.946969747543335,
+ "steps": 2154,
+ "steps_done": 2154,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3239462,
+  "encoder": 3149761,
+  "inference_heads": 55777,
+  "train_only": 33924
+ },
+ "cost": {
+  "gflops_per_window": 0.758851968,
+  "cpu_latency_ms_median": 4.603068500728114,
+  "cpu_threads": 10,
+  "T": 32
+ },
+ "ema": false,
+ "seed": 0,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "3e11160",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 99.73923426599868,
+ "train_steps_per_s": 23.17400537305638,
+ "test": {
+  "bukva": {
+   "top1": {
+    "mean": 0.9212283044058746,
+    "ci_low": 0.9032716442959524,
+    "ci_high": 0.9381459549407833,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.9893190921228304,
+    "ci_low": 0.9785169334149512,
+    "ci_high": 0.9973823698276216,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.9117616675403271,
+    "ci_low": 0.8835069677455722,
+    "ci_high": 0.9348089000731129,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 31,
+    "per_signer": {
+     "04af3ba065bb7423e0685ebe180751c1": 0.9642857142857143,
+     "1860c7f3605089bf0eff0c4e72c7add4": 0.96875,
+     "194612f32f5297e4699c2c0beb9b336a": 0.88,
+     "21271": 0.9666666666666667,
+     "21759": 0.9393939393939394,
+     "23309": 0.9375,
+     "24438": 0.9333333333333333,
+     "27086": 0.9354838709677419,
+     "27658": 0.9090909090909091,
+     "29318": 0.875,
+     "29585": 0.8275862068965517,
+     "29762": 1.0,
+     "29898": 0.8928571428571429,
+     "362b7038ed4bd4b527fce434f14d2aaf": 0.8484848484848485,
+     "37bed46cc436da755b02db4bda5fd1e2": 0.8,
+     "3dd2ce2659aada17b976390004ebe322": 0.9545454545454546,
+     "570c2405d58fe08bce66f55c42bc36b0": 0.9259259259259259,
+     "635ab4108b0d6b87bef3f30a318d8df9": 0.8571428571428571,
+     "6fefb7617d77222efd121f4a2d6a79d6": 0.9090909090909091,
+     "9f9b13d8e63bd774b4ad1bd14f56147d": 0.9696969696969697,
+     "a95892dae1d320bd8b08cbca6a127cd8": 0.9393939393939394,
+     "abd669cafd4f2078708e1cb1846e1bd6": 0.8888888888888888,
+     "b6bc47e76a066769495f3a22455713b5": 0.9166666666666666,
+     "d2b4042ec6d8505a41b809e64d5adb7c": 0.625,
+     "d5a3d6c977e8ce1cd3a4eac0908d4d7d": 0.9696969696969697,
+     "db573f94204e56e0cf3fc2ea000e5bdc": 1.0,
+     "e4bd328bca8e6f51bd6f4f019692b666": 0.9032258064516129,
+     "f0148de24ae19f321a7315d46021d17e": 1.0,
+     "f15c4e5b9dfe541cf7e6c05733b579e2": 0.9230769230769231,
+     "f2dc6eab563f93d86629c1cfe479f09d": 0.9090909090909091,
+     "fb1007e5ffe149cc08bccaf8eda2ce31": 0.8947368421052632
+    }
+   },
+   "macro_top1_by_class": 0.9189213083811648,
+   "worst_signer": {
+    "signer_id": "29585",
+    "top1": 0.8275862068965517,
+    "min_clips": 10,
+    "n_signers_eligible": 27
+   },
+   "seen_classes": {
+    "top1": 0.9212283044058746,
+    "n_clips": 749,
+    "n_classes_train": 33,
+    "chance": 0.030303030303030304
+   },
+   "n_clips": 749,
+   "n_signers": 31,
+   "proto_top1": 0.9252336621284485
+  }
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": false,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 2154,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 108,
+   "compile": true,
+   "augment": true,
+   "ema": false,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": true,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M7",
+  "condition": "bukva_a_ugly",
+  "data": {
+   "dataset": "bukva",
+   "split": "bukva_p5.json",
+   "fold": "fold3",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 749,
+  "top1": 0.9212283044058746,
+  "top5": 0.9893190921228304,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

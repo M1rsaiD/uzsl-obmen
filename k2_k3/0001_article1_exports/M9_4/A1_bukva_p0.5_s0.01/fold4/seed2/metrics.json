@@ -1,0 +1,12 @@
+{
+ "p": 0.5,
+ "sigma": 0.01,
+ "hand": "dominant_by_frames",
+ "checkpoint_run": "M7/bukva_a_ema/fold4/seed2",
+ "export": {
+  "n": 759,
+  "top1": 0.8906455862977603,
+  "top5": 0.994729907773386,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

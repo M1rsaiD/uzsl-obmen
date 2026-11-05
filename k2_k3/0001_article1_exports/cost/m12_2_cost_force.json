@@ -1,0 +1,104 @@
+{
+ "load_avg_1min": 23.8427734375,
+ "torch_threads": 24,
+ "cpu": "i9-14900KF",
+ "T": 32,
+ "rows": {
+  "slgcn_orig/slovo": {
+   "params_inference_m": 5.137273,
+   "params_total_m": 5.393529,
+   "gflops_per_window": 2.190309888,
+   "cpu_latency_ms_median": 181.09532799280714,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "slgcn_orig/bukva": {
+   "params_inference_m": 4.888497,
+   "params_total_m": 4.896945,
+   "gflops_per_window": 2.189318656,
+   "cpu_latency_ms_median": 150.63168251072057,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "a1/slovo": {
+   "params_inference_m": 3.380714,
+   "params_total_m": 4.409742,
+   "gflops_per_window": 0.759608704,
+   "cpu_latency_ms_median": 50.43927350197919,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "a1/bukva": {
+   "params_inference_m": 3.19389,
+   "params_total_m": 3.227814,
+   "gflops_per_window": 0.757254528,
+   "cpu_latency_ms_median": 10.773194517241791,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "hybrid/slovo": {
+   "params_inference_m": 17.123078,
+   "params_total_m": 18.152106,
+   "gflops_per_window": 2.01726144,
+   "cpu_latency_ms_median": 396.6444919933565,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "hybrid/bukva": {
+   "params_inference_m": 16.936254,
+   "params_total_m": 16.970178,
+   "gflops_per_window": 2.014907264,
+   "cpu_latency_ms_median": 353.4107324958313,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "whole/slovo": {
+   "params_inference_m": 7.758074,
+   "params_total_m": 8.207523,
+   "gflops_per_window": 2.23350144,
+   "cpu_latency_ms_median": 233.33754399209283,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "whole/bukva": {
+   "params_inference_m": 7.57125,
+   "params_total_m": 7.586067,
+   "gflops_per_window": 2.2322624,
+   "cpu_latency_ms_median": 227.0716539787827,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "hybrid_concat/slovo": {
+   "params_inference_m": 17.233478,
+   "params_total_m": 18.262506,
+   "gflops_per_window": 2.01726144,
+   "cpu_latency_ms_median": 333.76319249509834,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "hybrid_concat/bukva": {
+   "params_inference_m": 17.046654,
+   "params_total_m": 17.080578,
+   "gflops_per_window": 2.014907264,
+   "cpu_latency_ms_median": 380.20673299615737,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "hybrid_rest/slovo": {
+   "params_inference_m": 17.305478,
+   "params_total_m": 18.334506,
+   "gflops_per_window": 2.028836736,
+   "cpu_latency_ms_median": 402.2862480051117,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "hybrid_rest/bukva": {
+   "params_inference_m": 17.118654,
+   "params_total_m": 17.152578,
+   "gflops_per_window": 2.02648256,
+   "cpu_latency_ms_median": 419.9696540017612,
+   "cpu_threads": 24,
+   "T": 32
+  }
+ }
+}

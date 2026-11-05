@@ -1,0 +1,259 @@
+{
+ "proto_top1": 0.8464620113372803,
+ "best_step": 1512,
+ "best_val_top1": 0.9090909361839294,
+ "steps": 2154,
+ "steps_done": 2154,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3294497,
+  "encoder": 3211776,
+  "inference_heads": 74273,
+  "train_only": 8448
+ },
+ "cost": {
+  "gflops_per_window": 0.43090432,
+  "cpu_latency_ms_median": 1.782052502676379,
+  "cpu_threads": 10,
+  "T": 64
+ },
+ "ema": true,
+ "seed": 2,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "0b33d76",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 33.00622113999998,
+ "train_steps_per_s": 69.15566595155124,
+ "test": {
+  "bukva": {
+   "top1": {
+    "mean": 0.8437917222963952,
+    "ci_low": 0.7760440624566476,
+    "ci_high": 0.9061836198831787,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.9586114819759679,
+    "ci_low": 0.9209513192457326,
+    "ci_high": 0.9846169916434541,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.8366625376704251,
+    "ci_low": 0.7669845726114253,
+    "ci_high": 0.8989846658598925,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 31,
+    "per_signer": {
+     "04af3ba065bb7423e0685ebe180751c1": 1.0,
+     "1860c7f3605089bf0eff0c4e72c7add4": 1.0,
+     "194612f32f5297e4699c2c0beb9b336a": 1.0,
+     "21271": 0.9333333333333333,
+     "21759": 0.5454545454545454,
+     "23309": 0.9375,
+     "24438": 0.8,
+     "27086": 1.0,
+     "27658": 0.45454545454545453,
+     "29318": 0.875,
+     "29585": 0.9310344827586207,
+     "29762": 1.0,
+     "29898": 0.8214285714285714,
+     "362b7038ed4bd4b527fce434f14d2aaf": 0.7575757575757576,
+     "37bed46cc436da755b02db4bda5fd1e2": 0.4,
+     "3dd2ce2659aada17b976390004ebe322": 0.8181818181818182,
+     "570c2405d58fe08bce66f55c42bc36b0": 1.0,
+     "635ab4108b0d6b87bef3f30a318d8df9": 0.8571428571428571,
+     "6fefb7617d77222efd121f4a2d6a79d6": 1.0,
+     "9f9b13d8e63bd774b4ad1bd14f56147d": 1.0,
+     "a95892dae1d320bd8b08cbca6a127cd8": 0.9090909090909091,
+     "abd669cafd4f2078708e1cb1846e1bd6": 0.8888888888888888,
+     "b6bc47e76a066769495f3a22455713b5": 0.875,
+     "d2b4042ec6d8505a41b809e64d5adb7c": 0.375,
+     "d5a3d6c977e8ce1cd3a4eac0908d4d7d": 0.8484848484848485,
+     "db573f94204e56e0cf3fc2ea000e5bdc": 0.42424242424242425,
+     "e4bd328bca8e6f51bd6f4f019692b666": 0.8709677419354839,
+     "f0148de24ae19f321a7315d46021d17e": 1.0,
+     "f15c4e5b9dfe541cf7e6c05733b579e2": 0.9230769230769231,
+     "f2dc6eab563f93d86629c1cfe479f09d": 0.8484848484848485,
+     "fb1007e5ffe149cc08bccaf8eda2ce31": 0.8421052631578947
+    }
+   },
+   "macro_top1_by_class": 0.8413477275498348,
+   "worst_signer": {
+    "signer_id": "db573f94204e56e0cf3fc2ea000e5bdc",
+    "top1": 0.42424242424242425,
+    "min_clips": 10,
+    "n_signers_eligible": 27
+   },
+   "seen_classes": {
+    "top1": 0.8437917222963952,
+    "n_clips": 749,
+    "n_classes_train": 33,
+    "chance": 0.030303030303030304
+   },
+   "n_clips": 749,
+   "n_signers": 31,
+   "proto_top1": 0.8464620113372803
+  }
+ },
+ "config": {
+  "seed": 2,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.0,
+   "beta_part": 0.0
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": false,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "e1",
+   "spatial": "e1",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 2154,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 108,
+   "compile": true,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "detected",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "arch": "transformer_cls",
+   "input": "e1",
+   "T": 64,
+   "d_model": 256,
+   "n_layers": 4,
+   "heads": 4,
+   "d_ff": 1024,
+   "dropout": 0.1,
+   "eps": 0.001,
+   "clip": 10.0,
+   "emb_dim": 256,
+   "emb_scale": 16.0
+  },
+  "experiment": "M8",
+  "condition": "m81_bukva_e1_transformer_e1rec",
+  "data": {
+   "dataset": "bukva",
+   "split": "bukva_p5.json",
+   "fold": "fold3",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 749,
+  "top1": 0.8437917222963952,
+  "top5": 0.9586114819759679,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

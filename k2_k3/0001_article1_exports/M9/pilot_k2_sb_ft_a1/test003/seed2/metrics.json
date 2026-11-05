@@ -1,0 +1,258 @@
+{
+ "proto_top1": 0.3806818425655365,
+ "best_step": 95,
+ "best_val_top1": 0.9047619104385376,
+ "steps": 95,
+ "steps_done": 95,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3236361,
+  "encoder": 3138113,
+  "inference_heads": 57128,
+  "train_only": 41120
+ },
+ "cost": {
+  "gflops_per_window": 0.757271552,
+  "cpu_latency_ms_median": 4.710061504738405,
+  "cpu_threads": 10,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 2,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "4dd60bd",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 3.586885683995206,
+ "train_steps_per_s": 41.52727490430287,
+ "test": {
+  "pilot": {
+   "top1": {
+    "mean": 0.29545454545454547,
+    "ci_low": 0.29545454545454547,
+    "ci_high": 0.29545454545454547,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.5454545454545454,
+    "ci_low": 0.5454545454545454,
+    "ci_high": 0.5454545454545454,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.29545454545454547,
+    "ci_low": 0.29545454545454547,
+    "ci_high": 0.29545454545454547,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 1,
+    "per_signer": {
+     "003": 0.29545454545454547
+    }
+   },
+   "macro_top1_by_class": 0.29857142857142854,
+   "worst_signer": {
+    "signer_id": "003",
+    "top1": 0.29545454545454547,
+    "min_clips": 10,
+    "n_signers_eligible": 1
+   },
+   "seen_classes": {
+    "top1": 0.4406779661016949,
+    "n_clips": 118,
+    "n_classes_train": 29,
+    "chance": 0.034482758620689655
+   },
+   "n_clips": 176,
+   "n_signers": 1,
+   "proto_top1": 0.3806818425655365
+  }
+ },
+ "init_from": {
+  "run": "M8/m83_pretrain_sb_a1/all/seed2",
+  "sha256": "3c446589b417728622133921e57f406844337f7fad064e992651127a93a50dc3"
+ },
+ "config": {
+  "seed": 2,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 95,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 10,
+   "compile": false,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "last",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": "M8/m83_pretrain_sb_a1/all/seed2",
+   "freeze_steps": 19,
+   "unfreeze_every": 6,
+   "backbone_lr_mult": 0.1
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M9",
+  "condition": "pilot_k2_sb_ft_a1",
+  "data": {
+   "dataset": "pilot",
+   "split": "pilot_loso_k2.json",
+   "fold": "test003",
+   "disjoint": [
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": true
+  }
+ },
+ "export": {
+  "n": 176,
+  "top1": 0.29545454545454547,
+  "top5": 0.5454545454545454,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

@@ -1,0 +1,263 @@
+{
+ "proto_top1": 0.6976743936538696,
+ "best_step": 12308,
+ "best_val_top1": 0.6845124363899231,
+ "steps": 14488,
+ "steps_done": 14488,
+ "refit_steps": null,
+ "n_params": {
+  "total": 4274830,
+  "encoder": 3003201,
+  "inference_heads": 242601,
+  "train_only": 1029028
+ },
+ "cost": {
+  "gflops_per_window": 0.476714368,
+  "cpu_latency_ms_median": 6.299830998614198,
+  "cpu_threads": 24,
+  "T": 32
+ },
+ "ema": false,
+ "seed": 0,
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 140.42563755399897,
+ "train_steps_per_s": 106.4676511344002,
+ "test": {
+  "slovo": {
+   "top1": {
+    "mean": 0.7021755438859715,
+    "ci_low": 0.6669314017226332,
+    "ci_high": 0.7383825655022636,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.90847711927982,
+    "ci_low": 0.8943912803807715,
+    "ci_high": 0.9210704049089661,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.6577872186761002,
+    "ci_low": 0.5796289120578136,
+    "ci_high": 0.7283281115219428,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 37,
+    "per_signer": {
+     "0ab4f8e463cdded2e59d6001f4e1b487": 0.5945945945945946,
+     "0ceb69ca37aa3e44528c7ce03c329479": 0.7394366197183099,
+     "0df9d6e419cb18069e696edaa170ba87": 0.7058823529411765,
+     "1860c7f3605089bf0eff0c4e72c7add4": 0.7,
+     "194612f32f5297e4699c2c0beb9b336a": 0.5,
+     "284bcd17bf498fc7af0fb1ae02d53e71": 1.0,
+     "2f11d03d9545598bd9d3e8af7dd14f9d": 0.0,
+     "31454c46363d921d9eaae66004e10edf": 0.5,
+     "350a80c86a29e0ca64bcd8619590ef04": 0.5,
+     "3d9406830ebee60acbb259c2ad7d0589": 0.7894736842105263,
+     "50334f2a79561498829a34a2c90984b1": 0.76,
+     "52003757d6b63a3ee7a71f36f5a9a17b": 0.7857142857142857,
+     "5327426fdce7e6f87680b661e37e24c8": 0.6666666666666666,
+     "64df6876c23bf021dbfbccbc64f7406a": 0.4117647058823529,
+     "6520ea9b92b24339fb538be29b315e0b": 0.8333333333333334,
+     "798aa826b6129d33f72f62d4ba60b681": 0.8095238095238095,
+     "7c0fb4e90495815f55cb0deb35cbc95e": 0.5,
+     "87065ba1dad8cca8f1f4cdba4fdbc45a": 0.6,
+     "8e9000e00d96e04ae2be3a81390e42ce": 0.6190476190476191,
+     "93722d38671f3675ee1859b9b20a7648": 0.0,
+     "957c17229962f4d6fb9c3499dc7cde68": 0.0,
+     "9f9b13d8e63bd774b4ad1bd14f56147d": 0.65,
+     "a54b7e3644ea504efb6f3ad4d7d7b938": 0.9,
+     "a5acf34bae293cb13b5b83c45d7cdc0b": 1.0,
+     "b34ac47997680835ece485b13845fefd": 0.7777777777777778,
+     "b4e852a75cacf8642412dfc05e2126a3": 0.7659574468085106,
+     "b6bc47e76a066769495f3a22455713b5": 0.8571428571428571,
+     "bcf5a67e65444f6c1d3119b5d6c3558b": 0.6761904761904762,
+     "bcfa0b04671c2a073fe1a90eafa5e718": 0.75,
+     "cbf0fba52a8a0d2750d36a25e246f19d": 0.7142857142857143,
+     "df8cbc6337c9d0928d4442d705e98d27": 0.8,
+     "e2a4b39d2c32a290f039aaf98c62eb27": 0.6120689655172413,
+     "e4bd328bca8e6f51bd6f4f019692b666": 0.6666666666666666,
+     "e75f778bbca49e64fdfb582b30648ca9": 0.6792452830188679,
+     "ed779072dfcc0ebfcbca9276deda139d": 0.8181818181818182,
+     "f1ac5444f2f104d6d9e1182d8032e7e8": 1.0,
+     "f5b82a9c82f6d870ec253e4c3fa96d83": 0.6551724137931034
+    }
+   },
+   "macro_top1_by_class": 0.705542839703975,
+   "worst_signer": {
+    "signer_id": "2f11d03d9545598bd9d3e8af7dd14f9d",
+    "top1": 0.0
+   },
+   "seen_classes": {
+    "top1": 0.7021755438859715,
+    "n_clips": 1333,
+    "n_classes_train": 1001,
+    "chance": 0.000999000999000999
+   },
+   "n_clips": 1333,
+   "n_signers": 37,
+   "proto_top1": 0.6976743936538696
+  }
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002
+  },
+  "train": {
+   "steps": 14488,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 724,
+   "compile": true,
+   "augment": true,
+   "ema": false,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M3",
+  "condition": "slovo_a_kosti",
+  "data": {
+   "dataset": "slovo",
+   "split": "slovo_p5.json",
+   "fold": "fold5",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 1333,
+  "top1": 0.7021755438859715,
+  "top5": 0.90847711927982,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

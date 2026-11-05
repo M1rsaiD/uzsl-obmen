@@ -1,0 +1,232 @@
+{
+ "load_avg_1min": 0.93359375,
+ "torch_threads": 24,
+ "models": {
+  "slovo/**МПК A1** (A0 + EMA)": {
+   "params_total_m": 4.409742,
+   "params_inference_m": 3.380714,
+   "cost": {
+    "gflops_per_window": 0.759608704,
+    "cpu_latency_ms_median": 9.295916002884042,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/МПК A1-большая (D 256, N 6)": {
+   "params_total_m": 11.55419,
+   "params_inference_m": 10.268906,
+   "cost": {
+    "gflops_per_window": 1.330285568,
+    "cpu_latency_ms_median": 14.12438049010234,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/МПК A0 (без EMA)": {
+   "params_total_m": 4.409742,
+   "params_inference_m": 3.380714,
+   "cost": {
+    "gflops_per_window": 0.759608704,
+    "cpu_latency_ms_median": 8.985705499071628,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/ST-GCN (27 узлов), рецепт mpkrec, EMA": {
+   "params_total_m": 3.666587,
+   "params_inference_m": 3.410331,
+   "cost": {
+    "gflops_per_window": 1.979204608,
+    "cpu_latency_ms_median": 5.084888507553842,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/SL-GCN (27 узлов), рецепт mpkrec, EMA": {
+   "params_total_m": 4.185777,
+   "params_inference_m": 3.929521,
+   "cost": {
+    "gflops_per_window": 2.02538271,
+    "cpu_latency_ms_median": 19.2372469973634,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/трансформер E1 (вход E1), рецепт e1rec, EMA": {
+   "params_total_m": 3.791081,
+   "params_inference_m": 3.534825,
+   "cost": {
+    "gflops_per_window": 0.431895552,
+    "cpu_latency_ms_median": 1.7794320083339699,
+    "cpu_threads": 24,
+    "T": 64
+   }
+  },
+  "slovo/E1.6 трансформер-2L (без EMA, общий рецепт)": {
+   "params_total_m": 2.233577,
+   "params_inference_m": 1.977321,
+   "cost": {
+    "gflops_per_window": 0.111373312,
+    "cpu_latency_ms_median": 1.6609410013188608,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/E1.6 Bi-LSTM + внимание (без EMA, общий рецепт)": {
+   "params_total_m": 11.256809,
+   "params_inference_m": 11.000553,
+   "cost": {
+    "gflops_per_window": 0.62359808,
+    "cpu_latency_ms_median": 5.1939900004072115,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "slovo/E1.6 MLP (без EMA, общий рецепт)": {
+   "params_total_m": 1.806825,
+   "params_inference_m": 1.550569,
+   "cost": {
+    "gflops_per_window": 0.003609088,
+    "cpu_latency_ms_median": 0.9929154985002242,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/**МПК A1** (A0 + EMA)": {
+   "params_total_m": 3.227814,
+   "params_inference_m": 3.19389,
+   "cost": {
+    "gflops_per_window": 0.757254528,
+    "cpu_latency_ms_median": 10.715652999351732,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/МПК A1-большая (D 256, N 6)": {
+   "params_total_m": 10.062502,
+   "params_inference_m": 10.02013,
+   "cost": {
+    "gflops_per_window": 1.327311872,
+    "cpu_latency_ms_median": 21.81565649516415,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/МПК A0 (без EMA)": {
+   "params_total_m": 3.227814,
+   "params_inference_m": 3.19389,
+   "cost": {
+    "gflops_per_window": 0.757254528,
+    "cpu_latency_ms_median": 9.318578500824515,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/ST-GCN (27 узлов), рецепт mpkrec, EMA": {
+   "params_total_m": 3.170003,
+   "params_inference_m": 3.161555,
+   "cost": {
+    "gflops_per_window": 1.978213376,
+    "cpu_latency_ms_median": 4.946860506606754,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/SL-GCN (27 узлов), рецепт mpkrec, EMA": {
+   "params_total_m": 3.689193,
+   "params_inference_m": 3.680745,
+   "cost": {
+    "gflops_per_window": 2.024391478,
+    "cpu_latency_ms_median": 19.737925998924766,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/трансформер E1 (вход E1), рецепт e1rec, EMA": {
+   "params_total_m": 3.294497,
+   "params_inference_m": 3.286049,
+   "cost": {
+    "gflops_per_window": 0.43090432,
+    "cpu_latency_ms_median": 1.3243774956208654,
+    "cpu_threads": 24,
+    "T": 64
+   }
+  },
+  "bukva/E1.6 трансформер-2L (без EMA, общий рецепт)": {
+   "params_total_m": 1.736993,
+   "params_inference_m": 1.728545,
+   "cost": {
+    "gflops_per_window": 0.11038208,
+    "cpu_latency_ms_median": 1.6059914996731095,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/E1.6 Bi-LSTM + внимание (без EMA, общий рецепт)": {
+   "params_total_m": 10.016801,
+   "params_inference_m": 10.008353,
+   "cost": {
+    "gflops_per_window": 0.62112,
+    "cpu_latency_ms_median": 5.421628004114609,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  },
+  "bukva/E1.6 MLP (без EMA, общий рецепт)": {
+   "params_total_m": 0.566817,
+   "params_inference_m": 0.558369,
+   "cost": {
+    "gflops_per_window": 0.001131008,
+    "cpu_latency_ms_median": 1.2009045021841303,
+    "cpu_threads": 24,
+    "T": 32
+   }
+  }
+ },
+ "a2_same_session": {
+  "load_avg_1min": 0.40087890625,
+  "torch_threads": 24,
+  "models": {
+   "slovo/МПК A1": {
+    "params_total_m": 4.409742,
+    "params_inference_m": 3.380714,
+    "cost": {
+     "gflops_per_window": 0.759608704,
+     "cpu_latency_ms_median": 8.387793001020327,
+     "cpu_threads": 24,
+     "T": 32
+    }
+   },
+   "slovo/МПК A2 (A1 без графа)": {
+    "params_total_m": 4.171022,
+    "params_inference_m": 3.141994,
+    "cost": {
+     "gflops_per_window": 0.195810688,
+     "cpu_latency_ms_median": 5.064151504484471,
+     "cpu_threads": 24,
+     "T": 32
+    }
+   },
+   "bukva/МПК A1": {
+    "params_total_m": 3.227814,
+    "params_inference_m": 3.19389,
+    "cost": {
+     "gflops_per_window": 0.757254528,
+     "cpu_latency_ms_median": 8.049440002650954,
+     "cpu_threads": 24,
+     "T": 32
+    }
+   },
+   "bukva/МПК A2 (A1 без графа)": {
+    "params_total_m": 2.989094,
+    "params_inference_m": 2.95517,
+    "cost": {
+     "gflops_per_window": 0.193456512,
+     "cpu_latency_ms_median": 4.742732497106772,
+     "cpu_threads": 24,
+     "T": 32
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,51 @@
+{
+ "load_avg_1min": 1.30712890625,
+ "torch_threads": 24,
+ "ours": {
+  "A1": {
+   "params_inference_m": 3.380714,
+   "best_pt_mb": 17.792678,
+   "cpu": {
+    "gflops_per_window": 0.759608704,
+    "cpu_latency_ms_median": 7.516312492953148,
+    "cpu_threads": 24,
+    "T": 32
+   },
+   "gpu_latency_ms_median": 2.3141209967434406
+  },
+  "A2": {
+   "params_inference_m": 3.141994,
+   "best_pt_mb": 16.763538,
+   "cpu": {
+    "gflops_per_window": 0.195810688,
+    "cpu_latency_ms_median": 4.731261506094597,
+    "cpu_threads": 24,
+    "T": 32
+   },
+   "gpu_latency_ms_median": 1.5794755017850548
+  },
+  "A1-большая": {
+   "params_inference_m": 10.268906,
+   "best_pt_mb": 46.408055,
+   "cpu": {
+    "gflops_per_window": 1.330285568,
+    "cpu_latency_ms_median": 13.902328493713867,
+    "cpu_threads": 24,
+    "T": 32
+   },
+   "gpu_latency_ms_median": 2.934122509032022
+  }
+ },
+ "video": {
+  "mvit32-2": {
+   "file_mb": 140.785735,
+   "T": 32,
+   "frame_interval": 2,
+   "params_m": 35.000976,
+   "gflops": null,
+   "cpu_latency_ms_median": 929.7034185074153,
+   "gpu_latency_ms_median": 47.41064250265481,
+   "decode_preprocess_ms_mean_train50": 85.42793060041731
+  }
+ }
+}

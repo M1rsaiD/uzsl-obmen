@@ -1,0 +1,12 @@
+{
+ "p": 0.5,
+ "sigma": 0.0,
+ "hand": "dominant_by_frames",
+ "checkpoint_run": "M8/m85_slovo_a1_bez_grafa/fold2/seed2",
+ "export": {
+  "n": 1314,
+  "top1": 0.680365296803653,
+  "top5": 0.9079147640791476,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "load_avg_1min": 0.06591796875,
+ "torch_threads": 24,
+ "cpu": "i9-14900KF",
+ "ours_T32": {
+  "A1_m8": {
+   "params_inference_m": 3.380714,
+   "gflops_per_window": 0.759608704,
+   "cpu_latency_ms_median": 8.481600496452302,
+   "cpu_threads": 24,
+   "T": 32
+  },
+  "stgcn_m8": {
+   "params_inference_m": 3.410331,
+   "gflops_per_window": 1.979204608,
+   "cpu_latency_ms_median": 6.898423001985066,
+   "cpu_threads": 24,
+   "T": 32
+  }
+ },
+ "stgcn_orig": {
+  "T300": {
+   "params_m": 3.343801,
+   "gflops_per_window": 18.535386112,
+   "cpu_latency_ms_median": 23.230441998748574,
+   "T": 300
+  },
+  "T32": {
+   "params_m": 3.343801,
+   "gflops_per_window": 1.977565696,
+   "cpu_latency_ms_median": 5.685211501258891,
+   "T": 32
+  }
+ }
+}

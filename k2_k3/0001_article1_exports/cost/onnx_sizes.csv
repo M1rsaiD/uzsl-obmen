@@ -1,0 +1,12 @@
+model,bytes
+osnovnaya_model/runs/M11B_export_smoke/a1/core.onnx,12924343
+osnovnaya_model/runs/M11B_export_smoke/a1/unused_opset18/core.onnx,12822883
+osnovnaya_model/runs/final/a1_all_data/onnx/all.onnx,13479858
+uzsign_ai_v2/models/uz_V.onnx,13181329
+uzsign_ai_v2/models/uz_all.onnx,13181329
+uzsign_ai_v2/models/uz_all_A2381.onnx,14492957
+uzsign_ai_v2/models/uz_scratch.onnx,14492957
+demo/models/all.onnx,13479858
+demo/models/bukva.onnx,12878640
+demo/models/pilot.onnx,12884044
+demo/models/slovo.onnx,13625939

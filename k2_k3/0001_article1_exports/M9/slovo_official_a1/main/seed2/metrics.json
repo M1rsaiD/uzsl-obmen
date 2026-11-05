@@ -1,0 +1,423 @@
+{
+ "proto_top1": 0.6354901790618896,
+ "best_step": 9673,
+ "best_val_top1": 0.6493861079216003,
+ "steps": 11381,
+ "steps_done": 11381,
+ "refit_steps": null,
+ "n_params": {
+  "total": 4409742,
+  "encoder": 3138113,
+  "inference_heads": 242601,
+  "train_only": 1029028
+ },
+ "cost": {
+  "gflops_per_window": 0.759608704,
+  "cpu_latency_ms_median": 8.251441002357751,
+  "cpu_threads": 24,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 2,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "4dd60bd",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 183.79638916999102,
+ "train_steps_per_s": 64.16113653362635,
+ "test": {
+  "slovo": {
+   "top1": {
+    "mean": 0.6396078431372549,
+    "ci_low": 0.6110200453503901,
+    "ci_high": 0.6670163290382181,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.8652941176470588,
+    "ci_low": 0.8472683471968986,
+    "ci_high": 0.8825813126886747,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.6389283449902095,
+    "ci_low": 0.5995541820902794,
+    "ci_high": 0.675486541919083,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 174,
+    "per_signer": {
+     "0041ec866777f12c384b64d8cd636277": 0.5769230769230769,
+     "012015303772a32f4d91adec2929cbae": 0.8888888888888888,
+     "04eddc2aeea2c8c62692959d345d85be": 0.0,
+     "08a11cc9175fc17cce738a504a0325f3": 0.5,
+     "08b8fc47e7a869751c13f64a922e6c15": 0.6153846153846154,
+     "0a11105fbfa6d452b86187db53b753e2": 0.743801652892562,
+     "0aa6d4f4212779809a0af791e53c6797": 0.5,
+     "0ab4f8e463cdded2e59d6001f4e1b487": 0.5405405405405406,
+     "0c51143375644025ccda56fdfbc4ba06": 0.8333333333333334,
+     "0ceb69ca37aa3e44528c7ce03c329479": 0.676056338028169,
+     "0d766757b1c647a82b52d15809a7cdfc": 0.6666666666666666,
+     "0df9d6e419cb18069e696edaa170ba87": 0.5333333333333333,
+     "0f7aee11724db9ef1f9df422f7443e28": 0.8461538461538461,
+     "12c7911f38c7113ce13c71dbd785ce22": 0.3933333333333333,
+     "13c4baf863bfb1aa4ac638650e508d3b": 0.4772727272727273,
+     "14b58133e7dd643c07abda9ef7f51175": 0.625,
+     "154a5a96cdb51a98d40895acdcc0de60": 0.7368421052631579,
+     "1614dcacf6222ac79fefd294f37a9bcd": 0.75,
+     "1860c7f3605089bf0eff0c4e72c7add4": 0.6916666666666667,
+     "194612f32f5297e4699c2c0beb9b336a": 0.6,
+     "1ab43654b4272521194296de00fc34d5": 0.8,
+     "1b9c7051cdfd857ffd36902fe78c8231": 1.0,
+     "1f934c6f9abcefdd1f882604bf86bb8a": 0.9,
+     "20f1589682a8e64769ae2ebc21b5fb6b": 0.5666666666666667,
+     "232719b160f5951ee2c80613d367dc17": 0.8,
+     "284bcd17bf498fc7af0fb1ae02d53e71": 1.0,
+     "29872045e170c8e643b0fa18f6285167": 0.8333333333333334,
+     "2987f0ebb62c980d913d2d9ad1acab1e": 0.5754716981132075,
+     "2b715d8c50c20ba14d65996a969043af": 0.5,
+     "2d6faeea366feab5c638033e5d0b241a": 1.0,
+     "2e900e56b0b0d7fe1c3978e6391fbc91": 0.6822429906542056,
+     "2f11d03d9545598bd9d3e8af7dd14f9d": 0.0,
+     "3018b64d2c938f5b6a0826dfdf486f2c": 0.813953488372093,
+     "30eae85220a3d47b79b9955a08d31d63": 1.0,
+     "312a0e41da632dee15d080ff3f63039f": 0.5,
+     "31454c46363d921d9eaae66004e10edf": 0.5,
+     "324cdee3d2550397efb761d8fff48139": 0.8181818181818182,
+     "33b317c5a26046cafcd795a2fe4e919e": 0.7878787878787878,
+     "350a80c86a29e0ca64bcd8619590ef04": 1.0,
+     "37d962919364c79138107541f0197f00": 0.5882352941176471,
+     "38655613ab774f4181175c682c89a8a9": 0.6,
+     "3bb869551201cb9e68e52bec47d6894a": 0.4375,
+     "3cd40fe067e7479131fb2f36fb496a19": 0.0625,
+     "3cf00ecfe200a3990d42c6464286d6fb": 0.75,
+     "3d72fb142e22f3d3eecfb01fd0ac533c": 0.4444444444444444,
+     "3d9406830ebee60acbb259c2ad7d0589": 0.8571428571428571,
+     "3dd2ce2659aada17b976390004ebe322": 0.49264705882352944,
+     "3ec3e73c6c82b3bf81555a099aa99cb8": 0.0,
+     "40ad51b49892dca94b905eca8926568a": 0.7096774193548387,
+     "4299b8ccf39ace57287b463fbe4a489b": 0.5104895104895105,
+     "44a8ecdfac1eb8202bfb9a681be1ab20": 1.0,
+     "472fb939766ece63eb06e2d0e10eb679": 0.851063829787234,
+     "48bc83c415e12683f469d16027829654": 0.7,
+     "4d26ad833542291c50de9ce88fb4f64a": 0.782608695652174,
+     "4fe3e5fa6670788d04a086330994c231": 0.7407407407407407,
+     "50334f2a79561498829a34a2c90984b1": 0.8,
+     "52003757d6b63a3ee7a71f36f5a9a17b": 0.75,
+     "529c291e8d4fbf9e7e85287a3242ca93": 0.5,
+     "5327426fdce7e6f87680b661e37e24c8": 0.5555555555555556,
+     "53c3af7712ee8220b2faed1a55a82eca": 0.6851851851851852,
+     "549621beda910160c288e13e4d7e7ae2": 0.4444444444444444,
+     "550eef19de9ddf7dc4b37617d98589cc": 1.0,
+     "5558fd8101a2946270906cea0a1a6109": 1.0,
+     "55ac05bf18204955c640591070dd1118": 1.0,
+     "570c2405d58fe08bce66f55c42bc36b0": 1.0,
+     "58cdde57ef4f02087d51c5ee616b412e": 0.375,
+     "5a1e657dca17f2e11a30bf328bc3f899": 0.5,
+     "5d31495652064c24133967ad3ac1eac3": 0.25,
+     "61a4416732440a1c8e664271215d49ec": 0.0,
+     "63db05b188249dbd9ce7cc98fe205e1f": 0.7232142857142857,
+     "64df6876c23bf021dbfbccbc64f7406a": 0.3333333333333333,
+     "6520ea9b92b24339fb538be29b315e0b": 0.75,
+     "656ebd01cf7323d8c1cb8a0ca72aa1a5": 0.2222222222222222,
+     "66a3d0ec5b84e59044fdc1d9432ffd01": 0.0,
+     "68f27043789bb049757486b0ed1cbaab": 0.6448598130841121,
+     "699e0e16008a571b9810c4a1794e0713": 0.8,
+     "69d7fe85de1a227285d754a2ab7a41c3": 0.0,
+     "6a13ce9f94b37d4d71dc07a7ff348ff8": 0.75,
+     "6b8c657edff52d9632ec1922f0dc1523": 0.5,
+     "6b9b881fb9095ecf61e93c3683f3d9f3": 0.5,
+     "6fefb7617d77222efd121f4a2d6a79d6": 1.0,
+     "7384796f0a09362d819fe61936281c68": 1.0,
+     "76aa633fcb2bec4e6b0852635a8af57c": 0.5882352941176471,
+     "7952357552e3ebb6e9cb4866a2a955e3": 0.7142857142857143,
+     "798aa826b6129d33f72f62d4ba60b681": 0.7852760736196319,
+     "7c989fdb633be7453228f7c650097205": 0.6018518518518519,
+     "7faa41c4cf0a2602a23390de23574993": 0.6666666666666666,
+     "83624345fa124849e833a8664f21f3ea": 1.0,
+     "85346caabc9579e229e5c57dfec1423b": 0.5,
+     "87065ba1dad8cca8f1f4cdba4fdbc45a": 0.6,
+     "87fe0712fdd150ecc8d02cbbb2e047d6": 0.6071428571428571,
+     "8d28a14d365c6e81ece56134d2390b5d": 0.0,
+     "8e9000e00d96e04ae2be3a81390e42ce": 0.6190476190476191,
+     "8fe40f6fd9510b901edd9e64641d8618": 0.5135135135135135,
+     "92c73dfa328525ab086ae872d6614f14": 0.6363636363636364,
+     "93722d38671f3675ee1859b9b20a7648": 0.3333333333333333,
+     "957c17229962f4d6fb9c3499dc7cde68": 0.0,
+     "96004c3e655c98e436ff552dbe51c3c8": 0.8461538461538461,
+     "961aa0ba51723d359d16c04d719184b0": 0.8,
+     "98808fb6df14333a6dd7afc4187ec70f": 1.0,
+     "9a0784a99ea13a8b06cb103c2c8c7f0f": 0.47368421052631576,
+     "9aa7e7c54814e846453b15add11acbb6": 1.0,
+     "9ab234778542721e6e2af91ff1525d5b": 0.0,
+     "9d8e97b96dd58bdf15869b62535c7451": 0.5,
+     "9f9b13d8e63bd774b4ad1bd14f56147d": 0.6557377049180327,
+     "a26bd7c643ebfcdf24eb0b21d49b433a": 0.45454545454545453,
+     "a2831ac841c337c541b9f89d169ec69b": 0.7580645161290323,
+     "a2d3f7227726ed3846d9bac38734e85b": 0.4966442953020134,
+     "a356848cf0a72f961b81ebb6716f6131": 0.5652173913043478,
+     "a54b7e3644ea504efb6f3ad4d7d7b938": 0.6666666666666666,
+     "a5acf34bae293cb13b5b83c45d7cdc0b": 1.0,
+     "a95892dae1d320bd8b08cbca6a127cd8": 0.875,
+     "ab460ff83e8c5b13a705a9e2081023c2": 0.6551724137931034,
+     "ac3fa06087fe75cd09b48ae6adee0daf": 0.3333333333333333,
+     "ac4e8f7cd313144f219872fd79c4f3de": 0.6153846153846154,
+     "ad71ee6996c897e759036b345d7b240e": 0.6428571428571429,
+     "ae7548712ebba39f87c993e4eb8c98f4": 0.375,
+     "b21a99b09b181899c1becad72811179e": 1.0,
+     "b34ac47997680835ece485b13845fefd": 0.7777777777777778,
+     "b407f95b926cc6499fa09e8445c77a10": 0.6666666666666666,
+     "b4e852a75cacf8642412dfc05e2126a3": 0.8333333333333334,
+     "b56726d7b447d88e526f7da2e9e0e520": 0.5384615384615384,
+     "b6bc47e76a066769495f3a22455713b5": 1.0,
+     "ba230d5b794c9a7350356eddd3e9929c": 0.5254237288135594,
+     "ba84ba91aed3ed429acf59ddeb70427a": 0.6,
+     "bcf5a67e65444f6c1d3119b5d6c3558b": 0.6476190476190476,
+     "bcfa0b04671c2a073fe1a90eafa5e718": 0.5,
+     "bd0fc003c736968ada3652aad29907dc": 0.6324786324786325,
+     "bd22df5de9c7373f6182446d80e4eef3": 1.0,
+     "bd4e2755d88d8d835a07df3c78cdfc3c": 0.5833333333333334,
+     "c05c242d2524d1de48c68f1667cd7b6b": 0.6538461538461539,
+     "c6a3551b06fed4115d6c846c7d03bb0d": 0.6666666666666666,
+     "c80b4e57f158f28299b2a89694c42329": 0.6136363636363636,
+     "c8eab1eaf9a27c5347fe77e129661d8d": 1.0,
+     "c944a2645f4f5ba346538db04df659c6": 0.36363636363636365,
+     "ca6b767f0cccf093ba737ae2fc4fec3d": 0.8181818181818182,
+     "cb53e1b60ed438a7164ddea33f4381b4": 0.6724137931034483,
+     "cba981340353ec309f352b09a3ada196": 0.5,
+     "cbf0fba52a8a0d2750d36a25e246f19d": 0.6666666666666666,
+     "cc717ff5b84c06b903f2bd02898833da": 0.5,
+     "cd2619b64656612f5177970fa8fadd0c": 0.84,
+     "d262c72962cbade6f72c38802efe653a": 1.0,
+     "d2b4042ec6d8505a41b809e64d5adb7c": 0.4835164835164835,
+     "d46f3acdcf958933c7504ea11798ec55": 1.0,
+     "d4b56cd94433bc6d7a16a27411ac1a3c": 0.5892857142857143,
+     "d7b7f11ee70264bf8fd0d5dc7815d6ad": 0.4117647058823529,
+     "d9c9d54ee374a97ad63156c5856b60f0": 0.2857142857142857,
+     "dafc9199ae89ce804544a352d215a7e0": 0.6333333333333333,
+     "dbc8429e8eaae0ac020b062e02d00c47": 0.6,
+     "df8cbc6337c9d0928d4442d705e98d27": 0.5,
+     "e0ca58d03fc73a305046edcdf7ef7492": 0.7481481481481481,
+     "e1984c25338d0eba9f08a4b5b8176663": 0.0,
+     "e258af38a7d5af6b01812276b628203e": 0.6153846153846154,
+     "e2a4b39d2c32a290f039aaf98c62eb27": 0.6120689655172413,
+     "e33fc3942e5c808ee66ae216eb83cd15": 0.5,
+     "e3e1fd4bbf07a0423ee20d5c9baa49cc": 0.6857142857142857,
+     "e4bd328bca8e6f51bd6f4f019692b666": 0.6744186046511628,
+     "e4e54d56f96b94ab4fbe5d4d6fa64099": 1.0,
+     "e516b355dc74b56809e6231bc55cee7d": 0.7857142857142857,
+     "e75f778bbca49e64fdfb582b30648ca9": 0.7058823529411765,
+     "e79bc2612e4d81bbf11d100ba8645393": 1.0,
+     "e88c0621a4f9760225fbbff7f1a8b5bb": 0.6666666666666666,
+     "ea1a4408262a8c9a3639c535f9311b11": 0.8,
+     "ebbc8a4579be8db0748767683fe543ec": 0.5217391304347826,
+     "ed779072dfcc0ebfcbca9276deda139d": 0.7272727272727273,
+     "eda33efefc1e536a196d6c1ca6b36bba": 0.5,
+     "efc86825b9a40bcdcc9b54ab81aab3fe": 0.6666666666666666,
+     "f2c679303d968c0b8e02dc100b8acfa6": 0.7142857142857143,
+     "f2dc6eab563f93d86629c1cfe479f09d": 0.576271186440678,
+     "f378c5cdc0877ffb9cc6fac59e1b302d": 1.0,
+     "f5b82a9c82f6d870ec253e4c3fa96d83": 1.0,
+     "f5cf2ab400ab8dfc987744b797c45c66": 0.25,
+     "fb1007e5ffe149cc08bccaf8eda2ce31": 0.8108108108108109,
+     "feea6c22175f962ab28452f7314d1bc0": 0.7457627118644068
+    }
+   },
+   "macro_top1_by_class": 0.6344755244755244,
+   "worst_signer": {
+    "signer_id": "3cd40fe067e7479131fb2f36fb496a19",
+    "top1": 0.0625,
+    "min_clips": 10,
+    "n_signers_eligible": 89
+   },
+   "seen_classes": {
+    "top1": 0.6396078431372549,
+    "n_clips": 5100,
+    "n_classes_train": 1001,
+    "chance": 0.000999000999000999
+   },
+   "n_clips": 5100,
+   "n_signers": 174,
+   "proto_top1": 0.6354901790618896
+  }
+ },
+ "config": {
+  "seed": 2,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 11381,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 569,
+   "compile": true,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M9",
+  "condition": "slovo_official_a1",
+  "data": {
+   "dataset": "slovo",
+   "split": "slovo_official.json",
+   "fold": "main",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 5100,
+  "top1": 0.6396078431372549,
+  "top5": 0.8652941176470588,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

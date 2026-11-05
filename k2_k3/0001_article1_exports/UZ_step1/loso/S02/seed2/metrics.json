@@ -1,0 +1,259 @@
+{
+ "proto_top1": 0.2347031980752945,
+ "best_step": 3802,
+ "best_val_top1": -1.0,
+ "steps": 3802,
+ "steps_done": 3802,
+ "refit_steps": null,
+ "n_params": {
+  "total": 4020243,
+  "encoder": 3138113,
+  "inference_heads": 181034,
+  "train_only": 701096
+ },
+ "cost": {
+  "gflops_per_window": 0.758832896,
+  "cpu_latency_ms_median": 8.224837998568546,
+  "cpu_threads": 24,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 2,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "110fa53",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 107.0321071750077,
+ "train_steps_per_s": 36.23841874256032,
+ "test": {
+  "uzsl": {
+   "top1": {
+    "mean": 0.21187214611872146,
+    "ci_low": 0.21187214611872146,
+    "ci_high": 0.21187214611872146,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.4009132420091324,
+    "ci_low": 0.4009132420091324,
+    "ci_high": 0.4009132420091324,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.21187214611872146,
+    "ci_low": 0.21187214611872146,
+    "ci_high": 0.21187214611872146,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 1,
+    "per_signer": {
+     "S02": 0.21187214611872146
+    }
+   },
+   "macro_top1_by_class": 0.23469997864616698,
+   "worst_signer": {
+    "signer_id": "S02",
+    "top1": 0.21187214611872146,
+    "min_clips": 10,
+    "n_signers_eligible": 1
+   },
+   "seen_classes": {
+    "top1": 0.21187214611872146,
+    "n_clips": 1095,
+    "n_classes_train": 682,
+    "chance": 0.001466275659824047
+   },
+   "n_clips": 1095,
+   "n_signers": 1,
+   "proto_top1": 0.2347031980752945
+  }
+ },
+ "init_from": {
+  "run": "M8/m83_pretrain_sb_a1/all/seed2",
+  "sha256": "3c446589b417728622133921e57f406844337f7fad064e992651127a93a50dc3"
+ },
+ "config": {
+  "seed": 2,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 3802,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 190,
+   "compile": false,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": true,
+   "select": "last",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": "M8/m83_pretrain_sb_a1/all/seed2",
+   "freeze_steps": 760,
+   "unfreeze_every": 253,
+   "backbone_lr_mult": 0.1
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "V2",
+  "condition": "uzsl_loso_sb_ft_a1",
+  "data": {
+   "dataset": "uzsl",
+   "split": "uzsl_loso.json",
+   "fold": "S02",
+   "has_test": true,
+   "disjoint": [
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 1095,
+  "top1": 0.21187214611872146,
+  "top5": 0.4009132420091324,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

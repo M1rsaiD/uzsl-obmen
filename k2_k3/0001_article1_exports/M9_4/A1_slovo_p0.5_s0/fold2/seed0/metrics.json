@@ -1,0 +1,12 @@
+{
+ "p": 0.5,
+ "sigma": 0.0,
+ "hand": "dominant_by_frames",
+ "checkpoint_run": "M3/slovo_a_ema/fold2/seed0",
+ "export": {
+  "n": 1314,
+  "top1": 0.678082191780822,
+  "top5": 0.910958904109589,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

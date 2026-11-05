@@ -1,0 +1,275 @@
+{
+ "proto_top1": 0.8669301867485046,
+ "best_step": 1620,
+ "best_val_top1": 0.9225092530250549,
+ "steps": 2154,
+ "steps_done": 2154,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3169265,
+  "encoder": 3086544,
+  "inference_heads": 74273,
+  "train_only": 8448
+ },
+ "cost": {
+  "gflops_per_window": 1.977218048,
+  "cpu_latency_ms_median": 4.688012995757163,
+  "cpu_threads": 16,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 0,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "e05dd7c",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 96.3722802560078,
+ "train_steps_per_s": 23.215134029186682,
+ "test": {
+  "bukva": {
+   "top1": {
+    "mean": 0.8669301712779973,
+    "ci_low": 0.8443875713109451,
+    "ci_high": 0.8885358383953837,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.9894598155467721,
+    "ci_low": 0.9784942833809719,
+    "ci_high": 0.9975251330483602,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.8600347849200968,
+    "ci_low": 0.8242820776060082,
+    "ci_high": 0.8910974009890046,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 31,
+    "per_signer": {
+     "0211b488644476dd0fec656ccb9b74fc": 0.8484848484848485,
+     "0ab4f8e463cdded2e59d6001f4e1b487": 0.9393939393939394,
+     "0df9d6e419cb18069e696edaa170ba87": 0.7666666666666667,
+     "1cdaed3814fe5a4bfa9baa5d3f94ecc4": 0.8787878787878788,
+     "27032346b8d1e263473c0451843a8a6a": 0.8275862068965517,
+     "28593": 0.9354838709677419,
+     "28f7e6734615f41bc0366dee5c563f09": 0.9411764705882353,
+     "29283": 0.7857142857142857,
+     "29751": 0.84375,
+     "29804": 0.8571428571428571,
+     "29970": 0.9090909090909091,
+     "2fa7bff4283637452ca0e2575a1815be": 0.9230769230769231,
+     "30057": 1.0,
+     "3018b64d2c938f5b6a0826dfdf486f2c": 0.9285714285714286,
+     "4299b8ccf39ace57287b463fbe4a489b": 0.8125,
+     "4b8f634baac82dd96142fa1220b79759": 0.8076923076923077,
+     "5cfa6de910fe7b0af5f422d0df9f06d5": 0.9090909090909091,
+     "7c0fb4e90495815f55cb0deb35cbc95e": 0.8260869565217391,
+     "86ec735f573ae6c36a9dbf9e5bfd4eaf": 0.8214285714285714,
+     "87fe0712fdd150ecc8d02cbbb2e047d6": 0.9259259259259259,
+     "911876c4ffc0dd4cf21f61ea1acf5a0b": 0.8947368421052632,
+     "95af8e702c909eee7145c6dc1a3d756b": 0.8181818181818182,
+     "9a0784a99ea13a8b06cb103c2c8c7f0f": 0.90625,
+     "9a2c7d5a1fb72ad258ab16abf6ae9147": 0.7,
+     "a050ef5cb26b9d7f2ccdbedd1411ffa9": 1.0,
+     "a2d3f7227726ed3846d9bac38734e85b": 0.5,
+     "b6dbf3d8d6ed9fb9283b687910f6e829": 0.8787878787878788,
+     "c2f39049d2c1d9527683ed47b4fb6ad7": 0.9444444444444444,
+     "c80b4e57f158f28299b2a89694c42329": 0.7419354838709677,
+     "e97c55b450c4b2ae48a165e349f0f3eb": 0.88,
+     "f5b82a9c82f6d870ec253e4c3fa96d83": 0.9090909090909091
+    }
+   },
+   "macro_top1_by_class": 0.8627277663048414,
+   "worst_signer": {
+    "signer_id": "9a2c7d5a1fb72ad258ab16abf6ae9147",
+    "top1": 0.7,
+    "min_clips": 10,
+    "n_signers_eligible": 28
+   },
+   "seen_classes": {
+    "top1": 0.8669301712779973,
+    "n_clips": 759,
+    "n_classes_train": 33,
+    "chance": 0.030303030303030304
+   },
+   "n_clips": 759,
+   "n_signers": 31,
+   "proto_top1": 0.8669301867485046
+  }
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": false,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   },
+   "samslr": {
+    "buf": 150,
+    "win": 100,
+    "mirror_p": 0.5,
+    "shift_px": 10.0,
+    "side": 512.0
+   }
+  },
+  "train": {
+   "steps": 2154,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 108,
+   "compile": true,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "ema_warmup": false,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "optimizer": "adamw",
+   "samslr_opt": {
+    "epochs": 250,
+    "batch_size": 64,
+    "lr": 0.1,
+    "momentum": 0.9,
+    "nesterov": true,
+    "weight_decay": 0.0001,
+    "warmup_epochs": 20,
+    "lr_steps": [
+     150,
+     200
+    ]
+   },
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "arch": "stgcn_orig",
+   "input": "mpk",
+   "feat": "orig",
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0
+  },
+  "experiment": "M12",
+  "condition": "m12_1_bukva_stgcn_orig_A3",
+  "data": {
+   "dataset": "bukva",
+   "split": "bukva_p5.json",
+   "fold": "fold4",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 759,
+  "top1": 0.8669301712779973,
+  "top5": 0.9894598155467721,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

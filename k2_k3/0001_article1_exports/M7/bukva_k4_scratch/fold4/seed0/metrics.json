@@ -1,0 +1,288 @@
+{
+ "proto_top1": 0.3583662807941437,
+ "best_step": 1404,
+ "best_val_top1": 0.42804428935050964,
+ "steps": 2154,
+ "steps_done": 2154,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3227814,
+  "encoder": 3138113,
+  "inference_heads": 55777,
+  "train_only": 33924
+ },
+ "cost": {
+  "gflops_per_window": 0.757254528,
+  "cpu_latency_ms_median": 5.735910000112199,
+  "cpu_threads": 10,
+  "T": 32
+ },
+ "ema": false,
+ "seed": 0,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "fc26807",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 105.13153040700035,
+ "train_steps_per_s": 21.35505660287739,
+ "test": {
+  "bukva": {
+   "top1": {
+    "mean": 0.3662714097496706,
+    "ci_low": 0.3243842155196269,
+    "ci_high": 0.40988059153947004,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.7022397891963109,
+    "ci_low": 0.670020807488634,
+    "ci_high": 0.7335227272727272,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.3742340063154146,
+    "ci_low": 0.3277065902291605,
+    "ci_high": 0.4196069787324291,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 31,
+    "per_signer": {
+     "0211b488644476dd0fec656ccb9b74fc": 0.3333333333333333,
+     "0ab4f8e463cdded2e59d6001f4e1b487": 0.30303030303030304,
+     "0df9d6e419cb18069e696edaa170ba87": 0.3,
+     "1cdaed3814fe5a4bfa9baa5d3f94ecc4": 0.3333333333333333,
+     "27032346b8d1e263473c0451843a8a6a": 0.27586206896551724,
+     "28593": 0.45161290322580644,
+     "28f7e6734615f41bc0366dee5c563f09": 0.6470588235294118,
+     "29283": 0.42857142857142855,
+     "29751": 0.4375,
+     "29804": 0.2857142857142857,
+     "29970": 0.36363636363636365,
+     "2fa7bff4283637452ca0e2575a1815be": 0.23076923076923078,
+     "30057": 0.16666666666666666,
+     "3018b64d2c938f5b6a0826dfdf486f2c": 0.32142857142857145,
+     "4299b8ccf39ace57287b463fbe4a489b": 0.34375,
+     "4b8f634baac82dd96142fa1220b79759": 0.3076923076923077,
+     "5cfa6de910fe7b0af5f422d0df9f06d5": 0.5151515151515151,
+     "7c0fb4e90495815f55cb0deb35cbc95e": 0.34782608695652173,
+     "86ec735f573ae6c36a9dbf9e5bfd4eaf": 0.25,
+     "87fe0712fdd150ecc8d02cbbb2e047d6": 0.5555555555555556,
+     "911876c4ffc0dd4cf21f61ea1acf5a0b": 0.5263157894736842,
+     "95af8e702c909eee7145c6dc1a3d756b": 0.2727272727272727,
+     "9a0784a99ea13a8b06cb103c2c8c7f0f": 0.28125,
+     "9a2c7d5a1fb72ad258ab16abf6ae9147": 0.5,
+     "a050ef5cb26b9d7f2ccdbedd1411ffa9": 0.6153846153846154,
+     "a2d3f7227726ed3846d9bac38734e85b": 0.5,
+     "b6dbf3d8d6ed9fb9283b687910f6e829": 0.5757575757575758,
+     "c2f39049d2c1d9527683ed47b4fb6ad7": 0.4444444444444444,
+     "c80b4e57f158f28299b2a89694c42329": 0.1935483870967742,
+     "e97c55b450c4b2ae48a165e349f0f3eb": 0.16,
+     "f5b82a9c82f6d870ec253e4c3fa96d83": 0.3333333333333333
+    }
+   },
+   "macro_top1_by_class": 0.3628722338999019,
+   "worst_signer": {
+    "signer_id": "e97c55b450c4b2ae48a165e349f0f3eb",
+    "top1": 0.16,
+    "min_clips": 10,
+    "n_signers_eligible": 28
+   },
+   "seen_classes": {
+    "top1": 0.3662714097496706,
+    "n_clips": 759,
+    "n_classes_train": 33,
+    "chance": 0.030303030303030304
+   },
+   "n_clips": 759,
+   "n_signers": 31,
+   "proto_top1": 0.3583662807941437
+  }
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": false,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 2154,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 108,
+   "compile": true,
+   "augment": true,
+   "ema": false,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M7",
+  "condition": "bukva_k4_scratch",
+  "data": {
+   "dataset": "bukva",
+   "split": "bukva_p5_k4.json",
+   "fold": "fold4",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": true
+  }
+ },
+ "export": {
+  "n": 759,
+  "top1": 0.3662714097496706,
+  "top5": 0.7022397891963109,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

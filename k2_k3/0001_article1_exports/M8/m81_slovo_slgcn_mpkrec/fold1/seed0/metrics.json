@@ -1,0 +1,316 @@
+{
+ "proto_top1": 0.708306074142456,
+ "best_step": 14480,
+ "best_val_top1": 0.7419354915618896,
+ "steps": 14488,
+ "steps_done": 14488,
+ "refit_steps": null,
+ "n_params": {
+  "total": 4185777,
+  "encoder": 3606472,
+  "inference_heads": 323049,
+  "train_only": 256256
+ },
+ "cost": {
+  "gflops_per_window": 2.02538271,
+  "cpu_latency_ms_median": 16.359069501049817,
+  "cpu_threads": 24,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 0,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "793addb",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 595.4455626619965,
+ "train_steps_per_s": 24.714469046123718,
+ "test": {
+  "slovo": {
+   "top1": {
+    "mean": 0.7089601046435579,
+    "ci_low": 0.6813862793358061,
+    "ci_high": 0.7482935538021341,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.9319816873773709,
+    "ci_low": 0.9094712552540966,
+    "ci_high": 0.9474404769506908,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.7126527818797836,
+    "ci_low": 0.6428999395358587,
+    "ci_high": 0.7751316824667744,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 37,
+    "per_signer": {
+     "0f7aee11724db9ef1f9df422f7443e28": 0.7777777777777778,
+     "154a5a96cdb51a98d40895acdcc0de60": 0.72,
+     "1614dcacf6222ac79fefd294f37a9bcd": 0.75,
+     "1ab43654b4272521194296de00fc34d5": 0.8333333333333334,
+     "1b9c7051cdfd857ffd36902fe78c8231": 1.0,
+     "1f934c6f9abcefdd1f882604bf86bb8a": 0.7,
+     "29872045e170c8e643b0fa18f6285167": 0.8333333333333334,
+     "2987f0ebb62c980d913d2d9ad1acab1e": 0.646551724137931,
+     "2d6faeea366feab5c638033e5d0b241a": 0.5,
+     "2d84da20c251acaeb3186642fcb04f2e": 0.69,
+     "324cdee3d2550397efb761d8fff48139": 0.72,
+     "38655613ab774f4181175c682c89a8a9": 0.7692307692307693,
+     "3cd40fe067e7479131fb2f36fb496a19": 0.3125,
+     "3cf00ecfe200a3990d42c6464286d6fb": 0.8,
+     "3d709656bb011c9ac3253610bc7a66c0": 0.5,
+     "3dd2ce2659aada17b976390004ebe322": 0.6137931034482759,
+     "4d26ad833542291c50de9ce88fb4f64a": 0.6744186046511628,
+     "530760d182be050e40876f6cf510b6cc": 1.0,
+     "5558fd8101a2946270906cea0a1a6109": 0.8888888888888888,
+     "5a1e657dca17f2e11a30bf328bc3f899": 0.3333333333333333,
+     "61a4416732440a1c8e664271215d49ec": 0.0,
+     "68f27043789bb049757486b0ed1cbaab": 0.6936936936936937,
+     "699e0e16008a571b9810c4a1794e0713": 0.8,
+     "6b8c657edff52d9632ec1922f0dc1523": 0.5,
+     "6fefb7617d77222efd121f4a2d6a79d6": 0.6666666666666666,
+     "92c73dfa328525ab086ae872d6614f14": 0.8048780487804879,
+     "9a0784a99ea13a8b06cb103c2c8c7f0f": 0.7192982456140351,
+     "9aa7e7c54814e846453b15add11acbb6": 1.0,
+     "a356848cf0a72f961b81ebb6716f6131": 0.7931034482758621,
+     "ca6b767f0cccf093ba737ae2fc4fec3d": 0.8181818181818182,
+     "cba981340353ec309f352b09a3ada196": 0.5,
+     "d46f3acdcf958933c7504ea11798ec55": 1.0,
+     "d85b2b2303d2fe48bc5177a0a3759190": 1.0,
+     "ea1a4408262a8c9a3639c535f9311b11": 0.8,
+     "f2c679303d968c0b8e02dc100b8acfa6": 0.7142857142857143,
+     "fb1007e5ffe149cc08bccaf8eda2ce31": 0.7586206896551724,
+     "feea6c22175f962ab28452f7314d1bc0": 0.7362637362637363
+    }
+   },
+   "macro_top1_by_class": 0.703549723756906,
+   "worst_signer": {
+    "signer_id": "3cd40fe067e7479131fb2f36fb496a19",
+    "top1": 0.3125,
+    "min_clips": 10,
+    "n_signers_eligible": 21
+   },
+   "seen_classes": {
+    "top1": 0.7089601046435579,
+    "n_clips": 1529,
+    "n_classes_train": 1001,
+    "chance": 0.000999000999000999
+   },
+   "n_clips": 1529,
+   "n_signers": 37,
+   "proto_top1": 0.708306074142456
+  }
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   }
+  },
+  "train": {
+   "steps": 14488,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 724,
+   "compile": true,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "merge_val": false,
+   "select": "best_val",
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": false,
+   "freeze_steps": 0,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 1.0
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "arch": "slgcn",
+   "input": "mpk",
+   "in_channels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "blocks": [
+    [
+     64,
+     1
+    ],
+    [
+     64,
+     1
+    ],
+    [
+     64,
+     1
+    ],
+    [
+     64,
+     1
+    ],
+    [
+     128,
+     2
+    ],
+    [
+     128,
+     1
+    ],
+    [
+     128,
+     1
+    ],
+    [
+     256,
+     2
+    ],
+    [
+     256,
+     1
+    ],
+    [
+     256,
+     1
+    ]
+   ],
+   "t_kernel": 9,
+   "groups": 8,
+   "stc_ratio": 2,
+   "keep_prob": 0.9,
+   "drop_block_t": 9,
+   "T": 32,
+   "dropout": 0.1,
+   "eps": 0.001,
+   "clip": 10.0,
+   "emb_dim": 256,
+   "emb_scale": 16.0
+  },
+  "experiment": "M8",
+  "condition": "m81_slovo_slgcn_mpkrec",
+  "data": {
+   "dataset": "slovo",
+   "split": "slovo_p5.json",
+   "fold": "fold1",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 1529,
+  "top1": 0.7089601046435579,
+  "top5": 0.9319816873773709,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

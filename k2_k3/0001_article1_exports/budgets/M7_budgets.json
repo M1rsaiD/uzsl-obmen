@@ -1,0 +1,44 @@
+{
+ "scratch": {
+  "epochs": 1466.1818181818182,
+  "epochs_q25_q75": [
+   1204.3636363636365,
+   1623.2727272727275
+  ],
+  "best_step_median": 1512.0,
+  "steps_budget_bukva": 2154,
+  "n_train_bukva": [
+   132
+  ],
+  "n_runs": 15,
+  "source": "runs/M7/bukva_k4_scratch"
+ },
+ "ft": {
+  "epochs": 209.45454545454547,
+  "epochs_q25_q75": [
+   104.72727272727273,
+   680.7272727272727
+  ],
+  "best_step_median": 216.0,
+  "steps_budget_bukva": 2154,
+  "n_train_bukva": [
+   132
+  ],
+  "n_runs": 15,
+  "source": "runs/M7/bukva_k4_slovo_ft"
+ },
+ "probe": {
+  "epochs": 209.45454545454547,
+  "epochs_q25_q75": [
+   104.72727272727273,
+   471.27272727272725
+  ],
+  "best_step_median": 216.0,
+  "steps_budget_bukva": 2154,
+  "n_train_bukva": [
+   132
+  ],
+  "n_runs": 15,
+  "source": "runs/M7/bukva_k4_slovo_probe"
+ }
+}

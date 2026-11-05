@@ -1,0 +1,262 @@
+{
+ "proto_top1": 0.8206157684326172,
+ "best_step": 1512,
+ "best_val_top1": 0.8129496574401855,
+ "steps": 2154,
+ "steps_done": 2154,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3227814,
+  "encoder": 3138113,
+  "inference_heads": 55777,
+  "train_only": 33924
+ },
+ "cost": {
+  "gflops_per_window": 0.757254528,
+  "cpu_latency_ms_median": 4.292454999813344,
+  "cpu_threads": 10,
+  "T": 32
+ },
+ "ema": false,
+ "seed": 0,
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 84.60186899700057,
+ "train_steps_per_s": 27.20733757305117,
+ "test": {
+  "bukva": {
+   "top1": {
+    "mean": 0.8032128514056225,
+    "ci_low": 0.7711730191479993,
+    "ci_high": 0.8350985370328645,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.9611780455153949,
+    "ci_low": 0.9445112344156734,
+    "ci_high": 0.9754901960784313,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.8024434055586892,
+    "ci_low": 0.7687936852038889,
+    "ci_high": 0.8359018918395431,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 31,
+    "per_signer": {
+     "08b8fc47e7a869751c13f64a922e6c15": 0.8148148148148148,
+     "12c7911f38c7113ce13c71dbd785ce22": 0.5862068965517241,
+     "138356c62cb9cd6168ec85fd31dbb1de": 0.9393939393939394,
+     "21288": 0.782608695652174,
+     "21710": 0.8484848484848485,
+     "23f5ca29e3183e356572642263a836ac": 0.8888888888888888,
+     "27399": 0.8787878787878788,
+     "28d653d3548e4508aaa6acbb5dfbeb64": 0.7857142857142857,
+     "2916c8f459bac1870fe3897d0340b148": 1.0,
+     "2d84da20c251acaeb3186642fcb04f2e": 0.8787878787878788,
+     "49b45af05ac6192685bee4e29cdf1e48": 0.8125,
+     "52003757d6b63a3ee7a71f36f5a9a17b": 0.7575757575757576,
+     "53c3af7712ee8220b2faed1a55a82eca": 0.7878787878787878,
+     "6753ca229e01b1c71053cb265fd93013": 0.8,
+     "7c989fdb633be7453228f7c650097205": 0.8333333333333334,
+     "7faa41c4cf0a2602a23390de23574993": 0.8571428571428571,
+     "83624345fa124849e833a8664f21f3ea": 0.6153846153846154,
+     "96004c3e655c98e436ff552dbe51c3c8": 0.75,
+     "a5f261810c66a72ed1d61890eefe1672": 0.8571428571428571,
+     "a85134b72f825ac9569e44e9ae53b128": 0.696969696969697,
+     "a8b89f85a363edca5d0cfa080065f2d6": 0.6923076923076923,
+     "ab460ff83e8c5b13a705a9e2081023c2": 0.7666666666666667,
+     "b07a773bcb10b4f14f33d2b0e8ec58ba": 0.8787878787878788,
+     "b34ac47997680835ece485b13845fefd": 0.8181818181818182,
+     "b4e852a75cacf8642412dfc05e2126a3": 0.78125,
+     "ba230d5b794c9a7350356eddd3e9929c": 0.7333333333333333,
+     "bcf5a67e65444f6c1d3119b5d6c3558b": 1.0,
+     "bd4e2755d88d8d835a07df3c78cdfc3c": 0.7419354838709677,
+     "bd6e2ad7ab53ceb7b8de9a1842844071": 0.8666666666666667,
+     "c3bc70b01dcc8b515891a4d097719b0f": 0.8,
+     "e8a84a6ab0e41fc41afea94dd06f7fd9": 0.625
+    }
+   },
+   "macro_top1_by_class": 0.80392276189551,
+   "worst_signer": {
+    "signer_id": "12c7911f38c7113ce13c71dbd785ce22",
+    "top1": 0.5862068965517241
+   },
+   "seen_classes": {
+    "top1": 0.8032128514056225,
+    "n_clips": 747,
+    "n_classes_train": 33,
+    "chance": 0.030303030303030304
+   },
+   "n_clips": 747,
+   "n_signers": 31,
+   "proto_top1": 0.8206157684326172
+  }
+ },
+ "init_from": {
+  "run": "M6/pretrain_slovo/all/seed0",
+  "sha256": "f2744637665a800cbedd9c96f752d9942df2bed047023518772041fd3c6cb147"
+ },
+ "config": {
+  "seed": 0,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": false,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002
+  },
+  "train": {
+   "steps": 2154,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 108,
+   "compile": true,
+   "augment": true,
+   "ema": false,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": "M6/pretrain_slovo/all/seed0",
+   "freeze_steps": 2154,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 0.1
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M6",
+  "condition": "bukva_k3_slovo_probe",
+  "data": {
+   "dataset": "bukva",
+   "split": "bukva_p5_k3.json",
+   "fold": "fold2",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": true
+  }
+ },
+ "export": {
+  "n": 747,
+  "top1": 0.8032128514056225,
+  "top5": 0.9611780455153949,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

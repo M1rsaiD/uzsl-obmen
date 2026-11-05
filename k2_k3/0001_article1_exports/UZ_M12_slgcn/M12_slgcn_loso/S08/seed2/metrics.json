@@ -1,0 +1,250 @@
+{
+ "proto_top1": 0.5352112650871277,
+ "best_step": 5477,
+ "best_val_top1": -1.0,
+ "steps": 5477,
+ "steps_done": 5477,
+ "refit_steps": null,
+ "n_params": {
+  "total": 5229882,
+  "encoder": 4814224,
+  "inference_heads": 241066,
+  "train_only": 174592
+ },
+ "cost": {
+  "gflops_per_window": 2.189994896,
+  "cpu_latency_ms_median": 29.47961149038747,
+  "cpu_threads": 24,
+  "T": 32
+ },
+ "ema": true,
+ "seed": 2,
+ "code": {
+  "osnovnaya_model": {
+   "commit": "15ba87d",
+   "dirty": false
+  },
+  "uzsign_e1": {
+   "commit": "dd95df2",
+   "dirty": false
+  }
+ },
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 825.5889731080097,
+ "train_steps_per_s": 6.7493521085839685,
+ "test": {
+  "uzsl": {
+   "top1": {
+    "mean": 0.5070422535211268,
+    "ci_low": 0.5070422535211268,
+    "ci_high": 0.5070422535211268,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.676056338028169,
+    "ci_low": 0.676056338028169,
+    "ci_high": 0.676056338028169,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.5070422535211268,
+    "ci_low": 0.5070422535211268,
+    "ci_high": 0.5070422535211268,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 1,
+    "per_signer": {
+     "S08": 0.5070422535211268
+    }
+   },
+   "macro_top1_by_class": 0.4861111111111111,
+   "worst_signer": {
+    "signer_id": "S08",
+    "top1": 0.5070422535211268,
+    "min_clips": 10,
+    "n_signers_eligible": 1
+   },
+   "seen_classes": {
+    "top1": 0.5070422535211268,
+    "n_clips": 71,
+    "n_classes_train": 682,
+    "chance": 0.001466275659824047
+   },
+   "n_clips": 71,
+   "n_signers": 1,
+   "proto_top1": 0.5352112650871277
+  }
+ },
+ "init_from": {
+  "run": "M11P/pretrain_sb_slgcn_orig/all/seed2",
+  "sha256": "b230939e40b8060b4e4943b0e63438062cde7bfd79d9e97745ab96f93863dc31"
+ },
+ "config": {
+  "seed": 2,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": true,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002,
+   "window": "mpk",
+   "spatial": "mpk",
+   "e1": {
+    "time_scale": [
+     0.8,
+     1.2
+    ],
+    "rot_deg": 15.0,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "shift": 0.1,
+    "noise_std": 0.01,
+    "p_hand_drop": 0.1
+   },
+   "samslr": {
+    "buf": 150,
+    "win": 100,
+    "mirror_p": 0.5,
+    "shift_px": 10.0,
+    "side": 512.0
+   }
+  },
+  "train": {
+   "steps": 5477,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 274,
+   "compile": false,
+   "augment": true,
+   "ema": true,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "ema_warmup": false,
+   "refit_trainval": false,
+   "merge_val": true,
+   "select": "last",
+   "optimizer": "adamw",
+   "samslr_opt": {
+    "epochs": 250,
+    "batch_size": 64,
+    "lr": 0.1,
+    "momentum": 0.9,
+    "nesterov": true,
+    "weight_decay": 0.0001,
+    "warmup_epochs": 20,
+    "lr_steps": [
+     150,
+     200
+    ]
+   },
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": "M11P/pretrain_sb_slgcn_orig/all/seed2",
+   "freeze_steps": 1095,
+   "unfreeze_every": 365,
+   "backbone_lr_mult": 0.1
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "arch": "slgcn_orig",
+   "input": "mpk",
+   "feat": "orig",
+   "groups": 16,
+   "block_size": 41,
+   "keep_rate": 0.9,
+   "keep_ramp_steps": 2191,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0
+  },
+  "experiment": "V2",
+  "condition": "uzsl_loso_sb_ft_slgcn_orig",
+  "data": {
+   "dataset": "uzsl",
+   "split": "uzsl_loso.json",
+   "fold": "S08",
+   "has_test": true,
+   "disjoint": [
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": false
+  }
+ },
+ "export": {
+  "n": 71,
+  "top1": 0.5070422535211268,
+  "top5": 0.676056338028169,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}

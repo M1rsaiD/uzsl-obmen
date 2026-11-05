@@ -1,0 +1,262 @@
+{
+ "proto_top1": 0.7832446694374084,
+ "best_step": 216,
+ "best_val_top1": 0.6572580337524414,
+ "steps": 2154,
+ "steps_done": 2154,
+ "refit_steps": null,
+ "n_params": {
+  "total": 3227814,
+  "encoder": 3138113,
+  "inference_heads": 55777,
+  "train_only": 33924
+ },
+ "cost": {
+  "gflops_per_window": 0.757254528,
+  "cpu_latency_ms_median": 4.5568224995804485,
+  "cpu_threads": 10,
+  "T": 32
+ },
+ "ema": false,
+ "seed": 2,
+ "versions": {
+  "python": "3.14.7",
+  "torch": "2.14.1+cu132",
+  "cuda": "13.2",
+  "gpu": "NVIDIA GeForce RTX 5080"
+ },
+ "wall_time_s": 37.452711414996884,
+ "train_steps_per_s": 62.991212698027226,
+ "test": {
+  "bukva": {
+   "top1": {
+    "mean": 0.7579787234042553,
+    "ci_low": 0.7183057806297244,
+    "ci_high": 0.7926419057093903,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "top5": {
+    "mean": 0.949468085106383,
+    "ci_low": 0.9301696842194739,
+    "ci_high": 0.9674805360341739,
+    "ci": 0.95,
+    "n_bootstrap": 2000
+   },
+   "macro_top1_by_signer": {
+    "mean": 0.7416908930591777,
+    "ci_low": 0.6948999288541742,
+    "ci_high": 0.7844035764976641,
+    "ci": 0.95,
+    "n_bootstrap": 2000,
+    "n_signers": 31,
+    "per_signer": {
+     "0c3d5473fba13210722e53374b736416": 0.7878787878787878,
+     "0c954cec2fd8884fff2ceeb41bd1b89d": 0.7058823529411765,
+     "0ceb69ca37aa3e44528c7ce03c329479": 0.5909090909090909,
+     "185bd3a81d9d618518d10abebf0d17a8": 0.7878787878787878,
+     "22109": 0.5714285714285714,
+     "27901": 0.8709677419354839,
+     "29479": 0.5384615384615384,
+     "29673": 0.71875,
+     "2d5120991a63d659f0eef6123f092100": 0.9090909090909091,
+     "30009": 0.7241379310344828,
+     "324cdee3d2550397efb761d8fff48139": 0.8387096774193549,
+     "3cf00ecfe200a3990d42c6464286d6fb": 0.7272727272727273,
+     "3ef4548431002f9f8fd7f39987be22c1": 0.8181818181818182,
+     "40ad51b49892dca94b905eca8926568a": 0.8148148148148148,
+     "420e55e9cc86ffe6ca183d41d80ee67c": 1.0,
+     "4aef7889ad6cd118ce4dab1e3b998a01": 0.7575757575757576,
+     "4d26ad833542291c50de9ce88fb4f64a": 0.8484848484848485,
+     "55ac05bf18204955c640591070dd1118": 0.8148148148148148,
+     "630a57fb2f40debe5a2c782349c9a26f": 0.75,
+     "66fa4ac3cee2c7216ab45480a7486c76": 0.4,
+     "6ca843830e5d2608f5d486f02e37dad9": 0.6666666666666666,
+     "76aa633fcb2bec4e6b0852635a8af57c": 0.8181818181818182,
+     "a356848cf0a72f961b81ebb6716f6131": 0.6666666666666666,
+     "a8dc3ffc818b23319cea1757602ad8e8": 0.76,
+     "adfe9c8ea85db4e65f36572669cbfed5": 0.8275862068965517,
+     "b56726d7b447d88e526f7da2e9e0e520": 0.6428571428571429,
+     "cba981340353ec309f352b09a3ada196": 0.8571428571428571,
+     "d01fdbbbd69ec8c4914397ba4abb899c": 0.5789473684210527,
+     "efc86825b9a40bcdcc9b54ab81aab3fe": 0.53125,
+     "f3cf3f9bb709ce2bee3da304a4ccb427": 0.7878787878787878,
+     "feea6c22175f962ab28452f7314d1bc0": 0.88
+    }
+   },
+   "macro_top1_by_class": 0.758823696676134,
+   "worst_signer": {
+    "signer_id": "66fa4ac3cee2c7216ab45480a7486c76",
+    "top1": 0.4
+   },
+   "seen_classes": {
+    "top1": 0.7579787234042553,
+    "n_clips": 752,
+    "n_classes_train": 33,
+    "chance": 0.030303030303030304
+   },
+   "n_clips": 752,
+   "n_signers": 31,
+   "proto_top1": 0.7832446694374084
+  }
+ },
+ "init_from": {
+  "run": "M6/pretrain_slovo/all/seed2",
+  "sha256": "11a9bc503130bb9489b296dd542e7c91e20d58b7b4b4a1430e3b6fc14ce198f8"
+ },
+ "config": {
+  "seed": 2,
+  "device": "cuda",
+  "loss": {
+   "label_smoothing": 0.1,
+   "lambda_emb": 0.5,
+   "beta_part": 0.1
+  },
+  "aug": {
+   "boundary_shift": 5,
+   "boundary_inward_only": false,
+   "min_keep_frac": 0.5,
+   "tempo": [
+    0.5,
+    2.0
+   ],
+   "p_drop": 0.1,
+   "p_dup": 0.3,
+   "p_hand_drop": [
+    0.2,
+    0.25
+   ],
+   "rot_deg": 15.0,
+   "scale": [
+    0.9,
+    1.1
+   ],
+   "shift": 0.05,
+   "hand_jitter": 0.002
+  },
+  "train": {
+   "steps": 2154,
+   "warmup_frac": 0.05,
+   "batch_size": 128,
+   "lr": 0.001,
+   "weight_decay": 0.05,
+   "eval_every": 108,
+   "compile": true,
+   "augment": true,
+   "ema": false,
+   "ema_decay": 0.999,
+   "ema_decay_short": 0.99,
+   "ema_short_below": 3000,
+   "refit_trainval": false,
+   "deterministic": false
+  },
+  "finetune": {
+   "init_from": "M6/pretrain_slovo/all/seed2",
+   "freeze_steps": 2154,
+   "unfreeze_every": 0,
+   "backbone_lr_mult": 0.1
+  },
+  "dominant": {
+   "mode": "none",
+   "ratio": 1.25
+  },
+  "synth": {
+   "enabled": false,
+   "n_per_signer": 5,
+   "params": {
+    "shoulder_scale": [
+     0.9,
+     1.1
+    ],
+    "arm_scale": [
+     0.9,
+     1.1
+    ],
+    "hand_scale": [
+     0.9,
+     1.1
+    ],
+    "rot_deg": [
+     -10.0,
+     10.0
+    ]
+   }
+  },
+  "eval": {
+   "latency_runs": 100,
+   "n_bootstrap": 2000,
+   "ci": 0.95
+  },
+  "model": {
+   "input": "mpk",
+   "arch": "mpk",
+   "d_model": 192,
+   "n_layers": 3,
+   "heads": 4,
+   "ff_mult": 4,
+   "conv_k": 15,
+   "tconv_k": 5,
+   "gc_channels": [
+    64,
+    128
+   ],
+   "dropout": 0.1,
+   "T": 32,
+   "emb_dim": 256,
+   "emb_scale": 16.0,
+   "eps": 0.001,
+   "clip": 10.0,
+   "features": [
+    "body",
+    "local",
+    "mask"
+   ],
+   "use_z": false,
+   "norm": "window",
+   "hand_angles": false,
+   "use_face": true,
+   "graph": true,
+   "hand_nodes": "a0",
+   "far_edges": true,
+   "streams": [
+    "J",
+    "B"
+   ],
+   "fusion": "mid",
+   "part_tokens": true,
+   "temporal": "conformer",
+   "tconv": true,
+   "pool": "attention",
+   "shared_hands": false,
+   "masked_bn": false
+  },
+  "experiment": "M6",
+  "condition": "bukva_k1_slovo_probe",
+  "data": {
+   "dataset": "bukva",
+   "split": "bukva_p5_k1.json",
+   "fold": "fold5",
+   "disjoint": [
+    [
+     "train",
+     "val"
+    ],
+    [
+     "train",
+     "test"
+    ],
+    [
+     "val",
+     "test"
+    ]
+   ],
+   "partial_split_ok": true
+  }
+ },
+ "export": {
+  "n": 752,
+  "top1": 0.7579787234042553,
+  "top5": 0.949468085106383,
+  "note": "пересчитано из predictions.csv при экспорте (сверка)"
+ }
+}
