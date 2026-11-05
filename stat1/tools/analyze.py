@@ -437,6 +437,27 @@ def label_review():
     res['by_signer'] = df.groupby('signer').verdict.value_counts().unstack(fill_value=0).to_dict('index')
     res['different_signers'] = df[df.verdict == 'different'].signer.tolist(); res['unsure_signers'] = df[df.verdict == 'unsure'].signer.tolist()
     print('labels', res['accuracy'], res['ci'], res['same'], res['different'], res['no_reference'], res['pilot_pairs'], res['lesson_pairs'])
+    # второй проверяющий (R2, профильный специалист): точность по эталону, согласие R1↔R2 (доля, каппа Коэна)
+    def acc_ci(d):
+        v = (d.verdict == 'same').values; sig = d.signer.values; uniq = np.unique(sig)
+        idx = RNG.integers(0, len(uniq), size=(NB_LOSO, len(uniq)))
+        bs = [np.mean(np.concatenate([v[sig == uniq[i]] for i in row])) for row in idx]
+        return dict(n=int(len(d)), same=int(v.sum()), accuracy=100 * v.mean(), ci=[100 * np.percentile(bs, 2.5), 100 * np.percentile(bs, 97.5)])
+    def kappa(a, b):
+        m = pd.crosstab(a, b); n = m.values.sum(); po = np.trace(m.reindex(index=m.columns, columns=m.columns, fill_value=0).values) / n
+        pe = sum(m.sum(axis=1).reindex(m.columns, fill_value=0).values * m.sum(axis=0).values) / n ** 2
+        return dict(n=int(n), agreement=100 * po, kappa=float((po - pe) / (1 - pe)) if pe < 1 else float('nan'))
+    r2p = EXP / 'docs' / 'label_review_pairs_r2.csv'
+    if r2p.exists():
+        r2 = pd.read_csv(r2p); both = df.merge(r2, on='record_id', suffixes=('_r1', '_r2'))
+        ref2 = r2[r2.has_reference_v1 == 1]
+        res['r2'] = dict(**acc_ci(ref2), no_reference=dict(n=int((r2.has_reference_v1 == 0).sum()), same=int(((r2.verdict == 'same') & (r2.has_reference_v1 == 0)).sum()), different=int(((r2.verdict == 'different') & (r2.has_reference_v1 == 0)).sum()), unsure=int(((r2.verdict == 'unsure') & (r2.has_reference_v1 == 0)).sum())),
+                        agreement_all=kappa(both.verdict_r1, both.verdict_r2), agreement_reference=kappa(both[both.has_reference_v1_r1 == 1].verdict_r1, both[both.has_reference_v1_r1 == 1].verdict_r2))
+        print('labels R2', res['r2'])
+    for tag, fn in (('r1_v3', 'label_review_pairs_r1_v3.csv'), ('r2_v3', 'label_review_pairs_r2_v3.csv')):
+        pth = EXP / 'docs' / fn
+        if pth.exists():
+            d = pd.read_csv(pth); res[tag] = acc_ci(d[d.has_reference_v1 == 1] if 'has_reference_v1' in d else d); print('labels', tag, res[tag])
     NUM['label_review'] = res
 def cost():
     res = {}
