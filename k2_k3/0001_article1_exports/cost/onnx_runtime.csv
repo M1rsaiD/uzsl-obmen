@@ -1,0 +1,9 @@
+model,run,T,params_inference_m,onnx_mb,max_abs_dlogit,threads,latency_ms_median,latency_ms_p90,load_avg_1min_before,load_avg_1min_after,busy_train_procs,onnxruntime,cpu
+A1,M7/slovo_a_ema/fold1/seed1,32,3.3807,12.995,2.38e-06,1,10.787,11.418,2.53,2.53,10,1.31.1,i9-14900KF
+A1,M7/slovo_a_ema/fold1/seed1,32,3.3807,12.995,2.38e-06,4,7.156,7.358,2.53,2.53,10,1.31.1,i9-14900KF
+A2,M8/m85_slovo_a1_bez_grafa/fold1/seed0,32,3.142,12.055,4.77e-06,1,1.844,2.169,4.65,4.65,10,1.31.1,i9-14900KF
+A2,M8/m85_slovo_a1_bez_grafa/fold1/seed0,32,3.142,12.055,4.77e-06,4,1.033,1.057,4.65,4.65,10,1.31.1,i9-14900KF
+ST-GCN_orig,M11G3/g3_slovo_stgcn_orig_mpkrec/fold1/seed0,32,3.4096,13.033,8.58e-06,1,15.018,15.16,4.65,4.65,10,1.31.1,i9-14900KF
+ST-GCN_orig,M11G3/g3_slovo_stgcn_orig_mpkrec/fold1/seed0,32,3.4096,13.033,8.58e-06,4,7.61,7.823,4.65,4.65,10,1.31.1,i9-14900KF
+SL-GCN_orig,M11G2/g2_slovo_slgcn_orig_mpkrec/fold1/seed0,32,5.1373,17.069,4.05e-06,1,25.571,26.297,4.65,4.51,10,1.31.1,i9-14900KF
+SL-GCN_orig,M11G2/g2_slovo_slgcn_orig_mpkrec/fold1/seed0,32,5.1373,17.069,3.81e-06,4,19.297,19.687,4.51,4.51,10,1.31.1,i9-14900KF
