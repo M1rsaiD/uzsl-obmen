@@ -1,0 +1,472 @@
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
+
+Isolated sign language recognition (ISLR), in which each video contains one sign, is the building block of sign dictionaries with video search, learning applications and the vocabulary components of translation systems. For a few sign languages, progress has been driven by large public datasets: WLASL \citep{2020_li_wlasl}, MS-ASL \citep{2019_joze_msasl}, AUTSL \citep{2020_sincan_autsl} and ASL Citizen \citep{2023_desai_asl_citizen}, and, for Russian Sign Language (RSL), Slovo \citep{2023_kapitanov_slovo}, Bukva \citep{2024_kvanchiani_bukva} and Logos \citep{2025_ovodov_logos}. Most sign languages have no such resource: a recent survey of sign language datasets lists no dataset for Uzbek Sign Language (UzSL) \citep{2026_ni_sign_language_datasets_survey}.
+
+Published work on automatic UzSL recognition is recent and small. It covers fingerspelling with hand landmarks or image detectors \citep{2026_jovlieva_webcam_uzbek_fingerspelling, 2024_kayumov_uzsl_latin_angular_signs, 2024_akhmedov_uzsl_dactyl_yolo} and isolated dynamic signs recorded from a few signers \citep{2026_ergashev_cnnlstm_vs_squeezeformer_uzsl, 2025_akkomron_uzslr_isolated_dynamic}. The data are not public, and the reported accuracies (87--99\%) were measured on signers who also appear in training; the authors of the largest study state that their evaluation was not signer-independent \citep{2026_ergashev_cnnlstm_vs_squeezeformer_uzsl}. The same problem is not limited to small in-house datasets: in the official split of Slovo, 92 of the 174 test signers also appear in the training set, and their videos make up 67.6\% of the test set, and a recent study of sign language translation found that signer-dependent splits overestimate BLEU scores several-fold \citep{2026_artiaga_signer_dependence_slt}. A model tested on people it has seen measures memorisation of individual signing styles as much as recognition of signs.
+
+Three obstacles therefore stand between the existing studies and a recogniser that a Deaf user in Uzbekistan could rely on: evaluation (no result on an unseen signer), data (a few hundred recordings cannot train a recogniser from scratch, and the obvious remedy, pretraining on a related and better-resourced sign language, has not been examined for UzSL) and deployment (video networks such as MViTv2 \citep{2022_li_mvitv2} are accurate but costly, whereas on-device keypoint estimators such as MediaPipe \citep{2020_zhang_mediapipe_hands, docs_mediapipe_holistic_landmarker} turn an ordinary camera into a low-cost body and hand sensor). The sign languages of the former Soviet republics are reported to be closely related to RSL because of the centralised language policy of the Soviet period; for Kazakh-Russian Sign Language this relation has been described by corpus developers, who also note that no formal comparison with RSL exists \citep{2020_imashev_krsl_dataset, 2024_imashev_krsl_retrospective}. We are not aware of a formal comparison between UzSL and RSL either, so the relation motivates, but does not justify, the use of RSL data; in this work it is a hypothesis tested by transfer experiments.
+
+This paper addresses the three obstacles with one evaluation discipline: no model is ever tested on a signer seen in training, every comparison is decided by a pre-registered rule, and every baseline that has released code is run from that code. Its contributions are:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{The first signer-independent evaluation of UzSL recognition.} We build a corpus of isolated UzSL signs from openly posted video lessons and a pilot recording session (5,993 recordings, 2,381 classes, 12 signers), label the lesson segments by the agreement of three independent cues, verify the labels against a video dictionary (98.2\% on 113 reference pairs) and evaluate with leave-one-signer-out (LOSO) folds over ten signers. A compact keypoint encoder reaches 32.0\% top-1 and 52.0\% top-5 accuracy on 682 classes; the estimate is reproduced on two external sources (33.3\% and 33.7\%).
+\item
+  \textbf{Cross-lingual pretraining as the main lever.} Pretraining on Slovo and Bukva raises LOSO top-1 accuracy from 17.3\% to 32.0\% (+14.7 points, 95\% confidence interval (CI) {[}+11.2; +18.6{]}, a gain for 10 of 10 signers), raises accuracy on an external dictionary of UzSL from 6.7\% to 15.9\% and, on the pilot data with training budgets fixed in advance, from 24.7\% to 47.5\% (18 of 18 seed--fold pairs). A simulation on Bukva shows the same effect at a controlled scale.
+\item
+  \textbf{A fair comparison of keypoint models on RSL.} Under a five-fold signer-disjoint protocol with paired bootstrap tests over signers, a compact Multilingual Pose Encoder (MPE; 3.38 M parameters, 0.76 GFLOPs per 32-frame window) is more accurate than a keypoint Transformer and simpler baselines, but the released ST-GCN \citep{2018_yan_stgcn} and SL-GCN \citep{2021_jiang_sam_slr} are 2.3 and 3.7 points more accurate on Slovo at 2.6 and 2.9 times more operations; our own re-implementations of the two networks understate them by 4.1 and 6.4 points on Slovo and by 8.7 and 4.7 points on Bukva. Ablations show that body-part tokens, not the skeletal graph, carry the encoder's accuracy, and that the graph can be removed to save 3.9 times the computation.
+\item
+  \textbf{A measurement of within-signer optimism.} On the pilot data, selecting checkpoints on held-out recordings of the training participants overestimates accuracy on a new participant by a median of 45.2 points; on the official Slovo split, two thirds of the test videos come from training signers.
+\end{enumerate}
+
+The fold lists, configurations and code are released at https://github.com/M1rsaiD/mpe-slovo-bukva ⟦tag of the final version to be set at submission⟧. The lesson videos and the pilot recordings contain faces and are not redistributed (Section 3.6).
+
+\hypertarget{related-work}{%
+\section{Related work}\label{related-work}}
+
+\textbf{Pose-based ISLR.} Keypoint-based recognisers process sequences of body, hand and face landmarks instead of pixels, which removes most appearance variation and makes the same model usable on keypoints from different devices. ST-GCN \citep{2018_yan_stgcn} models the skeleton as a graph and introduced the partitioning of a node's neighbourhood into root, centripetal and centrifugal subsets, which we also use; SL-GCN from the SAM-SLR framework \citep{2021_jiang_sam_slr} applies graph convolutions to a whole-body graph that includes both hands. Later work replaced or complemented graph convolutions with Transformers \citep{2017_vaswani_attention}, added self-supervised pretraining of hand-aware pose models such as SignBERT+ \citep{2023_hu_signbert_plus}, used gloss semantics \citep{2023_zuo_nla_slr} and applied Conformer blocks \citep{2020_gulati_conformer} to signer-invariant continuous recognition \citep{2025_isharah_signer_invariant_conformer}. Our encoder belongs to the same family but is built so that each of its components can be removed and tested under a strict signer-independent protocol.
+
+\textbf{Pretraining and transfer across sign languages.} OpenHands \citep{2022_selvaraj_openhands} released pose-based models for several sign languages and studied cross-lingual pretraining; SHuBERT \citep{2025_gueuwou_shubert} and Uni-Sign \citep{2025_li_uni_sign} learn representations from hundreds of hours of video; Logos \citep{2025_ovodov_logos} is a large RSL dataset whose pretrained encoder transfers to other sign languages. Cross-dataset transfer has also been studied for pairs of under-resourced datasets \citep{2024_kindiroglu_cross_dataset_transfer} and with visual information \citep{2023_ryumin_cross_language_transfer}. These studies transfer between large datasets or rely on hundreds of hours of video. We examine the opposite end: transfer from two public RSL datasets to a few thousand recordings of a closely related language, with an explicit rule for fixing training budgets when no validation signers of the target language exist.
+
+\textbf{Datasets and evaluation protocols.} AUTSL \citep{2020_sincan_autsl}, the ChaLearn LAP 2021 challenge built on it \citep{2021_sincan_chalearn_lap_islr}, MS-ASL \citep{2019_joze_msasl}, ASL Citizen \citep{2023_desai_asl_citizen} and FluentSigners-50 \citep{2022_mukushev_fluentsigners50} evaluate on signers who do not appear in training. For RSL, Slovo \citep{2023_kapitanov_slovo} contains 20,000 videos of 1,000 signs from 194 signers and Bukva \citep{2024_kvanchiani_bukva} 3,757 videos of the 33 letters of the RSL manual alphabet from 155 signers; the official Slovo split is not fully signer-disjoint, which makes it suitable for comparison with published results but not for measuring generalisation to new signers. YouTube-ASL \citep{2023_uthus_youtube_asl} proposed a compact subset of 85 MediaPipe landmarks that we adopt as model input.
+
+\textbf{UzSL recognition.} We reviewed the UzSL literature up to 2026 in \citep{2026_onarkulov_slr_review_uzsl}. One system recognises Uzbek fingerspelling from a webcam with MediaPipe Hands, a random forest for static letters and a long short-term memory network for letters with movement, and reports 99.1\% and 66.0\% on the authors' own data \citep{2026_jovlieva_webcam_uzbek_fingerspelling}; others classify Latin-script letters from finger-joint angles \citep{2024_kayumov_uzsl_latin_angular_signs} or detect letters with YOLO \citep{2024_akhmedov_uzsl_dactyl_yolo}. For isolated dynamic signs, a CNN--LSTM and a Squeezeformer-style Transformer were compared on a closed set of more than 500 classes with a random 70/15/15 split (87\% and 91\%) \citep{2026_ergashev_cnnlstm_vs_squeezeformer_uzsl}, and an open-source pipeline recognises 50 signs of 10 signers with a 1D-CNN--Transformer hybrid, splitting the repetitions of all signers at random (about 87\%) \citep{2025_akkomron_uzslr_isolated_dynamic}. No UzSL dataset is public, no published result was obtained on signers absent from training, and transfer from RSL has not been studied.
+
+\hypertarget{data}{%
+\section{Data}\label{data}}
+
+Table 1 summarises the datasets. Fig. 1 shows the pipeline: every video is converted into a sequence of 85 keypoints, the keypoints are normalised inside the model, encoded and classified; all models use the same keypoint files, folds and evaluation code.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_signs.png}
+\caption{Example fingerspelling signs from the UzSL pilot: participants 002 and 003 (rows) and the letters L, M, O and SH (columns). Each frame is shown next to the same frame with the 85 keypoints and the edges of the 27-node graph; long-range edges are dashed.}\label{fig:fig1_signs}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Datasets used in this study. Counts exclude the "no event" videos of Slovo, 400 of which are used as an additional training and validation class.}\label{tab:datasets}
+\footnotesize\setlength{\tabcolsep}{4pt}
+\centering
+\begin{tabular}{lllrrrl}
+\toprule
+\textbf{Dataset} & \textbf{Language} & \textbf{Content} & \textbf{Videos} & \textbf{Classes} & \textbf{Signers} & \textbf{Role} \\
+\midrule
+Slovo & RSL & isolated words & 20,000 & 1,000 & 194 & comparison; pretraining \\
+Bukva & RSL & fingerspelling & 3,757 & 33 & 155 & comparison; pretraining; simulation \\
+UzSL pilot (ours) & UzSL & fingerspelling, numerals & 322 & 40 & 3 & transfer target \\
+UzSL corpus (ours) & UzSL & isolated signs (lessons + pilot) & 5,993 & 2,381 & 12 & LOSO; transfer target \\
+N01 (external) & UzSL & video dictionary & 191 & 191 & 1 & test only \\
+imo-ishora.uz (external) & UzSL & video dictionary & 1,556 & 1,556 & several & test only \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\hypertarget{russian-sign-language-datasets}{%
+\subsection{Russian Sign Language datasets}\label{russian-sign-language-datasets}}
+
+\textbf{Slovo} \citep{2023_kapitanov_slovo} contains 20,000 videos of 1,000 isolated RSL signs recorded by 194 signers, plus 400 videos of a ``no event'' class. We keep the ``no event'' videos as an additional class for training and validation, so the Slovo classifiers have 1,001 outputs; our test sets and the official test split contain no such videos. \textbf{Bukva} \citep{2024_kvanchiani_bukva} contains 3,757 videos of the 33 letters of the RSL manual alphabet from 155 signers; the videos are untrimmed and annotated with the start and end frames of the sign, and only the frames between the boundaries are used. Both datasets were recorded by many signers on various devices in varied conditions.
+
+\hypertarget{uzsl-pilot-recordings}{%
+\subsection{UzSL pilot recordings}\label{uzsl-pilot-recordings}}
+
+The pilot set was recorded for this study with an in-house program at 1280 × 720 pixels and 30 frames per second: 322 videos of 40 fingerspelling signs (29 letters of the Latin-script Uzbek alphabet, including the digraphs CH, SH and NG and the letters Gʻ and Oʻ, and the numerals 0--10). Participant 001 is the second author, who made three test recordings of one letter while checking the program; these recordings are kept in the training data of every fold and never tested. Participant 002 recorded 143 videos of 29 letters and participant 003 176 videos of 24 letters and 11 numerals, each in a single session in January 2026 (0.30--3.67 s per video, mean 1.24 s). The two main participants share 24 letters. All participants gave written informed consent to the recording, to the use of their data in research and to the publication of images in scientific articles.
+
+\hypertarget{uzsl-corpus-from-open-video-lessons}{%
+\subsection{UzSL corpus from open video lessons}\label{uzsl-corpus-from-open-video-lessons}}
+
+\textbf{Sources.} We selected openly posted UzSL video lessons of 11 channels (162 lessons, 15.23 h), taking only lessons presented by adults; lessons with children were excluded entirely. Ten channels yielded recordings (159 lessons, 15.12 h). The videos were processed only on a laboratory computer, are not redistributed and are used for internal research; the channels are referred to by codes C01--C11 and the presenters by codes S01--S09. Two channels were presented by the same person and were merged into one signer; the three pilot participants are S10--S12. Signer identity was established from channel metadata, not by face recognition, and the presenters of different channels were not compared with each other.
+
+\textbf{Segmentation.} Keypoints were extracted from the whole lesson (Section 3.5). For words, a segment starts when a wrist rises above its resting level (the 80th percentile of the minimum wrist height minus 0.4 shoulder widths) and ends when both hands return; pauses shorter than 0.3 s are merged and segments shorter than 0.4 s are dropped. For fingerspelling and numerals, a segment is a hold of the dominant hand's shape (shape velocity below two hand sizes per second for at least 0.32 s) inside an active interval. The automatic segmentation produced 11,153 segments.
+
+\textbf{Labelling by three cues.} Each segment receives a label only if three independent cues agree: the on-screen text, recognised with Tesseract OCR \citep{2007_smith_tesseract} (Uzbek Latin or Cyrillic models) every 0.5 s with logos, recurring captions and subtitle-like lines removed; the presenter's Uzbek speech, transcribed by the Whisper large-v3 model \citep{2023_radford_whisper} and aligned to the segment within ±2 s; and the lesson structure (a word repeated twice in a row, or, in fingerspelling lessons, the alignment of announcements with the alphabet). Video titles were not used. A segment is accepted when it has a label, plausible hand physics (0.4--4 s, hands visible in at least 60\% of frames, rest around the boundaries) and at least two agreeing cues; the remaining segments were screened by an automated visual check of the rendered skeletons and text crops by a multimodal language model (Section 10) and rejected when unusable. After the removal of 46 re-uploaded duplicates (wrist-trajectory correlation ≥ 0.9) and 314 segments containing two or three signs, 5,671 lesson recordings remained; with the 322 pilot recordings the corpus has 5,993 recordings of 2,381 classes. Labels were normalised to Uzbek Latin script (apostrophes, Cyrillic-to-Latin transliteration, spelling variants merged to the most frequent form); Russian captions were translated with a 953-entry dictionary that has not been verified by a native speaker, and synonyms and identical letters of the Latin and Cyrillic alphabets are still distinct classes (Section 7).
+
+\textbf{Label accuracy.} The automatic labels were verified by the second author in a blind comparison with the reference videos of the online UzSL dictionary imo-ishora.uz (Section 3.6). From 300 random evaluation recordings (30 per LOSO signer; the seed, the matching rule and the counting rule were fixed before the check), a reference of the same gloss existed for 113. The reviewer saw the corpus segment next to the reference, but not the model predictions, and answered ``same sign'', ``different'' or ``unsure''. The labels agreed for 111 of 113 pairs: 98.2\% (95\% CI {[}94.6; 100{]}, bootstrap over signers); 57 of 57 pilot pairs and 54 of 56 lesson pairs. The other 187 recordings had no reference and were judged from the reviewer's own knowledge of UzSL (182 ``same'', 3 ``different'', 2 ``unsure''); this count is reported for information only. Because only 56 lesson recordings had a reference, the measured accuracy applies to words that occur in the dictionary and was obtained by a single reviewer. Excluding the five recordings judged ``different'' changes the LOSO accuracies by at most 0.1 points, so all results below use all recordings.
+
+\textbf{Composition and evaluation set.} Table 2 gives the composition. Almost all lesson vocabulary consists of words; fingerspelling comes mostly from the pilot participants. The evaluation set contains the classes with at least three recordings from at least two signers: 682 classes and 3,418 recordings (3,146 words, 272 letters and numerals); 405 classes have three or more signers, and the median class has four recordings. Classes recorded by a single signer (the pilot numerals, the letters H, I, Q, V and Y, and the Cyrillic alphabet of one channel) are therefore trained on but never tested.
+
+\begin{table*}[t]
+\caption{Composition of the UzSL corpus. "Evaluation set": classes with at least three recordings from at least two signers (the LOSO test set). Fingerspelling includes numerals.}\label{tab:corpus}
+\footnotesize\setlength{\tabcolsep}{4pt}
+\centering
+\begin{tabular}{llrrcrrc}
+\toprule
+& & \multicolumn{3}{c}{\textbf{All recordings}} & \multicolumn{3}{c}{\textbf{Evaluation set}} \\ \cmidrule(lr){3-5}\cmidrule(lr){6-8}
+\textbf{Signer} & \textbf{Source} & \textbf{Recordings} & \textbf{Classes} & \textbf{Fingersp. / words} & \textbf{Recordings} & \textbf{Classes} & \textbf{Fingersp. / words} \\
+\midrule
+S01 & C01 & 824 & 701 & 0 / 824 & 382 & 302 & 0 / 382 \\
+S02 & C02 & 1,831 & 835 & 3 / 1828 & 1,095 & 446 & 3 / 1092 \\
+S03 & C03 & 1,005 & 598 & 52 / 953 & 590 & 318 & 20 / 570 \\
+S04 & C04 & 199 & 156 & 0 / 199 & 125 & 96 & 0 / 125 \\
+S05 & C06 & 362 & 344 & 1 / 361 & 183 & 169 & 1 / 182 \\
+S06 & C07 & 18 & 14 & 0 / 18 & 11 & 8 & 0 / 11 \\
+S07 & C05, C08 & 1,146 & 979 & 13 / 1133 & 648 & 512 & 9 / 639 \\
+S08 & C09 & 173 & 104 & 0 / 173 & 71 & 36 & 0 / 71 \\
+S09 & C10 & 113 & 86 & 0 / 113 & 74 & 55 & 0 / 74 \\
+S10 & pilot & 3 & 1 & 3 / 0 & 3 & 1 & 3 / 0 \\
+S11 & pilot & 143 & 29 & 143 / 0 & 118 & 24 & 118 / 0 \\
+S12 & pilot & 176 & 35 & 176 / 0 & 118 & 24 & 118 / 0 \\
+Total & 10 + pilot & 5,993 & 2,381 & 391 / 5602 & 3,418 & 682 & 272 / 3146 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\hypertarget{external-sources}{%
+\subsection{External sources}\label{external-sources}}
+
+Two sources that took no part in corpus construction were used for validation; the final models were trained before either was downloaded. \textbf{N01} is an openly posted UzSL video dictionary with one adult presenter: 191 videos of 191 signs, labelled from the video titles (not verified). \textbf{The online dictionary imo-ishora.uz} has 1,556 reference videos of isolated signs performed by several adult presenters who do not appear in the corpus; the number of presenters is not annotated. Both sources are used only as test sets; their videos are not part of the training data of any model in this paper.
+
+\hypertarget{keypoint-extraction-and-quality-control}{%
+\subsection{Keypoint extraction and quality control}\label{keypoint-extraction-and-quality-control}}
+
+Keypoints were extracted with MediaPipe Holistic Landmarker 1.1.1 \citep{docs_mediapipe_holistic_landmarker} in video mode with all confidence thresholds set to 0.5; the same model file, identified by its SHA-256 hash, was used for all datasets. Following YouTube-ASL \citep{2023_uthus_youtube_asl}, we keep 85 of the 553 landmarks: six pose points (shoulders, elbows, hips), the 2 × 21 hand points and 37 face points around the eyes, eyebrows, lips and face contour, including the two iris centres; only the image coordinates \(x\) and \(y\) are used. When a hand or the face is missing in some frames, its coordinates are linearly interpolated between the nearest detected frames and a validity mask \(m\) is set to 0 for the filled frames; a part never detected in a clip is set to zero with \(m = 0\). The hand detection rate, the share of frames with a detected hand among frames in which the wrist is visible, was 79.1\% on Slovo (80.5\% on average over signers, minimum 17.6\%), 70.2\% on Bukva and 94.3\% on the pilot; the body pose was found in all frames of Slovo and the pilot. In the corpus, at least one hand is detected in 97.2\% of frames on average (median 100\%), both hands in 74.1\%, and the face in 99.8\%.
+
+\hypertarget{ethics-and-data-protection}{%
+\subsection{Ethics and data protection}\label{ethics-and-data-protection}}
+
+The pilot recordings contain the participants' faces and hands and are personal data; they are not shared. The lesson videos are publicly posted by their authors; they were used only for feature extraction and internal evaluation, are not redistributed, and the extracted keypoints, which allow partial reconstruction of the signer, are not released. The use of the lesson videos and of the dictionary videos for research, without redistribution, was confirmed by the legal office of Fergana State University (opinion No.~32 of 5 November 2026). ⟦The study protocol and the use of the pilot recordings were approved by ⟦the Ethics Committee / Academic Council of Fergana State University⟧, decision No.~⟦\ldots⟧ of ⟦date⟧.⟧
+
+\hypertarget{evaluation-protocols}{%
+\section{Evaluation protocols}\label{evaluation-protocols}}
+
+\hypertarget{signer-disjoint-five-fold-protocol-for-rsl-sd-5}{%
+\subsection{Signer-disjoint five-fold protocol for RSL (SD-5)}\label{signer-disjoint-five-fold-protocol-for-rsl-sd-5}}
+
+All comparisons on Slovo and Bukva use five folds with disjoint signers (Fig. 2a). On Slovo, six signers contribute at least 500 videos each and, by a rule fixed before training, are always assigned to the training data; the remaining 188 signers are divided into five groups stratified by the number of recordings, with a fixed seed. In fold \(k\), group \(k\) is the test set, 10\% of the signers of the other groups form the validation set and the rest are used for training, so that each of the 188 signers (6,874 recordings) is tested exactly once. On Bukva, all 155 signers are divided in the same way. Before each run the code asserts that no signer and no video is shared between training, validation and test data and that all keypoint files were produced by the same landmarker model. Each configuration is trained with three random seeds on each fold.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig2_protocol.png}
+\caption{Signer-disjoint five-fold protocol (SD-5). (a) Fold assignment for Slovo: six signers with at least 500 videos are always in the training data; the other 188 signers form five groups, each used once as the test set, and 10\% of the signers of the other groups form the validation set. (b) Decision rule: a model is called better or worse only if the 95\% bootstrap confidence interval of the paired difference over test signers excludes zero (illustrative distributions).}\label{fig:fig2_protocol}
+\end{figure*}
+
+\hypertarget{leave-one-signer-out-protocol-for-the-uzsl-corpus-loso}{%
+\subsection{Leave-one-signer-out protocol for the UzSL corpus (LOSO)}\label{leave-one-signer-out-protocol-for-the-uzsl-corpus-loso}}
+
+Each of the ten signers with at least 20 evaluation recordings forms one test fold; the two remaining signers (14 recordings) form an extra fold that is not included in averages. All other recordings of the corpus, including single-recording classes, are used for training, so the classification head of a fold has 682 classes when training is restricted to the evaluation set and 2,033--2,378 classes when all recordings are used. There is no validation set: training budgets are fixed in advance (Section 5.4) and the weights of the last step are evaluated. Each condition is run with three seeds, giving 33 runs per model. Because every lesson presenter has one studio and one camera, LOSO measures a new person together with new recording conditions.
+
+\hypertarget{metrics-and-decision-rules}{%
+\subsection{Metrics and decision rules}\label{metrics-and-decision-rules}}
+
+The primary metric is top-1 accuracy. On SD-5 it is pooled over the test recordings of the five folds and averaged over seeds; 95\% confidence intervals are obtained by bootstrap resampling of test signers (2,000 replicates) \citep{2016_efron_hastie_casi}. On LOSO it is the macro-average over the ten test signers (each signer's accuracy averaged over seeds), with intervals from 10,000 bootstrap replicates over signers; the micro-average over recordings is also given. We report top-5 accuracy, the macro-average over signers and the accuracy of the worst test signer with at least ten recordings on SD-5, and, for all datasets, macro-averaged precision, recall and \(F_1\) over the classes present in the test data. A model is called better or worse than another only if the 95\% confidence interval of the paired difference, computed over the same recordings, seeds and resampled signers, excludes zero; otherwise we report that no difference was established. On the pilot data, where each fold has one test participant, a difference is reported only if its sign is the same in all six seed--fold pairs. All decision rules, fold assignments and training budgets were fixed before the corresponding runs.
+
+\hypertarget{models-and-training}{%
+\section{Models and training}\label{models-and-training}}
+
+\hypertarget{multilingual-pose-encoder}{%
+\subsection{Multilingual Pose Encoder}\label{multilingual-pose-encoder}}
+
+The Multilingual Pose Encoder (MPE, Fig. 3) takes a clip of \(T = 32\) frames with 85 keypoints per frame and outputs a \(D\)-dimensional clip embedding. Normalisation is part of the model and is exported with it. After the \(y\) coordinates are scaled by the frame aspect ratio, each keypoint \(\mathbf{p}\) is described in a body frame shared by all points, \[\mathbf{x}^{body} = \frac{1}{w}\,\mathbf{R}_{\theta}\,(\mathbf{p} - \mathbf{c}),\qquad(1)\] where \(\mathbf{c}\) is the midpoint of the shoulders, \(w\) the shoulder width and \(\mathbf{R}_{\theta}\) rotates the shoulder line to the horizontal, with \(\mathbf{c}\), \(w\) and \(\theta\) averaged over the clip with the pose mask as weights, and in a local frame that describes the shape of each hand and of the face independently of its position; for a hand, \[\mathbf{x}^{loc} = \frac{\mathbf{p} - \mathbf{p}_{0}}{\lVert \mathbf{p}_{9} - \mathbf{p}_{0} \rVert},\qquad(2)\] where \(\mathbf{p}_0\) is the wrist and \(\mathbf{p}_9\) the base of the middle finger; for the face the origin is the nose tip, the scale the distance between the iris centres and the rotation aligns the irises. Scales are bounded below by \(10^{-3}\) and coordinates clipped to \([-10, 10]\). Each point is thus represented by six features \((x^{body}, y^{body}, x^{loc}, y^{loc}, m, c)\), with \(m\) the validity mask and \(c\) the detector confidence (pose visibility, or the presence flag of the part).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_architecture.png}
+\caption{Architecture of the Multilingual Pose Encoder (MPE). (a) Overview: normalisation, spatial encoder on the 27-node graph with joint and bone streams, body-part tokens, temporal encoder and attention pooling; solid arrows show the inference path and dashed arrows the training-only heads. (b) Graph convolution block with three neighbourhood subsets. (c) Conformer layer. (d) Classification head per dataset and auxiliary heads used during training.}\label{fig:fig3_architecture}
+\end{figure*}
+
+A subset of 27 points forms a graph: the nose, the two iris centres, the shoulders and elbows, and ten points of each hand (wrist, base and tip of the thumb, index, middle and little fingers, and the tip of the ring finger), with body edges along the arms, hand edges along the kinematic chain and three long-range edges that connect the two wrists and each index-finger tip with the nose. Following ST-GCN \citep{2018_yan_stgcn}, the neighbourhood of each node is split into the node itself, neighbours closer to the nose and neighbours farther from it, giving normalised adjacency matrices \(\widehat{\mathbf{A}}_{k} = \mathbf{\Lambda}_{k}^{-1/2}\mathbf{A}_{k}\mathbf{\Lambda}_{k}^{-1/2}\), \(k = 1, 2, 3\), and a graph convolution block \[\mathbf{H}' = \mathrm{ReLU}\Big(\mathrm{BN}\Big(\sum_{k=1}^{3}\widehat{\mathbf{A}}_{k}\,\mathbf{H}\,\mathbf{W}_{k}\Big) + \mathrm{Res}(\mathbf{H})\Big),\qquad(3)\] where \(\mathrm{Res}\) is the identity or a \(1 \times 1\) projection. Three blocks with 64, 128 and \(D\) channels operate on each frame; a joint stream and a bone stream (differences between each node and its parent in a tree rooted at the nose) are summed node by node.
+
+The 27 node embeddings and the 58 points outside the graph are grouped into four \emph{body-part tokens} per frame, left hand, right hand, body and face, each the sum of the mask-weighted mean of its graph-node embeddings, a two-layer multilayer perceptron (MLP) over the six features of its remaining points, and a learned part embedding; an absent part is masked. The four tokens are fused by attention with a learned query over the present parts, a learned positional embedding is added, and the sequence passes through a depthwise temporal convolution (kernel 5) and \(N\) Conformer layers \citep{2020_gulati_conformer} (half-step feed-forward modules with expansion 4, four-head self-attention with a frame mask, a convolution module with kernel 15, dropout 0.1). Attention pooling over time gives the clip embedding \[\alpha_{t} = \operatorname{softmax}_{t}\big(\mathbf{w}^{\top}\tanh(\mathbf{W}\mathbf{h}_{t})\big),\qquad \mathbf{z} = \sum_{t=1}^{T}\alpha_{t}\,\mathbf{h}_{t}.\qquad(4)\] A linear classifier is attached to \(\mathbf{z}\) for each dataset; when several datasets are trained together, each example contributes a cross-entropy loss only through the head of its own dataset. Two auxiliary heads are used during training only, a normalised 256-dimensional embedding trained with cosine logits against learned class prototypes (scale 16) and one classifier per part token, so that the training loss is \[\mathcal{L} = \mathcal{L}_{CE} + \lambda_{e}\,\mathcal{L}_{emb} + \beta\sum_{j=1}^{4}\mathcal{L}_{part,j},\qquad(5)\] with \(\lambda_e = 0.5\) and \(\beta = 0.1\).
+
+The base configuration MPE-A0 uses \(D = 192\) and \(N = 3\): 4.41 M parameters in training and 3.38 M at inference, 0.76 GFLOPs per 32-frame window (counted with \texttt{torch.utils.flop\_counter}, a multiply--add as two operations). The main configuration MPE-A1 adds an exponential moving average (EMA) of the weights for validation and testing \citep{1992_polyak_averaging}, with decay 0.999 for budgets of at least 3,000 steps and 0.99 otherwise; MPE-A2 replaces the graph convolution blocks with a per-part MLP (3.14 M parameters, 0.196 GFLOPs). A larger variant with \(D = 256\) and \(N = 6\) (10.27 M parameters, 1.33 GFLOPs) is used in the capacity study.
+
+\hypertarget{baselines}{%
+\subsection{Baselines}\label{baselines}}
+
+All baselines receive the same keypoint files and folds. \textbf{ST-GCN} \citep{2018_yan_stgcn} and \textbf{SL-GCN} \citep{2021_jiang_sam_slr} are run from the code released by their authors (repository yysijie/st-gcn, commit 221c0e15; the joint stream of the SAM-SLR code, commit de6c53a6) on our 27 keypoints, both inside our training loop with the shared recipe below and a 32-frame window (3.34 M and 5.07 M parameters; 1.98 and 2.19 GFLOPs), and with their authors' training configurations (for SL-GCN: SGD, 250 epochs, random 100-frame windows in training and 150 frames at test time, DropGraph; for ST-GCN: the configuration of its repository, which tests on a 300-frame buffer). Our earlier re-implementations of both networks on the 27-node graph and the input features of MPE are reported for comparison but are not used as baselines, for the reason given in Section 6.1. The \textbf{keypoint Transformer} is a pre-norm Transformer encoder \citep{2017_vaswani_attention} with a classification token over 67 points per frame (25 upper-body pose points and both hands), \(D = 256\), four layers and a 64-frame window (3.53 M parameters, 0.43 GFLOPs), trained with the shared recipe and with a recipe developed for it earlier (selected on validation data); the better recipe is reported. Three simple baselines, a two-layer Transformer, a bidirectional LSTM with attention pooling and an MLP, use the shared recipe without weight averaging. \textbf{MViTv2-S} \citep{2022_li_mvitv2}, the video model released with Slovo, is evaluated only on the official Slovo split as a reference.
+
+\hypertarget{shared-training-recipe}{%
+\subsection{Shared training recipe}\label{shared-training-recipe}}
+
+All keypoint models are trained with AdamW (learning rate \(10^{-3}\), weight decay 0.05), linear warm-up over 5\% of the steps and cosine decay to zero, label smoothing 0.1, batch size 128 and bfloat16 mixed precision; the prototype-embedding loss is part of the shared recipe for all models, whereas part heads exist only in MPE. Budgets are defined in optimiser steps and are identical for all models compared on a dataset, \(\lceil 100\,N_{train}/128 \rceil\) with \(N_{train}\) the largest training set among the folds (14,488 steps on Slovo, 2,154 on Bukva, about 100 epochs). During training a 32-frame window is sampled with a random temporal rate between ×0.5 and ×2; frames are dropped with probability 0.1 and duplicated with probability 0.3, sign boundaries are shifted by up to five frames, a hand is removed in 20--25\% of the frames, and the keypoints are rotated (±15°), scaled (0.9--1.1), shifted (±0.05 of the frame width) and, for the hands, jittered with Gaussian noise (\(\sigma\) = 0.002). At test time 32 frames are sampled uniformly over the clip. The checkpoint with the best validation top-1 accuracy is tested once; seeds 0, 1 and 2 control initialisation, batch order and augmentation. All models were trained on one NVIDIA GeForce RTX 5080 (16 GB) with PyTorch 2.14.1; one MPE-A1 run takes about 4 min on Slovo. GPU training is not bit-exact deterministic, and re-running a configuration changes the result by about as much as changing the seed.
+
+\hypertarget{transfer-to-uzsl-and-budgets-fixed-in-advance}{%
+\subsection{Transfer to UzSL and budgets fixed in advance}\label{transfer-to-uzsl-and-budgets-fixed-in-advance}}
+
+Three pretraining sources are compared, Slovo, Bukva, and both together with separate heads; the encoder is pretrained on all recordings of the source with 5\% of the source signers held out for checkpoint selection. Three schemes are compared on the target: training from scratch, full fine-tuning (the encoder is frozen for the first 20\% of the steps and then unfrozen layer by layer every 7\% of the steps, with a backbone learning rate of 0.1 times the head rate) and a linear probe with a frozen encoder. With two or three participants, a validation set drawn from the training participants measures the wrong thing (Section 6.6), so the training budgets were fixed before any pilot or corpus run from a simulation on Bukva under SD-5 with four recordings per class: the budget is the median, over 15 runs, of the step with the best validation accuracy, 1,466.2 epochs for training from scratch and 209.5 epochs for fine-tuning and the linear probe. On the target, the number of steps is \(\lceil \text{epochs} \times N_{train}/128 \rceil\), the model of the last step is evaluated, no target data are used for model selection, and the budgets were committed to version control before the first run. For short runs the EMA decay is warmed up as \(\min(0.99, (1+t)/(10+t))\) at step \(t\). On the pilot, each condition is run with three seeds on both folds (test participant 002 or 003), pretraining being repeated for each seed; on the corpus, the same budgets give 5,389 steps for the pretrained models with the 682-class training set, 9,482 with all recordings, and 37,720 and 66,368 steps for training from scratch. The released SL-GCN was transferred with exactly the same folds, recipe and budgets after its own pretraining on Slovo and Bukva.
+
+\hypertarget{results}{%
+\section{Results}\label{results}}
+
+All accuracies are top-1 percentages unless stated; brackets give 95\% confidence intervals over signers; \(\Delta\) denotes a paired difference. Every number in this section was computed from the per-recording predictions of the runs by one script released with the code.
+
+\hypertarget{keypoint-models-on-russian-sign-language}{%
+\subsection{Keypoint models on Russian Sign Language}\label{keypoint-models-on-russian-sign-language}}
+
+Table 3 compares the models under SD-5, and Fig. 4 relates accuracy to computation. MPE-A1 reaches 70.8\% on Slovo and 93.2\% on Bukva. It is more accurate than the keypoint Transformer by 4.4 points on Slovo and 8.1 points on Bukva, and the simple baselines trail by 8.6--42.2 points. The released ST-GCN and SL-GCN, trained with the same recipe and window, are more accurate on Slovo: 73.1\% and 74.4\%, \(\Delta\) = +2.3 {[}+1.3; +3.4{]} and +3.7 {[}+2.5; +4.8{]} over MPE-A1, while needing 2.6 and 2.9 times more operations per window. On Bukva, under the shared recipe and window, the released networks reach 87.4\% and 89.6\%, 5.8 {[}−6.6; −4.9{]} and 3.5 points {[}−4.5; −2.7{]} below MPE-A1; SL-GCN with its authors' recipe is as accurate as MPE-A1 (93.1\% versus 93.2\%, \(\Delta\) = −0.1 {[}−0.9; +0.7{]}) at 12.8 times more operations per clip, and ST-GCN with its authors' recipe is much weaker (68.8\%). Macro-averaged precision, recall and \(F_1\) over classes lie 2--3 points below top-1 accuracy on Slovo and within one point of it on Bukva, and the ranking of the models by \(F_1\) is the same as by top-1 accuracy. The macro-average over signers is up to 4 points lower than the pooled accuracy on Slovo, and the worst test signer with at least ten recordings reaches only 27\% for MPE-A1 (71\% on Bukva), so all models leave some signers far behind.
+
+\begin{table*}[t]
+\caption{Keypoint models under SD-5: top-1 and top-5 accuracy, macro-averaged precision, recall and $F_1$ over classes, and the paired difference of top-1 accuracy to MPE-A1 (95\% CI over test signers). Rows without a mark: three seeds × five folds; †: released code or recipe, one seed; *: shared recipe without weight averaging. Parameters and GFLOPs are given once, for the Slovo models at the window used at test time (32 frames; 64 for the keypoint Transformer; 150 for the SL-GCN recipe; 300 for ST-GCN with its authors' recipe); CPU latencies are given in the text.}\label{tab:rsl_main}
+\scriptsize\setlength{\tabcolsep}{3pt}
+\centering
+\begin{tabular}{lrrlrrrrl}
+\toprule
+\textbf{Model} & \textbf{Params (M)} & \textbf{GFLOPs} & \textbf{Top-1 [95\% CI]} & \textbf{Top-5} & \textbf{Precision} & \textbf{Recall} & \textbf{$F_1$} & \textbf{$\Delta$ top-1 vs MPE-A1 [95\% CI]} \\
+\midrule
+\multicolumn{9}{l}{\textit{Slovo (1,000 classes, 188 test signers)}} \\
+MPE-A1 & 3.38 & 0.76 & 70.8 [68.8; 72.7] & 92.1 & 70.4 & 69.8 & 68.7 & --- \\
+ST-GCN, released † & 3.34 & 1.98 & 73.1 [71.4; 74.7] & 93.2 & 73.1 & 72.2 & 71.3 & +2.3 [+1.3; +3.4] \\
+SL-GCN, released † & 5.07 & 2.19 & 74.4 [72.4; 76.3] & 94.0 & 74.4 & 73.6 & 72.6 & +3.7 [+2.5; +4.8] \\
+ST-GCN, released, authors' recipe † & 3.34 & 18.54 & 61.6 [59.1; 64.1] & 87.4 & 61.0 & 60.5 & 59.1 & −9.2 [−10.6; −7.7] \\
+SL-GCN, released, authors' recipe † & 5.07 & 9.70 & 74.6 [72.7; 76.4] & 93.3 & 74.4 & 73.7 & 72.9 & +3.8 [+2.8; +5.1] \\
+MPE-A1, SL-GCN recipe † & 3.40 & 3.59 & 71.2 [69.0; 73.2] & 90.9 & 71.1 & 70.5 & 69.3 & +0.4 [−0.5; +1.3] \\
+ST-GCN, re-implemented & 3.41 & 1.98 & 69.0 [67.0; 70.8] & 91.3 & 68.9 & 67.8 & 66.8 & −1.8 [−2.7; −1.1] \\
+SL-GCN, re-implemented & 3.93 & 2.03 & 68.1 [66.2; 69.8] & 91.9 & 67.3 & 67.2 & 65.7 & −2.7 [−3.4; −2.0] \\
+Keypoint Transformer & 3.53 & 0.43 & 66.3 [64.1; 68.3] & 89.0 & 65.9 & 65.4 & 64.0 & −4.4 [−5.7; −3.2] \\
+Two-layer Transformer * & 1.98 & 0.11 & 56.4 [54.1; 58.6] & 81.0 & 56.0 & 55.4 & 53.7 & −14.4 [−15.7; −13.2] \\
+BiLSTM with attention * & 11.00 & 0.62 & 52.3 [49.9; 54.7] & 77.4 & 51.1 & 51.2 & 49.3 & −18.4 [−19.8; −17.2] \\
+MLP * & 1.55 & 0.004 & 28.6 [26.7; 30.4] & 55.5 & 28.0 & 27.5 & 25.3 & −42.2 [−43.8; −40.6] \\
+\multicolumn{9}{l}{\textit{Bukva (33 classes, 155 test signers)}} \\
+MPE-A1 &  &  & 93.2 [92.3; 94.0] & 99.4 & 93.2 & 93.1 & 93.1 & --- \\
+ST-GCN, released † &  &  & 87.4 [86.3; 88.5] & 99.3 & 87.5 & 87.4 & 87.4 & −5.8 [−6.6; −4.9] \\
+SL-GCN, released † &  &  & 89.6 [88.4; 90.7] & 99.4 & 89.8 & 89.6 & 89.7 & −3.5 [−4.5; −2.7] \\
+ST-GCN, released, authors' recipe † &  &  & 68.8 [67.1; 70.5] & 98.2 & 68.6 & 68.3 & 67.5 & −24.4 [−26.0; −22.7] \\
+SL-GCN, released, authors' recipe † &  &  & 93.1 [91.9; 94.1] & 99.4 & 93.1 & 93.0 & 93.0 & −0.1 [−0.9; +0.7] \\
+ST-GCN, re-implemented &  &  & 78.7 [77.4; 80.0] & 99.2 & 78.9 & 78.6 & 78.5 & −14.5 [−15.6; −13.4] \\
+SL-GCN, re-implemented &  &  & 84.9 [83.9; 86.0] & 99.3 & 85.2 & 84.7 & 84.4 & −8.3 [−9.1; −7.3] \\
+Keypoint Transformer &  &  & 85.1 [82.7; 87.2] & 96.4 & 85.4 & 85.0 & 85.1 & −8.1 [−10.2; −6.2] \\
+Two-layer Transformer * &  &  & 75.4 [72.8; 77.9] & 92.5 & 75.7 & 75.4 & 75.2 & −17.8 [−20.3; −15.5] \\
+BiLSTM with attention * &  &  & 84.6 [83.2; 85.8] & 98.3 & 84.7 & 84.5 & 84.6 & −8.6 [−9.7; −7.7] \\
+MLP * &  &  & 70.9 [68.9; 72.7] & 97.6 & 70.9 & 70.4 & 70.1 & −22.3 [−23.9; −20.7] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig5_cost.pdf}
+\caption{Top-1 accuracy under SD-5 versus computation per window at test time (logarithmic axis) on (a) Slovo and (b) Bukva. Filled circle: MPE-A1; open circles: MPE-A2 and the larger MPE; squares: baselines with the shared recipe (ST-GCN and SL-GCN from released code, Slovo only); diamonds: released code with the authors' recipes. Error bars: 95\% CIs over test signers.}\label{fig:fig5_cost}
+\end{figure*}
+
+\textbf{Re-implemented baselines understate the released code.} We first re-implemented ST-GCN and SL-GCN on the 27-node graph and the input features of MPE. With the shared recipe they reached 69.0\% and 68.1\% on Slovo, 4.1 {[}+3.1; +5.2{]} and 6.4 {[}+5.4; +7.3{]} points below the released code trained with the same recipe, and on Bukva our ST-GCN and SL-GCN reached 78.7\% and 84.9\%, 8.7 {[}+7.5; +9.9{]} and 4.7 points {[}+3.7; +5.7{]} below the released code under the same recipe (and 8.1 points below SL-GCN with its authors' recipe). The re-implementations simplified the original blocks (for SL-GCN the decoupled graph convolution, the spatial--temporal--channel attention and DropGraph; for ST-GCN the neighbourhood normalisation, input channels and dropout) and their initialisation. Had we compared MPE only with these re-implementations, it would have appeared 1.8--2.7 points \emph{better} than the graph networks instead of 2.3--3.7 points worse. The recipe does not explain the strength of SL-GCN on Slovo: with its authors' recipe it reaches 74.6\%, the same as with the shared recipe (\(\Delta\) = +0.2 {[}−1.0; +1.3{]}), and MPE-A1 trained with the SL-GCN recipe and 150-frame windows gains nothing (71.2\%, +0.4 {[}−0.6; +1.3{]}) and stays 3.5 points below SL-GCN under that recipe, lower on all five folds. On Bukva the recipe matters more: SL-GCN gains 3.4 points {[}+2.4; +4.4{]} from its authors' recipe, and ST-GCN loses 18.6 points with its repository configuration. The keypoint Transformer, in contrast, gained 3.9 points {[}+2.7; +5.2{]} from its own recipe, which is why it is reported with it. The released ST-GCN with its repository configuration is much weaker on both datasets (61.6\% on Slovo, 68.8\% on Bukva); we did not separate the possible causes (a short schedule, input without hand normalisation).
+
+\textbf{Cost.} In floating-point operations MPE-A1 is cheaper than both graph networks, but on a desktop CPU (Intel Core i9-14900KF, float32, batch 1, median of 100 runs after 10 warm-up runs, eager PyTorch) it is not faster than ST-GCN: 8.4--9.3 ms against 5.7 ms, whereas the released SL-GCN needs 23.0 ms. We attribute this to the many small operations of MPE (two streams, part tokens, Conformer), which an eager run executes less efficiently than a few large convolutions. Exported to ONNX and run with ONNX Runtime 1.31 on the same CPU (trained weights, one thread, median of 100 runs; measured while the machine was partly loaded by training jobs, so an upper bound), the order changes: MPE-A1 takes 10.8 ms, the released ST-GCN 15.0 ms and the released SL-GCN 25.6 ms, and MPE-A2 1.8 ms (7.2, 7.6, 19.3 and 1.0 ms with four threads). Latencies of the same model differed by 1--2 ms between sessions and are compared only by order of magnitude; Section 6.7 reports the exported models.
+
+\hypertarget{what-drives-accuracy}{%
+\subsection{What drives accuracy}\label{what-drives-accuracy}}
+
+Fig. 5 shows the ablations of MPE-A1 (three seeds × five folds, paired differences). Replacing the four part tokens with a single token per frame lowers accuracy by 2.7 points {[}−3.3; −2.0{]} on Slovo and 5.7 points {[}−6.9; −4.7{]} on Bukva, the only change that hurts on both datasets. Replacing the graph convolutions with a per-part MLP (MPE-A2) leaves Slovo accuracy unchanged (+0.0 {[}−0.7; +0.7{]}) and improves Bukva by 1.3 points {[}+0.8; +1.8{]} while cutting computation 3.9 times. Removing the long-range edges costs 0.9 points on Slovo but gains 0.6 on Bukva; the graph without them is worse than no graph at all. Weight averaging adds 1.5 points on Slovo (not established on Bukva), and the three-times larger encoder adds 2.1 points {[}+1.6; +2.7{]} on Slovo but nothing measurable on Bukva. A wider sweep of input and architecture variants on Slovo (one seed each, relative to MPE-A0; full table in the Supplementary Material) points in the same direction: what matters is the information given to the model, not its topology. Removing the normalisation of Section 5.1 costs 5.0 points {[}−6.2; −3.7{]}, using the hands alone 8.4 points {[}−9.5; −7.2{]} and removing the body points 2.5 points {[}−3.5; −1.7{]}, whereas removing the face points (−0.5 {[}−1.1; +0.3{]}), adding depth (+0.3 {[}−0.6; +1.2{]}) or joint angles (+0.2 {[}−0.5; +0.9{]}), per-frame normalisation (−0.6 {[}−1.3; +0.2{]}) and changing \(D\), \(N\) or \(T\) within a factor of two (−0.6 \ldots{} +0.6) change nothing that the data can establish; a Transformer in place of the Conformer costs 1.5 points {[}−2.2; −0.7{]} and mean pooling in place of attention pooling 2.2 points {[}−3.3; −1.1{]}.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig6_ablations.pdf}
+\caption{Ablations of MPE-A1 under SD-5 (three seeds × five folds): paired differences to MPE-A1 with 95\% CIs over test signers. Filled markers: the interval excludes zero.}\label{fig:fig6_ablations}
+\end{figure*}
+
+The part tokens are not a universal gain. When our 27-keypoint representation with its two coordinate frames and mask (six channels) replaces the three raw channels at the input of the released ST-GCN and SL-GCN (shared recipe, one seed), accuracy on Slovo falls by 1.3 {[}−2.7; −0.0{]} and 3.0 points {[}−4.1; −1.8{]} (99\% CIs) and does not change on Bukva (+0.8 {[}−0.6; +2.2{]} and +0.6 {[}−0.5; +1.9{]}), so the representation does not transfer into the graph networks as ``a better input''. Conversely, a hybrid that keeps the SL-GCN blocks and their raw input and adds part tokens and a Conformer on top (16.9 M parameters, one seed) is 1.7 points {[}+0.5; +2.8{]} above the released SL-GCN with the same input and recipe on Bukva but not on Slovo (−1.3 {[}−2.6; +0.0{]}), and it remains 1.7 points {[}−2.8; −0.5{]} below the released SL-GCN with its authors' recipe on Bukva. On the ASL dataset of the Google Isolated Sign Language Recognition competition \citep{2023_kaggle_gislr} (94,477 recordings, 250 classes, 21 signers), under signer-disjoint five-fold cross-validation with three seeds MPE-A1 reaches 63.9\% top-1 averaged over signers, and removing the part tokens changes it by −0.1 {[}−0.6; +0.3{]} (99\% CI over signers). The tokens therefore help on the two RSL datasets, where the hands are the main cue, and are neutral on a large ASL dataset with a strong model trained from scratch.
+
+\hypertarget{official-slovo-split}{%
+\subsection{Official Slovo split}\label{official-slovo-split}}
+
+Table 4 reports the official split, on which 3,448 of the 5,100 test videos (67.6\%) come from 92 signers who also appear in training. MPE-A1 reaches 64.1\% {[}61.3; 66.8{]}, which matches the 64.09\% published for the MViTv2-S video model \citep{2023_kapitanov_slovo}. Run with its released inference code, which loops short videos to fill the input window, MViTv2-S reaches only 51.4\% {[}48.3; 54.4{]}; padding short videos with their last frame reproduces the published figure (64.3\% {[}61.6; 67.1{]}). We had selected this setting on 966 test videos; on the other 4,134 it gives 64.15\%, so the reproduction is not an artefact of that selection. Against the stronger setting the paired difference to MPE-A1 is −0.2 points {[}−2.2; +2.0{]}, so no difference in top-1 accuracy is established, while MViTv2-S has the higher top-5 accuracy (90.5\% versus 86.6\%). The released MViTv2-S has 35.0 M parameters (140.8 MB as ONNX) and processes RGB video; MPE-A1 has 3.38 M (13.5 MB) and works on keypoints. The larger MPE reaches 67.0\%.
+
+\begin{table*}[t]
+\caption{Official Slovo split (5,100 test videos, 174 signers, 92 of whom appear in training). Three seeds for the keypoint models; MViTv2-S is the single released model. P0: released inference code; R1: short videos padded with the last frame.}\label{tab:official}
+\footnotesize
+\centering
+\begin{tabular}{lllrl}
+\toprule
+\textbf{Model} & \textbf{Input} & \textbf{Top-1 [95\% CI]} & \textbf{Top-5} & \textbf{$\Delta$ to MPE-A1} \\
+\midrule
+MPE-A1 & keypoints & 64.1 [61.3; 66.8] & 86.6 & --- \\
+MPE-A0 & keypoints & 63.2 [60.1; 65.9] & 85.3 & −1.0 [−1.5; −0.5] \\
+MPE-A2 (no graph) & keypoints & 63.5 [60.6; 66.4] & 87.3 & −0.6 [−1.5; +0.3] \\
+MPE, D = 256, N = 6 & keypoints & 67.0 [64.3; 69.5] & 89.4 & +2.9 [+2.2; +3.6] \\
+Keypoint Transformer & keypoints & 62.2 [59.8; 64.9] & 84.8 & −1.9 [−3.6; −0.3] \\
+MViTv2-S, reported by the authors of Slovo & RGB video & 64.09 & --- & --- \\
+MViTv2-S, released code (P0) & RGB video & 51.4 [48.3; 54.4] & 78.9 & −12.8 [−15.5; −10.3] \\
+MViTv2-S, last-frame padding (R1) & RGB video & 64.3 [61.6; 67.1] & 90.5 & +0.2 [−2.0; +2.2] \\
+MViTv2-S 48/2 (R1) & RGB video & 61.9 [59.1; 64.6] & 89.0 & −2.3 [−4.3; −0.2] \\
+ResNet-i3d (R1) & RGB video & 19.0 [16.2; 22.4] & 37.1 & −45.1 [−48.2; −41.6] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\hypertarget{uzbek-sign-language-corpus-unseen-signers}{%
+\subsection{Uzbek Sign Language corpus: unseen signers}\label{uzbek-sign-language-corpus-unseen-signers}}
+
+Table 5 gives the LOSO results and Fig. 6 the accuracy per held-out signer. Pretrained on Slovo and Bukva and fine-tuned on the 682-class evaluation set, MPE-A1 reaches 32.0\% {[}25.0; 39.2{]} top-1 and 52.0\% {[}44.4; 60.0{]} top-5 on a new signer (micro-averages 25.2\% and 44.3\%; macro-\(F_1\) 20.5\%). Trained from scratch with the same data and a seven times longer budget, it reaches 17.3\% {[}12.3; 23.5{]}: pretraining adds 14.7 points {[}+11.2; +18.6{]} (99\% CI {[}+10.4; +20.0{]}) and helps every one of the ten signers. When all 5,993 recordings and the 2,381-class head are used for training, the gain of pretraining is 12.2 points {[}+7.2; +17.3{]} (nine of ten signers), but accuracy on the evaluation classes falls from 32.0\% to 26.2\% (−5.8 {[}−8.0; −3.9{]}, ten of ten signers): the additional single-recording classes add about 1,700 distractors to the head, among them synonyms and alternative spellings (\emph{shapka} → \emph{telpak}, \emph{sosiska} → \emph{sasiska}, Latin letters predicted as their Cyrillic counterparts), and, in an exploratory check that was not pre-registered, restricting the answer to the evaluation classes recovers all but 1.1 points. Pretraining helps words more than fingerspelling: +15.0 points {[}+10.8; +19.7{]} for the eight signers with words (all eight improve) and +11.7 points {[}+8.3; +16.7{]} for the three signers with at least ten fingerspelling recordings.
+
+\begin{table*}[t]
+\caption{UzSL corpus, leave-one-signer-out over ten signers (three seeds). Top-1 and top-5: macro-average over signers [95\% CI, bootstrap over signers]; top-1 (rec.): micro-average over recordings; precision, recall and $F_1$: macro over classes; words / fingerspelling: top-1 macro over the signers with at least ten recordings of the group. Head: number of classes in the training set.}\label{tab:loso}
+\scriptsize\setlength{\tabcolsep}{3pt}
+\centering
+\begin{tabular}{lllcrrrrrrr}
+\toprule
+\textbf{Model} & \textbf{Pretraining} & \textbf{Head} & \textbf{Top-1 [95\% CI]} & \textbf{Top-1 (rec.)} & \textbf{Top-5} & \textbf{Precision} & \textbf{Recall} & \textbf{$F_1$} & \textbf{Words} & \textbf{Fingersp.} \\
+\midrule
+MPE-A1 & Slovo + Bukva & 682 & 32.0 [25.0; 39.2] & 25.2 & 52.0 & 20.9 & 22.7 & 20.5 & 28.0 & 35.0 \\
+MPE-A1 & none & 682 & 17.3 [12.3; 23.5] & 13.0 & 32.2 & 9.9 & 10.9 & 9.4 & 13.0 & 23.3 \\
+MPE-A1 & Slovo + Bukva & 2,033–2,378 & 26.2 [20.1; 32.7] & 20.4 & 45.1 & 21.6 & 18.1 & 18.5 & 23.2 & 27.4 \\
+MPE-A1 & none & 2,033–2,378 & 14.0 [8.2; 21.4] & 9.7 & 24.6 & 10.4 & 7.8 & 8.1 & 8.9 & 23.0 \\
+SL-GCN (released) & Slovo + Bukva & 682 & 34.9 [26.9; 43.2] & 27.4 & 55.4 & 22.3 & 24.0 & 22.0 & 30.4 & 36.8 \\
+MPE-A1 & Slovo + Bukva + ASL & 682 & 30.3 [25.7; 35.0] & 25.5 & 53.0 & 21.3 & 23.0 & 20.9 & 28.9 & 24.9 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_loso_signers.pdf}
+\caption{UzSL corpus: top-1 accuracy on each held-out signer (LOSO, mean of three seeds) for MPE-A1 pretrained on Slovo + Bukva, MPE-A1 trained from scratch and the released SL-GCN pretrained on Slovo + Bukva (682-class evaluation set).}\label{fig:fig_loso_signers}
+\end{figure*}
+
+The released SL-GCN, pretrained and fine-tuned under exactly the same protocol, reaches 34.9\% {[}26.9; 43.2{]}: 2.9 points {[}+1.5; +4.5{]} above MPE-A1 (99\% CI {[}+1.3; +5.1{]}), higher for nine of ten signers, which repeats the ranking observed on Slovo (SL-GCN was not trained from scratch on the corpus; on the pilot it is much weaker from scratch than MPE-A1, Section 6.6). Accuracy varies widely between signers for both models, from 17\% to 51\% for MPE-A1; the two pilot participants, whose recordings are clean fingerspelling, are the easiest, and among the lesson presenters accuracy ranges from 17\% (S03) to 43\% (S08) and is not explained by vocabulary size alone. The most frequent confusions after pretraining are between letters and words of similar hand shape (\emph{Gʻ} → \emph{G}, \emph{E} → \emph{may}, \emph{U} → \emph{qayerga}) and between near-synonyms (\emph{blinchik} → \emph{quymoq}, \emph{likopcha} → \emph{tarelka}, \emph{ona} → \emph{ayol}); a full list is given in the Supplementary Material.
+
+\hypertarget{external-sources-1}{%
+\subsection{External sources}\label{external-sources-1}}
+
+Table 6 reports the final models, trained once with seed 0 on the whole corpus, on the two external sources without any adaptation. On the 93 N01 videos whose sign belongs to the 682 evaluation classes, the pretrained model reaches 33.3\% {[}23.7; 43.0{]} top-1 and 53.8\% top-5 (intervals over recordings, since the source has one presenter); on the 199 dictionary videos whose label matches one of 181 evaluation classes exactly it reaches 33.7\% {[}26.9; 40.5{]} and 60.2\% (accuracy averaged over words; intervals over words). The LOSO estimate of 32.0\% is thus reproduced on two independent sources with new people, new cameras and labels that we did not produce. The benefit of pretraining is also reproduced: with the 2,381-class head, pretraining raises top-1 accuracy from 9.3\% to 24.0\% on N01 (+14.7 {[}+6.7; +22.7{]} over 150 videos) and from 6.7\% to 15.9\% on the dictionary (+9.2 {[}+5.4; +12.9{]} over 356 words). Adding the ASL dataset to the pretraining sources gives 38.7\% on the dictionary, +5.0 points {[}−1.5; +11.5{]} over Slovo and Bukva alone, and no change on N01 (+0.0 {[}−10.8; +10.8{]}), so a third source language is not established as helpful.
+
+\begin{table*}[t]
+\caption{External sources, final models trained on the whole corpus (one seed), no adaptation. Only videos whose sign belongs to the model's head are scored; for the dictionary, only videos whose label matches a corpus class exactly, with accuracy averaged over words. Intervals: bootstrap over recordings (N01, one presenter) or over words (dictionary).}\label{tab:external}
+\footnotesize
+\centering
+\begin{tabular}{llrrrlr}
+\toprule
+\textbf{Source} & \textbf{Model} & \textbf{Head} & \textbf{Videos scored} & \textbf{Words} & \textbf{Top-1 [95\% CI]} & \textbf{Top-5} \\
+\midrule
+N01 & pretrained (Slovo + Bukva) & 682 & 93 & 93 & 33.3 [23.7; 43.0] & 53.8 \\
+N01 & pretrained (Slovo + Bukva + ASL) & 682 & 93 & 93 & 33.3 [23.7; 43.0] & 68.8 \\
+N01 & pretrained, all recordings & 2,381 & 150 & 150 & 24.0 [17.3; 30.7] & 40.7 \\
+N01 & from scratch, all recordings & 2,381 & 150 & 150 & 9.3 [4.7; 14.0] & 18.0 \\
+imo-ishora.uz & pretrained (Slovo + Bukva) & 682 & 199 & 181 & 33.7 [26.9; 40.5] & 60.2 \\
+imo-ishora.uz & pretrained (Slovo + Bukva + ASL) & 682 & 199 & 181 & 38.7 [31.7; 45.9] & 64.6 \\
+imo-ishora.uz & pretrained, all recordings & 2,381 & 397 & 356 & 15.9 [12.3; 19.8] & 36.4 \\
+imo-ishora.uz & from scratch, all recordings & 2,381 & 397 & 356 & 6.7 [4.4; 9.4] & 16.0 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\hypertarget{pilot-recordings-budgets-fixed-in-advance-and-within-signer-optimism}{%
+\subsection{Pilot recordings: budgets fixed in advance and within-signer optimism}\label{pilot-recordings-budgets-fixed-in-advance-and-within-signer-optimism}}
+
+The pilot set repeats the transfer experiment at a controlled scale, with two test participants and training budgets fixed before the first run (Table 7, Fig. 7b). Trained from scratch, MPE-A1 reaches 9.5\%, 11.7\% and 24.7\% with one example per class, two examples per class and all recordings (pooled over the two test participants). Every pretrained condition is better than training from scratch at the same step in all six seed--fold pairs, 18 of 18 comparisons; the best pooled accuracies, with Slovo and Bukva together and full fine-tuning, are 40.3\%, 41.2\% and 47.5\%. Because some test classes do not occur in the training data of a fold, these accuracies are bounded by 82.5\% for participant 002 and 67.0\% for participant 003. The linear probe is close to full fine-tuning (45.4\% against 47.5\%), the best source differs between the participants, and the graph-free MPE-A2 transfers as well as MPE-A1 (47.9\% with the probe; the sign of its difference is not constant). The released SL-GCN, transferred under the same protocol, is slightly less accurate than MPE-A1 after full fine-tuning (45.9\%, lower in all six pairs) and more accurate as a frozen encoder (49.8\% against 45.4\%, higher in five pairs with one tie, so not established by the rule). The confusion matrix of the pilot letters (Fig. 9b) shows that the errors are concentrated in the letters that are visually close in UzSL fingerspelling (\emph{Gʻ} → \emph{G}, \emph{CH} → \emph{A}/\emph{J}, \emph{E} → \emph{X}/\emph{Y}) and in the numerals, which occur in the recordings of one participant only.
+
+\begin{table*}[t]
+\caption{UzSL pilot with training budgets fixed in advance (MPE-A1 unless stated; three seeds × two folds): top-1 pooled over the two test participants, with participants 002 / 003 in parentheses. Every pretrained condition is better than training from scratch at the same step in all six seed–fold pairs.}\label{tab:pilot}
+\footnotesize
+\centering
+\begin{tabular}{lllll}
+\toprule
+\textbf{Pretraining} & \textbf{Scheme} & \textbf{One example per class} & \textbf{Two examples per class} & \textbf{All recordings} \\
+\midrule
+None & from scratch & 9.5 (12.8 / 6.8) & 11.7 (9.8 / 13.3) & 24.7 (21.0 / 27.6) \\
+Slovo & linear probe & 31.0 (38.7 / 24.8) & 37.7 (42.7 / 33.7) & 41.2 (43.1 / 39.6) \\
+Slovo & fine-tuning & 31.7 (35.2 / 28.8) & 33.9 (38.7 / 29.9) & 39.4 (42.0 / 37.3) \\
+Bukva & linear probe & 27.5 (33.6 / 22.5) & 39.2 (45.0 / 34.5) & 46.1 (49.6 / 43.2) \\
+Bukva & fine-tuning & 35.6 (40.6 / 31.6) & 38.5 (41.5 / 36.0) & 46.3 (50.4 / 43.0) \\
+Slovo + Bukva & linear probe & 37.2 (46.4 / 29.7) & 39.4 (47.1 / 33.1) & 45.4 (49.9 / 41.7) \\
+Slovo + Bukva & fine-tuning & 40.3 (48.5 / 33.7) & 41.2 (46.9 / 36.5) & 47.5 (49.9 / 45.6) \\
+Slovo + Bukva, MPE-A2 & linear probe & 38.0 (44.8 / 32.6) & 40.3 (45.9 / 35.8) & 47.9 (52.7 / 43.9) \\
+Slovo + Bukva, MPE-A2 & fine-tuning & 35.4 (36.1 / 34.9) & 40.5 (42.9 / 38.6) & 45.8 (47.1 / 44.7) \\
+Slovo + Bukva, SL-GCN (released) & linear probe & 41.3 (49.9 / 34.3) & 47.2 (54.1 / 41.7) & 49.8 (56.2 / 44.7) \\
+Slovo + Bukva, SL-GCN (released) & fine-tuning & 34.2 (34.5 / 33.9) & 39.5 (36.8 / 41.7) & 45.9 (47.1 / 44.9) \\
+None, SL-GCN (released) & from scratch & 5.5 (7.5 / 4.0) & 5.3 (3.0 / 7.2) & 15.2 (8.6 / 20.4) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig7_transfer.pdf}
+\caption{Transfer from RSL. (a) Simulation on Bukva under SD-5 (MPE-A0): top-1 accuracy with 1, 3 and 10 training recordings per class and with all recordings, from scratch and after pretraining on Slovo; error bars: 95\% CIs over test signers. (b) UzSL pilot (MPE-A1, full fine-tuning): top-1 accuracy pooled over the two test participants with one and two examples per class and with all recordings; vertical bars span the two participants.}\label{fig:fig7_transfer}
+\end{figure*}
+
+A simulation on Bukva under SD-5 shows the same effect with many test signers (Fig. 7a): pretraining on Slovo raises accuracy from 10.9\% to 70.7\% with one training recording per class (+59.7 {[}+57.8; +61.5{]}), from 26.3\% to 81.8\% with three and from 63.7\% to 86.8\% with ten, whereas with all Bukva training data it is slightly harmful (90.9\% against 92.9\%, −2.0 {[}−2.8; −1.2{]}); the benefit of pretraining shrinks and can reverse when enough target data exist.
+
+\textbf{Validation on the training participants overestimates accuracy.} Before the budgets were fixed, our first pilot experiments selected checkpoints on held-out recordings of the training participants. Fig. 8 compares, for the 23 conditions of these experiments, the validation accuracy at the selected checkpoint with the accuracy on the unseen participant: validation accuracy ranged from 54\% to 100\%, test accuracy from 7\% to 51\%, and the gap had a median of 45.2 points (range 35.0--75.1), largest for training from scratch. A model that has seen a participant is nearly perfect on new recordings of that participant and loses half or more of its accuracy on a new one. This is why all pilot and corpus results use budgets fixed in advance and the last checkpoint, and why accuracies obtained with signer overlap, including those reported for UzSL so far, should be read as upper bounds.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig8_valtest.pdf}
+\caption{Validation accuracy on held-out recordings of the training participants (at the selected checkpoint) against test accuracy on the unseen participant for the 23 conditions of the early pilot experiments (MPE-A0), averaged over the two folds and sorted by the gap. k1, k2: one and two examples per class; all: all recordings; FT: full fine-tuning; probe: linear probe.}\label{fig:fig8_valtest}
+\end{figure*}
+
+\hypertarget{robustness-and-deployment}{%
+\subsection{Robustness and deployment}\label{robustness-and-deployment}}
+
+Table 8 reports accuracy when the dominant hand is removed from a share \(p\) of the frames and when Gaussian noise of standard deviation \(\sigma\) (as a fraction of the frame width) is added to the keypoints, for the SD-5 checkpoints without retraining. Removing the dominant hand from a quarter of the frames does not change MPE-A1 (a hand is dropped in 20--25\% of the frames during training); removing it from half of the frames costs 1.5 points on Slovo and 1.0 on Bukva. Noise is the stronger factor: \(\sigma\) = 0.02 costs 6.4 points on Slovo and 4.2 on Bukva. MPE-A2 is more robust to noise on both datasets (+2.4 and +3.4 points at \(\sigma\) = 0.02) and slightly more sensitive to missing hands on Slovo.
+
+\begin{table*}[t]
+\caption{Top-1 accuracy of MPE-A1 and MPE-A2 under keypoint corruption (SD-5, three seeds × five folds). $p$: share of frames without the dominant hand; $\sigma$: Gaussian noise as a fraction of the frame width; $\Delta$: paired difference A2 − A1 [95\% CI].}\label{tab:robustness}
+\small
+\centering
+\begin{tabular}{lrrlrrl}
+\toprule
+\textbf{Corruption} & \textbf{Slovo A1} & \textbf{Slovo A2} & \textbf{$\Delta$ Slovo} & \textbf{Bukva A1} & \textbf{Bukva A2} & \textbf{$\Delta$ Bukva} \\
+\midrule
+None & 70.8 & 70.8 & +0.0 [−0.7; +0.7] & 93.2 & 94.5 & +1.3 [+0.9; +1.8] \\
+$p = 0.25$ & 70.7 & 70.2 & −0.5 [−1.2; +0.2] & 93.3 & 94.0 & +0.7 [+0.3; +1.2] \\
+$p = 0.5$ & 69.3 & 68.0 & −1.3 [−2.1; −0.5] & 92.2 & 93.0 & +0.8 [+0.3; +1.4] \\
+$\sigma = 0.01$ & 70.0 & 69.8 & −0.2 [−1.0; +0.5] & 92.4 & 93.9 & +1.6 [+1.0; +2.1] \\
+$\sigma = 0.02$ & 64.4 & 66.7 & +2.4 [+1.2; +3.6] & 89.0 & 92.4 & +3.4 [+2.7; +4.1] \\
+$p = 0.5$, $\sigma = 0.02$ & 59.4 & 60.9 & +1.5 [−0.1; +3.0] & 87.6 & 90.5 & +2.9 [+2.1; +3.6] \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Exported to TensorFlow Lite (float32), MPE-A1 occupies 12.5 MiB and runs in 24.4 ms per 32-frame window on the desktop CPU with the default thread count (29.1 ms single-threaded), with the same argmax as the PyTorch model on all 1,051 checked recordings; the graph-free MPE-A2 occupies 11.6 MiB and runs in 6.6 ms. The ONNX export of MPE-A1 with three heads is 13.5 MB; ONNX Runtime latencies are given in Section 6.1. Latency on a phone has not been measured.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_confusions.pdf}
+\caption{Confusion matrices (rows normalised; off-diagonal cells of at least 5\% are labelled). (a) Bukva, MPE-A1 under SD-5, 33 letters of the RSL manual alphabet. (b) UzSL pilot, MPE-A1 pretrained on Slovo + Bukva and fine-tuned on all recordings, 29 letters and 11 numerals; the numerals and the letters H, I, Q, V, Y occur in the recordings of one participant only and are therefore absent from the training data of their test fold.}\label{fig:fig_confusions}
+\end{figure*}
+
+\hypertarget{discussion}{%
+\section{Discussion}\label{discussion}}
+
+\textbf{What the first signer-independent numbers for UzSL mean.} A new signer's isolated sign is recognised correctly in about a third of the cases and is among the five candidates in about half, on a vocabulary of 682 classes learned from a median of four recordings per class. These numbers cannot be compared with the 87--99\% reported for UzSL so far: those were measured on signers present in training, on closed sets of 50 or fewer classes or of unknown composition, and the pilot experiment of Section 6.6 shows what such a measurement is worth (a median of 45 points of optimism). The LOSO estimate is confirmed by two external sources, so it is a fair description of the current state, and it defines the task for the next generation of UzSL recognisers: not higher accuracy on seen signers, but higher accuracy on unseen ones.
+
+\textbf{Pretraining on a related sign language is the main lever.} Across the corpus (+14.7 points, every signer), the two external sources (+9.2 and +14.7 points), the pilot (18 of 18 comparisons) and the Bukva simulation (+59.7 points with one recording per class), pretraining on RSL is the one intervention that always helps, and it helps most when target data are scarcest. It helps words more than fingerspelling, which is consistent with the manual alphabets of the two languages differing in the shapes of several letters while the lexicons overlap. These results support the hypothesis that RSL representations transfer to UzSL; they do not establish a linguistic relation between the languages, and a third, unrelated source (ASL) adds nothing that the data can establish.
+
+\textbf{Architecture matters less than released baselines suggest.} On Slovo, on the corpus and on the pilot as a frozen encoder, the released SL-GCN is 2--4 points more accurate than our encoder; MPE is a cheaper model, not a more accurate one, and its value lies in the accuracy it reaches at 0.76 GFLOPs (0.196 GFLOPs without the graph), in the analysis of which components matter, and in transfer, where after full fine-tuning it is not inferior. The ablations point to one structural element, the grouping of keypoints into body-part tokens with their own coordinate frames; the skeletal graph can be replaced by a per-part MLP without loss. The same tokens are neutral on a large ASL dataset, so their benefit is tied to the regime of few recordings per class and hand-dominated signs. More important for the field is the 4--9-point gap between our re-implementations of ST-GCN and SL-GCN and their released code: a comparison with re-implemented baselines would have reversed the conclusion of this paper. Baselines should be run from released code wherever it exists, and re-implementations should be labelled as such.
+
+\textbf{Evaluation practice.} Two measurements show how strongly signer overlap affects reported accuracy: the 45-point median gap between validation on the training participants and the test on a new one, and the two thirds of the official Slovo test set that come from training signers. Fixing budgets on a simulation with many signers and evaluating the last checkpoint, as done here for the pilot and the corpus, is a practical substitute for a validation set when the target language has only a few signers.
+
+\textbf{Deployment.} In operations MPE is 2.6--2.9 times cheaper than the graph networks at the same window and 12.8 times cheaper than SL-GCN at its own test window, and its TensorFlow Lite export runs in 24 ms (6.6 ms without the graph) on a desktop CPU; in ONNX Runtime it is faster than both graph networks (10.8 against 15.0 and 25.6 ms on one thread), but in eager PyTorch it is not faster than ST-GCN, and no measurement on a phone exists yet. Floating-point operations are an incomplete proxy for latency, and the runtime changes the ranking; the final model must be measured on the device and runtime it will run on.
+
+\textbf{Limitations.} The corpus is built from lessons: each lesson presenter has one studio and camera, so LOSO measures a new person together with new recording conditions, and the three largest vocabularies belong to three presenters. The automatic labels were verified against a dictionary for 113 recordings by one reviewer; the accuracy on words absent from the dictionary rests on the reviewer's judgement, and the planned second sample of lesson recordings and a second reviewer are still pending. Synonyms and Latin/Cyrillic duplicates are separate classes, which lowers accuracy with the full head. The corpus cannot be released, because the lesson videos and the keypoints derived from them identify the presenters; the code, fold lists and the construction procedure are released instead. The pilot has two main participants recorded in one session. The released ST-GCN and SL-GCN and MPE-A1 with the SL-GCN recipe were run with one seed on SD-5, and the keypoint Transformer and the simple baselines have no released counterparts. Ablations, the capacity study and the robustness tests were carried out on RSL data only; the robustness test uses independent synthetic noise, which only approximates the temporally correlated errors of a real keypoint detector, and a change of keypoint extractor was not tested.
+
+\hypertarget{conclusion}{%
+\section{Conclusion}\label{conclusion}}
+
+This study gives the first results on Uzbek Sign Language recognition that were obtained on signers absent from training, and it shows what determines them. A multi-signer corpus built from open video lessons with labels verified against a dictionary makes signer-disjoint evaluation possible; on it, a compact keypoint encoder recognises a new signer's sign with 32.0\% top-1 and 52.0\% top-5 accuracy on 682 classes, an estimate reproduced on two external sources. Pretraining on two public Russian Sign Language datasets raises accuracy for every held-out signer, by 14.7 points on the corpus and by 23 points on the pilot, and is the main lever available to a low-resource sign language. On the Russian datasets, under a signer-disjoint protocol with pre-registered decision rules, the released graph networks are 2--4 points more accurate than the encoder at 2.6--2.9 times the computation, while re-implementations of the same networks understate them by 4--9 points; body-part tokens, not the skeletal graph, carry the encoder's accuracy, and the graph can be removed to cut computation 3.9 times. Finally, validation on recordings of the training participants overestimates accuracy on a new signer by a median of 45 points. For low-resource sign languages, how a system is evaluated, what it is pretrained on and whether its baselines are run from released code matter more than its architecture. The next steps are a second reviewer and a larger reference sample for the labels, synonym merging verified by a native signer, more signers through the same construction procedure, recognition with a rejection option for a new signer, and latency measured on phones.
+
+\hypertarget{credit-authorship-contribution-statement}{%
+\section{CRediT authorship contribution statement}\label{credit-authorship-contribution-statement}}
+
+\textbf{Maksadjon K. Onarkulov:} Conceptualization, Supervision, Writing -- review \& editing, Project administration. \textbf{Mirsaid A. Yusupov:} Conceptualization, Methodology, Software, Validation, Investigation, Data curation, Writing -- original draft, Writing -- review \& editing, Visualization.
+
+\hypertarget{declaration-of-competing-interest}{%
+\section{Declaration of competing interest}\label{declaration-of-competing-interest}}
+
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\hypertarget{funding}{%
+\section{Funding}\label{funding}}
+
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
+\hypertarget{ethics-statement}{%
+\section{Ethics statement}\label{ethics-statement}}
+
+The study involved human participants. ⟦Approval of the study protocol and of the use of the pilot recordings was granted by ⟦the Ethics Committee / Academic Council of Fergana State University⟧, decision No.~⟦\ldots⟧ dated ⟦\ldots⟧.⟧ All pilot participants gave written informed consent to the recording, to the use of their data in research and to the publication of images in scientific articles. The lesson and dictionary videos are publicly posted; they were used only for feature extraction and evaluation, are not redistributed, and the presenters are referred to by codes.
+
+\hypertarget{data-availability}{%
+\section{Data availability}\label{data-availability}}
+
+The Slovo and Bukva datasets are available from their authors. The UzSL pilot recordings and the lesson corpus contain personal data and are not shared; the fold lists, the construction procedure, the configurations of all experiments and the code of the encoder, the baselines and the analysis are available at https://github.com/M1rsaiD/mpe-slovo-bukva.
+
+\hypertarget{declaration-of-generative-ai-and-ai-assisted-technologies-in-the-writing-process}{%
+\section{Declaration of generative AI and AI-assisted technologies in the writing process}\label{declaration-of-generative-ai-and-ai-assisted-technologies-in-the-writing-process}}
+
+During the preparation of this work the authors used Claude (Anthropic) \citep{2026_anthropic_claude} in order to draft and edit the text of all sections from the authors' research plan, decisions and experimental results, to write and debug the experiment and analysis code, to draw the figures with code and to check bibliographic data; a multimodal model of the same system screened the automatically segmented lesson recordings as described in Section 3.3. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the publication. The photographs in Figs. 1 and 3 are unmodified video frames.
+
+\hypertarget{acknowledgements}{%
+\section{Acknowledgements}\label{acknowledgements}}
+
+The authors thank the participants of the UZSign.AI pilot recordings and the authors of the open UzSL lessons and of the imo-ishora.uz dictionary.

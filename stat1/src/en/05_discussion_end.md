@@ -18,7 +18,7 @@ This study gives the first results on Uzbek Sign Language recognition that were 
 
 # CRediT authorship contribution statement
 
-**Mirsaid A. Yusupov:** Conceptualization, Methodology, Software, Validation, Investigation, Data curation, Writing – original draft, Writing – review & editing, Visualization. **Maksadjon K. Onarkulov:** Conceptualization, Supervision, Writing – review & editing, Project administration.
+**Maksadjon K. Onarkulov:** Conceptualization, Supervision, Writing – review & editing, Project administration. **Mirsaid A. Yusupov:** Conceptualization, Methodology, Software, Validation, Investigation, Data curation, Writing – original draft, Writing – review & editing, Visualization.
 
 # Declaration of competing interest
 

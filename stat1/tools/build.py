@@ -282,15 +282,15 @@ TEMPLATE = r"""\documentclass[a4paper,fleqn]{cas-dc}
 \def\floatpagepagefraction{1}
 \def\textpagefraction{.001}
 \shorttitle{@SHORT@}
-\shortauthors{M.A. Yusupov and M.K. Onarkulov}
+\shortauthors{M.K. Onarkulov and M.A. Yusupov}
 \title[mode=title]{@TITLE@}
-\author[1]{Mirsaid A. Yusupov}[orcid=0009-0001-1989-0088]
+\author[1]{Maksadjon K. Onarkulov}[orcid=0000-0002-3650-4847]
+\ead{maxmaqsad@gmail.com}
+\affiliation[1]{organization={Faculty of Physics and Mathematics, Fergana State University}, city={Fergana}, postcode={150100}, country={Uzbekistan}}
+\author[2]{Mirsaid A. Yusupov}[orcid=0009-0001-1989-0088]
 \cormark[1]
 \ead{mirsaidbeky@gmail.com}
-\affiliation[1]{organization={Department of Applied Mathematics and Informatics, Fergana State University}, city={Fergana}, postcode={150100}, country={Uzbekistan}}
-\author[2]{Maksadjon K. Onarkulov}[orcid=0000-0002-3650-4847]
-\ead{maxmaqsad@gmail.com}
-\affiliation[2]{organization={Faculty of Physics and Mathematics, Fergana State University}, city={Fergana}, postcode={150100}, country={Uzbekistan}}
+\affiliation[2]{organization={Department of Applied Mathematics and Informatics, Fergana State University}, city={Fergana}, postcode={150100}, country={Uzbekistan}}
 \cortext[1]{Corresponding author.}
 \begin{abstract}
 @ABSTRACT@
@@ -326,15 +326,15 @@ TEMPLATE_RU = r"""\documentclass[a4paper,fleqn]{cas-dc}
 \def\floatpagepagefraction{1}
 \def\textpagefraction{.001}
 \shorttitle{@SHORT@}
-\shortauthors{М.А. Юсупов, М.К. Онаркулов}
+\shortauthors{М.К. Онаркулов, М.А. Юсупов}
 \title[mode=title]{@TITLE@}
-\author[1]{\authA}[orcid=0009-0001-1989-0088]
+\author[1]{\authB}[orcid=0000-0002-3650-4847]
+\ead{maxmaqsad@gmail.com}
+\affiliation[1]{organization={Физико-математический факультет, Ферганский государственный университет}, city={Фергана}, postcode={150100}, country={Узбекистан}}
+\author[2]{\authA}[orcid=0009-0001-1989-0088]
 \cormark[1]
 \ead{mirsaidbeky@gmail.com}
-\affiliation[1]{organization={Кафедра прикладной математики и информатики, Ферганский государственный университет}, city={Фергана}, postcode={150100}, country={Узбекистан}}
-\author[2]{\authB}[orcid=0000-0002-3650-4847]
-\ead{maxmaqsad@gmail.com}
-\affiliation[2]{organization={Физико-математический факультет, Ферганский государственный университет}, city={Фергана}, postcode={150100}, country={Узбекистан}}
+\affiliation[2]{organization={Кафедра прикладной математики и информатики, Ферганский государственный университет}, city={Фергана}, postcode={150100}, country={Узбекистан}}
 \cortext[1]{Автор для корреспонденции.}
 \begin{abstract}
 @ABSTRACT@
@@ -353,17 +353,17 @@ TEMPLATE_RU = r"""\documentclass[a4paper,fleqn]{cas-dc}
 \end{document}
 """
 BIOS_EN = r"""\bio{}
-\textbf{Mirsaid A. Yusupov} received the bachelor's and master's degrees from Fergana State University, Fergana, Uzbekistan, in 2021 and 2023. He is a lecturer with the Department of Applied Mathematics and Informatics, Fergana State University, and is working toward the Ph.D. degree. His research interests include computer vision, sign language recognition and deep learning.
+\textbf{Maksadjon K. Onarkulov} received the Ph.D. degree in physical and mathematical sciences. He is an Associate Professor and the Dean of the Faculty of Physics and Mathematics, Fergana State University, Fergana, Uzbekistan.
 \endbio
 \bio{}
-\textbf{Maksadjon K. Onarkulov} received the Ph.D. degree in physical and mathematical sciences. He is an Associate Professor and the Dean of the Faculty of Physics and Mathematics, Fergana State University, Fergana, Uzbekistan.
+\textbf{Mirsaid A. Yusupov} received the bachelor's and master's degrees from Fergana State University, Fergana, Uzbekistan, in 2021 and 2023. He is a lecturer with the Department of Applied Mathematics and Informatics, Fergana State University, and is working toward the Ph.D. degree. His research interests include computer vision, sign language recognition and deep learning.
 \endbio
 """
 BIOS_RU = r"""\bio{}
-\textbf{Мирсаид А. Юсупов} окончил бакалавриат и магистратуру Ферганского государственного университета (Фергана, Узбекистан) в 2021 и 2023 гг. Преподаватель кафедры прикладной математики и информатики Ферганского государственного университета, работает над диссертацией PhD. Научные интересы: компьютерное зрение, распознавание жестового языка, глубокое обучение.
+\textbf{Максаджон К. Онаркулов} — доктор философии (PhD) по физико-математическим наукам, доцент, декан физико-математического факультета Ферганского государственного университета (Фергана, Узбекистан).
 \endbio
 \bio{}
-\textbf{Максаджон К. Онаркулов} — доктор философии (PhD) по физико-математическим наукам, доцент, декан физико-математического факультета Ферганского государственного университета (Фергана, Узбекистан).
+\textbf{Мирсаид А. Юсупов} окончил бакалавриат и магистратуру Ферганского государственного университета (Фергана, Узбекистан) в 2021 и 2023 гг. Преподаватель кафедры прикладной математики и информатики Ферганского государственного университета, работает над диссертацией PhD. Научные интересы: компьютерное зрение, распознавание жестового языка, глубокое обучение.
 \endbio
 """
 
@@ -371,8 +371,8 @@ def build_docx(front, docx_md):
     title = re.search(r'^title: "(.*)"$', front, re.M).group(1)
     abstract = block(docx_md, 'abstract'); keywords = block(docx_md, 'keywords'); highlights = block(docx_md, 'highlights')
     body = re.sub(r'::: (abstract|keywords|highlights)\n.*?\n:::\n', '', docx_md, flags=re.S)
-    head = (f'# {title}\n\nМирсаид А. Юсупов ^1,\\*^, Максаджон К. Онаркулов ^2^\n\n^1^ Кафедра прикладной математики и информатики, Ферганский государственный университет, Фергана 150100, Узбекистан; mirsaidbeky@gmail.com\n\n^2^ Физико-математический факультет, Ферганский государственный университет, Фергана 150100, Узбекистан; maxmaqsad@gmail.com\n\n\\* Автор для корреспонденции.\n\n**Аннотация.** {abstract}\n\n**Ключевые слова:** {keywords}\n\n**Основные положения:**\n\n{highlights}\n\n' if RU else
-            f'# {title}\n\nMirsaid A. Yusupov ^1,\\*^ and Maksadjon K. Onarkulov ^2^\n\n^1^ Department of Applied Mathematics and Informatics, Fergana State University, Fergana 150100, Uzbekistan; mirsaidbeky@gmail.com\n\n^2^ Faculty of Physics and Mathematics, Fergana State University, Fergana 150100, Uzbekistan; maxmaqsad@gmail.com\n\n\\* Corresponding author.\n\n**Abstract.** {abstract}\n\n**Keywords:** {keywords}\n\n**Highlights:**\n\n{highlights}\n\n')
+    head = (f'# {title}\n\nМаксаджон К. Онаркулов ^1^, Мирсаид А. Юсупов ^2,\\*^\n\n^1^ Физико-математический факультет, Ферганский государственный университет, Фергана 150100, Узбекистан; maxmaqsad@gmail.com\n\n^2^ Кафедра прикладной математики и информатики, Ферганский государственный университет, Фергана 150100, Узбекистан; mirsaidbeky@gmail.com\n\n\\* Автор для корреспонденции.\n\n**Аннотация.** {abstract}\n\n**Ключевые слова:** {keywords}\n\n**Основные положения:**\n\n{highlights}\n\n' if RU else
+            f'# {title}\n\nMaksadjon K. Onarkulov ^1^ and Mirsaid A. Yusupov ^2,\\*^\n\n^1^ Faculty of Physics and Mathematics, Fergana State University, Fergana 150100, Uzbekistan; maxmaqsad@gmail.com\n\n^2^ Department of Applied Mathematics and Informatics, Fergana State University, Fergana 150100, Uzbekistan; mirsaidbeky@gmail.com\n\n\\* Corresponding author.\n\n**Abstract.** {abstract}\n\n**Keywords:** {keywords}\n\n**Highlights:**\n\n{highlights}\n\n')
     text = head + body + ('\n\n# Список литературы\n' if RU else '\n\n# References\n')
     if RU: text = re.sub(r'(\d) %', '\\1\u00a0%', text)
     (BUILD / 'article.md').write_text(text, encoding='utf-8')
