@@ -262,6 +262,18 @@ def build_tex(front, tex_md):
     bib = (BUILD / 'refs.bib').read_text(encoding='utf-8')
     for a, b in {'Ł': '{\\L}', 'ł': '{\\l}', 'é': "{\\'e}", 'É': "{\\'E}", 'ć': "{\\'c}", 'ü': '{\\"u}', 'ö': '{\\"o}', 'ä': '{\\"a}', 'ñ': '{\\~n}', 'í': "{\\'\\i}", 'á': "{\\'a}", 'ó': "{\\'o}", 'è': '{\\`e}', 'ç': '{\\c{c}}', '’': "'", '‘': '`', '–': '--', '—': '---', 'ʻ': "'", '×': '$\\times$'}.items():
         bib = bib.replace(a, b)
+    # веб-ссылки: дата обращения (требование JAI); корпоративный автор — в двойных скобках, иначе «G. A. Edge»
+    MON = 'January February March April May June July August September October November December'.split()
+    for e in json.load(open(ROOT / 'src' / 'refs_v2.json', encoding='utf-8')):
+        if e.get('type') not in ('webpage', 'software', 'dataset') or 'URL' not in e: continue
+        m = re.search(r'@\w+\{' + re.escape(e['id']) + r',\n(.*?)\n\}', bib, re.S)
+        body = m.group(1); new = re.sub(r'\n  month = \{\w+\},', '', body)
+        for a in e.get('author', []):
+            if 'literal' in a: new = new.replace('author = {%s}' % a['literal'], 'author = {{%s}}' % a['literal'])
+        if 'accessed' in e:
+            y, mo, d = e['accessed']['date-parts'][0]
+            new += ',\n  note = {Accessed %d %s %d}' % (d, MON[mo - 1], y)  # bib только ASCII, список литературы и в RU на английском
+        bib = bib.replace(body, new)
     assert all(ord(ch) < 128 for ch in bib), [ch for ch in set(bib) if ord(ch) >= 128]
     (BUILD / 'refs.bib').write_text(bib, encoding='utf-8')
     if not NOPDF:

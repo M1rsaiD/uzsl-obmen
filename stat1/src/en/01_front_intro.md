@@ -9,7 +9,7 @@ Automatic recognition of Uzbek Sign Language (UzSL) has so far been reported on 
 :::
 
 ::: keywords
-sign language recognition; Uzbek Sign Language; transfer learning; signer-independent evaluation; pose estimation; low-resource languages
+sign language recognition; Uzbek Sign Language; transfer learning; signer-independent evaluation; pose estimation; low-resource language
 :::
 
 ::: highlights
