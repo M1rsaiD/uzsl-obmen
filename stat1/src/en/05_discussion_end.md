@@ -30,7 +30,7 @@ This research did not receive any specific grant from funding agencies in the pu
 
 # Ethics statement
 
-The study involved human participants. The study protocol and the use of the pilot recordings were approved retrospectively, after the pilot recordings had been made, by the Ethics Committee of the Faculty of Physics and Mathematics of Fergana State University (decision No. 12 of 9 November 2026). All pilot participants gave written informed consent to the recording, to the use of their data in research and to the publication of images in scientific articles. The lesson and dictionary videos are publicly posted; they were used only for feature extraction and evaluation, are not redistributed, and the presenters are referred to by codes.
+The study involved human participants. The study protocol and the use of the pilot recordings were approved retrospectively, after the pilot recordings had been made, by the Ethics Committee of the Faculty of Physics and Mathematics of Fergana State University (decision No. 12 of 9 November 2026). M. K. Onarkulov, a co-author and the Dean of the Faculty, did not take part in the committee's decision. All pilot participants gave written informed consent to the recording, to the use of their data in research and to the publication of images in scientific articles. The lesson and dictionary videos are publicly posted; they were used only for feature extraction and evaluation, are not redistributed, and the presenters are referred to by codes.
 
 # Data availability
 
