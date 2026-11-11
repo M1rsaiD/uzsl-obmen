@@ -192,7 +192,7 @@ TEX = r"""\documentclass[a4paper,10pt]{article}
 \setlength{\tabcolsep}{4pt}\sloppy
 \newcommand{\ruT}[1]{{\fontencoding{T2A}\selectfont #1}}
 \title{Supplementary Material for\\ \emph{Signer-disjoint evaluation and Russian-to-Uzbek transfer for isolated sign recognition: a multi-signer Uzbek Sign Language corpus and a compact pose encoder}}
-\author{Mirsaid A. Yusupov \and Maksadjon K. Onarkulov\\ \small Fergana State University, Fergana, Uzbekistan}
+\author{Maksadjon K. Onarkulov \and Mirsaid A. Yusupov\\ \small Fergana State University, Fergana, Uzbekistan}
 \date{}
 \begin{document}
 \maketitle

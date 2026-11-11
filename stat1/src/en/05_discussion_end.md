@@ -30,11 +30,11 @@ This research did not receive any specific grant from funding agencies in the pu
 
 # Ethics statement
 
-The study involved human participants. ⟦Approval of the study protocol and of the use of the pilot recordings was granted by ⟦the Ethics Committee / Academic Council of Fergana State University⟧, decision No. ⟦…⟧ dated ⟦…⟧.⟧ All pilot participants gave written informed consent to the recording, to the use of their data in research and to the publication of images in scientific articles. The lesson and dictionary videos are publicly posted; they were used only for feature extraction and evaluation, are not redistributed, and the presenters are referred to by codes.
+The study involved human participants. The study protocol and the use of the pilot recordings were approved retrospectively, after the pilot recordings had been made, by the Ethics Committee of the Faculty of Physics and Mathematics of Fergana State University (decision No. 12 of 9 November 2026). All pilot participants gave written informed consent to the recording, to the use of their data in research and to the publication of images in scientific articles. The lesson and dictionary videos are publicly posted; they were used only for feature extraction and evaluation, are not redistributed, and the presenters are referred to by codes.
 
 # Data availability
 
-The Slovo and Bukva datasets are available from their authors. The UzSL pilot recordings and the lesson corpus contain personal data and are not shared; the fold lists, the construction procedure, the configurations of all experiments and the code of the encoder, the baselines and the analysis are available at https://github.com/M1rsaiD/mpe-slovo-bukva.
+The Slovo and Bukva datasets are available from their authors. The UzSL pilot recordings and the lesson corpus contain personal data and are not shared; the fold lists, the construction procedure, the configurations of all experiments and the code of the encoder, the baselines and the analysis are available at https://github.com/M1rsaiD/mpe-slovo-bukva. The source of the external test set N02 is available to the editor on request.
 
 # Declaration of generative AI and AI-assisted technologies in the writing process
 
@@ -42,4 +42,4 @@ During the preparation of this work the authors used Claude (Anthropic) [@2026_a
 
 # Acknowledgements
 
-The authors thank the participants of the UZSign.AI pilot recordings and the authors of the open UzSL lessons and of the imo-ishora.uz dictionary.
+The authors thank the participants of the UZSign.AI pilot recordings and the authors of the open UzSL lessons and of the online dictionary used as N02.

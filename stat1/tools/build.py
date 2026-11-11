@@ -74,7 +74,7 @@ def t_datasets():
          ['UzSL pilot (ours)' if not RU else 'Пилот УзЖЯ (наш)', 'UzSL' if not RU else 'УзЖЯ', 'fingerspelling, numerals' if not RU else 'дактиль, цифры', '322', '40', '3', 'transfer target' if not RU else 'цель переноса'],
          ['UzSL corpus (ours)' if not RU else 'Корпус УзЖЯ (наш)', 'UzSL' if not RU else 'УзЖЯ', 'isolated signs (lessons + pilot)' if not RU else 'изолированные жесты (уроки + пилот)', '5,993', '2,381', '12', 'LOSO; transfer target' if not RU else 'LOSO; цель переноса'],
          ['N01 (external)' if not RU else 'N01 (внешний)', 'UzSL' if not RU else 'УзЖЯ', 'video dictionary' if not RU else 'видеословарь', '191', '191', '1', 'test only' if not RU else 'только тест'],
-         ['imo-ishora.uz (external)' if not RU else 'imo-ishora.uz (внешний)', 'UzSL' if not RU else 'УзЖЯ', 'video dictionary' if not RU else 'видеословарь', '1,556', '1,556', 'several' if not RU else 'несколько', 'test only' if not RU else 'только тест']]
+         ['N02 (external)' if not RU else 'N02 (внешний)', 'UzSL' if not RU else 'УзЖЯ', 'video dictionary' if not RU else 'видеословарь', '1,556', '1,556', 'several' if not RU else 'несколько', 'test only' if not RU else 'только тест']]
     if RU: r = [[c.replace(',', '\u2009') if isinstance(c, str) and re.fullmatch(r'[\d,]+', c) else c for c in row] for row in r]
     return h, r, 'lllrrrl'
 def t_corpus():
@@ -135,7 +135,7 @@ def t_external():
     h = (['Source', 'Model', 'Head', 'Videos scored', 'Words', 'Top-1 [95% CI]', 'Top-5'] if not RU else ['Источник', 'Модель', 'Голова', 'Видео', 'Слов', 'Top-1 [95 % ДИ]', 'Top-5'])
     lab = {'step1': ('pretrained (Slovo + Bukva)', 'предобучение (Slovo + Bukva)'), 'modelV': ('pretrained (Slovo + Bukva + ASL)', 'предобучение (Slovo + Bukva + ASL)'), 'A': ('pretrained, all recordings', 'предобучение, все записи'), 'B': ('from scratch, all recordings', 'с нуля, все записи')}
     rows = []
-    for src, name in (('N01', 'N01'), ('IMO', 'imo-ishora.uz')):
+    for src, name in (('N01', 'N01'), ('IMO', 'N02')):
         for k, (en, ru) in lab.items():
             m = N['external'][f'{src}/{k}']
             rows.append([name, ru if RU else en, f'{m["head_size"]:,}' if not RU else f'{m["head_size"]:,}'.replace(',', '\u2009'), str(m['n_in_head']), str(m['n_words']), f'{fmt(m["top1"])} {ci(m["ci"])}', fmt(m['top5'])])
