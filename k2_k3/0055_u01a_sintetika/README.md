@@ -1,0 +1,10 @@
+# 0055. Синтетика ворот U01a — для перекрёстной проверки к3 → к2 (свод v2 п. 4.7; письмо 0143, разд. 4.2)
+
+Только синтетика и код, без данных корпуса.
+
+- `code/` — функции ворот `scripts/uzsohn_gates.py` (`place_feats`, `ref_pairs`, `pct_ref`, `pct`, `u01a_rule`) и `src/mpk/sohn.py` (индексы точек `LOCAL`, `LH_LOC`, `RH_LOC`; нужен torch) — те же файлы, что в коммите кода, хеш которого указан в 0143.
+- `r1/u01a_gate_synth.py` (+ `.out`) — генератор синтетики (`make`) и q при КВ 0 / 0,05 / 0,10 (одна реализация, затравка 0).
+- `r4_u01a_q_seeds/` — 20–400 реализаций, сгущение к порогу (τ), проверки скептиков р4; `r5_u01a_q_r5/` — 2 и 6 записей на класс, р5; `sverka_p1/` — граница порога.
+- Пути в скриптах зашиты: `OM = /home/error_404/uzsign/osnovnaya_model`. Для запуска замените `OM` на `<пакет>/code` и запускайте с `PYTHONPATH=<пакет>/code/src` (`mpk.sohn`, нужен torch). Файл `OM/runs/UZSOHN/revision_r1/u01a_gate_synth.py` читают 7 скриптов (`r5_u01a_q_r5/q_per_class.py`, `sverka_p1/u01a_gate_synth_boundary.py`, `r4_u01a_q_seeds/lens/seeds_boundary.py`, `sk1/loop_seeds.py`, `sk2/indep_check.py`, `sk3/loop_seeds.py`, `sk3/scale_check.py`) — копия `r1/u01a_gate_synth.py` лежит там же: `code/runs/UZSOHN/revision_r1/`. `sk2/limit_check.py` и `sk2/tau200.py` вставляют в путь каталог /tmp с ПК к2: на другой машине его нет, и `indep_check` берётся из `sk2/` (запускать из `sk2/`). Аргументы `q_per_class.py` (n_cls per s0 N) и `sk1/loop_seeds.py` (s0 s1) видны в строках и именах `.out`: `c_200x6_s1000.out` — `200 6 1000 200` (затравки 1000..1199), `loop_0_100.out` — `0 100`.
+- Правило «место» в синтетике — без условия ворот «форма < 50»: форма у всех классов одна (расстояния формы — шум float, max 6,4·10⁻⁶). С этим условием пары лишь случайно прореживаются: 9 402 вместо 20 004, q = 0,0000 / 0,0079 / 0,0172 (без него — 0,0000 / 0,0080 / 0,0178); вывод тот же.
+- `uzsohn_gates.py` при импорте только дописывает пути в `sys.path`: `m13_train`, `alluz` и модули `uzsign_ai_v2` импортируются внутри функций, которые синтетика не вызывает; `place_feats` импортирует `mpk.sohn` (нужен torch).
