@@ -1,0 +1,81 @@
+{
+ "order": [
+  "S11",
+  "S12",
+  "S01",
+  "S02",
+  "S03",
+  "S04",
+  "S05",
+  "S07",
+  "S08",
+  "S09"
+ ],
+ "macro_by_seed_pp": [
+  30.3356,
+  29.6762,
+  29.3274
+ ],
+ "by_signer": {
+  "S11": {
+   "sd_seeds_pp": 2.5214,
+   "top1_mean_pp": 45.4545,
+   "n_test": 143,
+   "n_as_Vk": 143
+  },
+  "S12": {
+   "sd_seeds_pp": 0.6713,
+   "top1_mean_pp": 28.6822,
+   "n_test": 172,
+   "n_as_Vk": 168
+  },
+  "S01": {
+   "sd_seeds_pp": 0.5254,
+   "top1_mean_pp": 23.8692,
+   "n_test": 479,
+   "n_as_Vk": 479
+  },
+  "S02": {
+   "sd_seeds_pp": 0.2951,
+   "top1_mean_pp": 23.2493,
+   "n_test": 1190,
+   "n_as_Vk": 1158
+  },
+  "S03": {
+   "sd_seeds_pp": 0.5857,
+   "top1_mean_pp": 22.8019,
+   "n_test": 690,
+   "n_as_Vk": 621
+  },
+  "S04": {
+   "sd_seeds_pp": 1.9454,
+   "top1_mean_pp": 23.5294,
+   "n_test": 136,
+   "n_as_Vk": 135
+  },
+  "S05": {
+   "sd_seeds_pp": 0.9426,
+   "top1_mean_pp": 28.5893,
+   "n_test": 267,
+   "n_as_Vk": 265
+  },
+  "S07": {
+   "sd_seeds_pp": 0.34,
+   "top1_mean_pp": 27.4833,
+   "n_test": 849,
+   "n_as_Vk": 812
+  },
+  "S08": {
+   "sd_seeds_pp": 3.2664,
+   "top1_mean_pp": 39.5062,
+   "n_test": 81,
+   "n_as_Vk": 76
+  },
+  "S09": {
+   "sd_seeds_pp": 4.5609,
+   "top1_mean_pp": 34.632,
+   "n_test": 77,
+   "n_as_Vk": 77
+  }
+ }
+}

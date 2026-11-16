@@ -1,0 +1,435 @@
+diff --git a/scripts/uzsohn_u30_swa.py b/scripts/uzsohn_u30_swa.py
+new file mode 100644
+index 0000000..b111354
+--- /dev/null
++++ b/scripts/uzsohn_u30_swa.py
+@@ -0,0 +1,266 @@
++"""U30 (reports/UZSOHN_prereg.md разд. 6; Поправка 2 разд. 5) — справочная ЦП-проверка, не плечо, выигрыш не заявляется: SWA
++весов каждого из 50 прогонов отбора этапа 1 (5 плеч × 10 фолдов, runs/UzSohn/<тег>/<фолд>/seed48) рядом с last.pt; счёт на V_k (тест S_k не
++читается) тем же счётом, что uzsohn_sel.py (100 · top-1 на V_k, macro по 10 V_k); печать по плечам отдельно.
++
++Параметры — Поправка 2 разд. 5 (к2 0153 разд. 3.2, к1 0136 разд. 6, к3 0039 разд. 6, к1 0137):
++- веса: равное среднее 11 state_dict — ep200 … ep290.pt и last.pt (эпоха 300), сумма в float64. В ep*.pt и last.pt лежит сырой
++  model.state_dict() (m13_train.py: ep<N>.pt и last.pt): быстрые веса = медленным (запись сразу после синхронизации Lookahead,
++  предрег. разд. 6); EMA весов в рецепте Sohn нет (EMA — только в рецепте A1, U33). Буферы MaskedBN не усредняются, а
++  пересчитываются.
++- пересчёт MaskedBN — своим кодом: torch.optim.swa_utils.update_bn берёт только _BatchNorm, а MaskedBN — nn.Module (к3 0039).
++  (i) сброс: running_mean = 0, running_var = 1; (ii) итог — равное накопленное среднее моментов по ВСЕМ частям прохода, без веса по
++  числу шагов маски и без EMA commit(); (iii) моменты части — как MaskedBN.forward при обучении: среднее и смещённая дисперсия по
++  шагам маски внутри части. Итог — среднее внутричастных дисперсий, без разброса средних между частями (как у update_bn).
++- проход: обучающие записи прогона отбора — фолд без V_k, как m13_train --inner-val (сверка с metrics.json, labels.json и
++  logits.npz прогона; рецепт — Sohn, не U33). Генераторы — те же, что у обучения прогона: порядок — перестановка
++  default_rng([затравка, 7]) (основа порядка m13_train.Stream, без буфера перемешивания), аугментация записи на позиции pos —
++  default_rng([затравка, pos]) через m13_train.AugSet (sohn.augment, предрег. разд. 6; --no-aug — проход без неё). Части по 64;
++  неполная последняя часть отбрасывается (в обучении части всегда по 64). Затравка 48, 1 проход (как update_bn). Модель в режиме
++  обучения: dropout — как при обучении и у update_bn; LateDropout стоит после всех BN и на моменты не влияет; без AWP. ЦП, float32
++  (обучение — ГП, bf16).
++- счёт (справочная таблица):
++  - last.pt ГП — top1 из metrics.json, число отбора;
++  - last.pt ЦП;
++  - last.pt + пересчёт BN — вклад одного пересчёта;
++  - SWA + пересчёт BN;
++  - SWA − last.pt (ЦП), SWA − (last.pt + BN) и «лучше у k/10» для SWA − last.pt — печать без решения.
++
++Выход: reports/UZSOHN_u30.md и runs/UZSOHN/u30.json (прежние — в копию с датой); по прогону — runs/UZSOHN/u30/<тег>__<S-код>.json
++(готовое пропускается, параметры прохода сверяются; коммиты кода всех прогонов — в печати). С --out DIR — всё в DIR. Только ЦП:
++CUDA скрыта в самом скрипте. Фолды и V_k в выходе — только S-коды.
++  cd osnovnaya_model && CUDA_VISIBLE_DEVICES= OMP_NUM_THREADS=4 PYTHONPATH=src nice -n 19 \
++    ~/.local/share/mise/installs/python/3.14.7/bin/python scripts/uzsohn_u30_swa.py [--tags T1,…] [--folds S11,…] [--out DIR]
++"""
++import argparse
++import json
++import os
++import re
++import time
++from pathlib import Path
++
++os.environ["CUDA_VISIBLE_DEVICES"] = ""   # U30 — только ЦП (ГП занята турниром); до первого обращения torch к CUDA
++import numpy as np  # noqa: E402
++import torch  # noqa: E402
++
++import m13_train as M  # noqa: E402  (данные и прогоны — от M.ROOT)
++from mpk import sohn  # noqa: E402
++
++SEED = M.UZSOHN_SEL_SEED                   # прогоны отбора этапа 1 — затравка 48
++EPOCHS = list(range(200, 300, 10))         # ep200 … ep290 (--save-from-epoch 200); 11-й — last.pt (эпоха 300)
++LAST_EPOCH = sohn.CFG["epoch"]
++RUNNING = ("running_mean", "running_var")
++COLS = ("last_gpu", "last", "last_bn", "swa")
++NOTE = "U30 — справочно: ни одно решение UzSohn и турнира от этих чисел не зависит (Поправка 2, разд. 5)"   # печать дословно
++
++
++def swa_average(sds: list[dict]) -> dict:
++    """Равное среднее state_dict (сумма в float64); буферы MaskedBN — из последнего: их заменяет recompute_bn."""
++    keys = list(sds[0])
++    assert all(list(s) == keys for s in sds) and all(v.is_floating_point() for s in sds for v in s.values())
++    return {k: sds[-1][k].clone() if k.endswith(RUNNING) else torch.stack([s[k].double() for s in sds]).mean(0).to(sds[0][k].dtype)
++            for k in keys}
++
++
++@torch.no_grad()
++def recompute_bn(model: sohn.SohnNet, parts, seed: int) -> int:
++    """Пересчёт MaskedBN по частям [(x, маска)]: (i) сброс, (ii) равное среднее по всем частям, (iii) моменты части —
++    MaskedBN.forward (по шагам маски, смещённая дисперсия). → число частей; модель — в режиме вывода."""
++    bns = model.bns()
++    for b in bns:                                    # (i)
++        b.running_mean.zero_()
++        b.running_var.fill_(1.0)
++        b.acc = {}
++    acc = [[torch.zeros(b.running_mean.shape, dtype=torch.float64) for _ in RUNNING] for b in bns]
++    model.train()                                    # dropout — как при обучении и у update_bn
++    model.late_dropout_on = False                    # LateDropout — после всех BN: моменты не меняет
++    model.set_pass(0)
++    torch.manual_seed(seed)                          # dropout прохода — детерминированный
++    n = 0
++    for x, m in parts:
++        model(x, m)
++        for b, a in zip(bns, acc):                   # (iii): ровно один вызов BN на часть
++            (mean, var), = b.acc.pop(0)
++            assert not b.acc
++            a[0] += mean.double()
++            a[1] += var.double()
++        n += 1
++    assert n > 0, "нет ни одной части"
++    for b, a in zip(bns, acc):                       # (ii): без commit() (EMA 0,95 обучения)
++        b.running_mean.copy_(a[0] / n)
++        b.running_var.copy_(a[1] / n)
++    model.eval()
++    return n
++
++
++def pass_order(train: list[int], seed: int, part: int) -> list[list[int]]:
++    """Части прохода: перестановка default_rng([seed, 7]) обучающих записей (основа порядка m13_train.Stream) по part; неполная
++    часть — нет."""
++    perm = np.random.default_rng([seed, 7]).permutation(np.asarray(train, np.int64))
++    return [perm[k * part:(k + 1) * part].tolist() for k in range(len(perm) // part)]
++
++
++def bn_parts(recs, order: list[list[int]], seed: int, aug: bool):
++    """(x, маска) частей: вход прогона и аугментация обучения (m13_train.AugSet: sohn.augment, default_rng([seed, позиция]))."""
++    ds = M.AugSet(recs, np.zeros(len(recs), np.int64), seed, aug)
++    pos = 0
++    for idx in order:
++        yield sohn.collate([ds[(i, pos + j)][0] for j, i in enumerate(idx)])
++        pos += len(idx)
++
++
++def run_one(tag: str, fold: str, prm: dict, codes: dict) -> dict:
++    d = M.ROOT / "runs/UzSohn" / tag / fold / f"seed{SEED}"
++    m = json.loads((d / "metrics.json").read_text())
++    assert (m["mode"], m["seed"], m["save_from_epoch"], m["epochs"], m["steps_run"]) == ("all", SEED, EPOCHS[0], LAST_EPOCH, m["steps"]) \
++        and m["inner_val"], (tag, codes[fold])
++    assert (m.get("arch", "sohn"), m.get("recipe", "sohn")) == ("sohn", "sohn"), (tag, codes[fold], "не рецепт Sohn (EMA — только A1, U33)")
++    tokens, flags = tuple(m.get("input") or ()), m["flags"]
++    # данные прогона — как m13_train.main (--set alluz --fold <фолд> --inner-val)
++    recs, glosses, clips, (tr, va, te) = M.records("alluz", fold, pose=flags["pose"], inp=bool(tokens))
++    recs.tokens = tokens
++    lab_idx = tr + va + te
++    names = sorted({glosses[i] for i in lab_idx})
++    lab = {g: k for k, g in enumerate(names)}
++    labels = np.full(len(recs), -1, np.int64)
++    labels[lab_idx] = [lab[glosses[i]] for i in lab_idx]
++    split = json.loads(M.SPLIT["alluz"].read_text())["folds"]
++    vk = M.inner_val(fold, [f for f in split if f != "all"])
++    who = lambda i: re.sub(r"^syn_x10p\d+_", "", clips[i]["signer_id"])
++    train = [i for i in tr + va if who(i) != vk]
++    cls_tr = {glosses[i] for i in train}
++    vt = set(split[vk]["test"])
++    te = [i for i in tr + va if clips[i]["sample_id"] in vt and glosses[i] in cls_tr]
++    lz = np.load(d / "logits.npz")
++    assert (vk, len(train), len(te), len(names)) == (m["inner_val"], m["n_train"], m["n_test"], m["n_classes"]), (tag, codes[fold])
++    assert names == json.loads((d / "labels.json").read_text()) and np.array_equal(lz["labels"], labels[te]) \
++        and lz["sample_ids"].tolist() == [clips[i]["sample_id"] for i in te], (tag, codes[fold], "данные ≠ прогону")
++
++    def load(p: Path, ep: int) -> dict:
++        c = torch.load(p, map_location="cpu")
++        assert c["epoch"] == ep and c["names"] == names, (p.name, c["epoch"])
++        return c["model"]
++
++    last = load(d / "last.pt", LAST_EPOCH)
++    swa = swa_average([load(d / f"ep{e}.pt", e) for e in EPOCHS] + [last])
++    model = sohn.SohnNet(len(names), sohn.CFG["dim"], channels=sohn.input_channels(tokens), **flags)
++    y = labels[te]
++
++    def top1() -> tuple[float, np.ndarray]:
++        z, _ = M.predict(model, recs, labels, te, torch.device("cpu"), sohn.CFG["label_smoothing"])
++        p = np.argsort(-z, 1)[:, 0]                  # как write_preds (top-1 = первый из top-5)
++        return float((p == y).mean()), p
++
++    order = pass_order(train, prm["seed"], prm["part"])
++    parts = lambda: bn_parts(recs, order, prm["seed"], prm["aug"])
++    r = {"tag": tag, "fold": codes[fold], "vk": codes[vk], "input": list(tokens), "n_train": len(train), "n_test": len(te),
++         "bn_parts": len(order), "top1_last_gpu": m["top1"]}
++    model.load_state_dict(last)
++    r["top1_last"], p_last = top1()
++    v0 = model.stem_bn.running_var.clone()
++    p_gpu = np.argsort(-lz["last"], 1)[:, 0]
++    assert abs(float((p_gpu == y).mean()) - m["top1"]) < 1e-9, (tag, codes[fold], "logits.npz ≠ metrics.json")
++    r["agree_last_cpu_gpu"] = float((p_last == p_gpu).mean())
++    ratio = {}
++    for k, sd in (("last_bn", last), ("swa", swa)):
++        model.load_state_dict(sd)
++        assert recompute_bn(model, parts(), prm["seed"]) == len(order)
++        r[f"top1_{k}"], _ = top1()
++        ratio[k] = round(float(torch.median(model.stem_bn.running_var / v0)), 4)
++    r["stem_bn_var_over_last_p50"] = ratio            # пересчитанная дисперсия stem-BN / бегущая last.pt (медиана каналов)
++    return r
++
++
++def report(res: dict, tags: list[str], fcodes: list[str], prm: dict, md: Path, js: Path, code: dict) -> None:
++    arms = {}
++    for tag in tags:
++        rs = [res[tag, c] for c in fcodes if (tag, c) in res]
++        if not rs:
++            continue
++        d = {r["vk"]: round(100 * (r["top1_swa"] - r["top1_last"]), 2) for r in rs}
++        arms[tag] = {"input": rs[0]["input"], "n": len(rs),
++                     **{f"macro_{k}": round(float(np.mean([100 * r[f"top1_{k}"] for r in rs])), 2) for k in COLS},
++                     "diff_swa_last": round(float(np.mean(list(d.values()))), 2), "better": f"{sum(v > 0 for v in d.values())}/{len(d)}",
++                     "diff_swa_last_bn": round(float(np.mean([100 * (r["top1_swa"] - r["top1_last_bn"]) for r in rs])), 2),
++                     "per_vk_swa_minus_last": d}
++    runs = list(res.values())
++    sec = sum(r.get("sec", 0) for r in runs)
++    cm = {}
++    for r in runs:   # готовые прогоны берутся из файлов: печатаются коммиты всех, чтобы разные версии кода не смешались молча
++        c = r["code"]["commit"][:7] + (" (dirty)" if r["code"]["dirty"] else "")
++        cm[c] = cm.get(c, 0) + 1
++    L = ["# U30 (SWA) — справочно, не плечо; выигрыш не заявляется (UZSOHN_prereg разд. 6, Поправка 2 разд. 5)", "", NOTE, "",
++         f"Веса: равное среднее 11 state_dict (ep{EPOCHS[0]} … ep{EPOCHS[-1]} + last.pt = эп. {LAST_EPOCH}; сырые веса, быстрые = "
++         "медленным Lookahead, EMA весов в рецепте Sohn нет). MaskedBN — пересчёт своим кодом: (i) сброс, (ii) равное среднее по всем "
++         "частям прохода, (iii) смещённая дисперсия по шагам маски внутри части. Проход: обучение прогона отбора (без V_k), "
++         f"генераторы обучения (порядок — основа m13_train.Stream, аугментация — AugSet), части по {prm['part']}, "
++         f"{'аугментация обучения' if prm['aug'] else 'без аугментации'}, затравка {prm['seed']}, 1 проход; dropout — режим "
++         "обучения; ЦП, float32. Счёт — top-1 на V_k, macro по V_k (как uzsohn_sel.py); без ДИ и без «установлено».", "",
++         "| плечо (вход) | V_k | last.pt ГП (отбор) | last.pt ЦП | last.pt + BN | SWA + BN | SWA − last.pt | SWA − (last.pt + BN) | лучше (SWA − last.pt) |",
++         "|---|---|---|---|---|---|---|---|---|"]
++    for tag, a in arms.items():
++        L.append(f"| {tag} ({'+'.join(a['input']) or 'Sohn'}) | {a['n']}/10 | {a['macro_last_gpu']} | {a['macro_last']} | "
++                 f"{a['macro_last_bn']} | {a['macro_swa']} | {a['diff_swa_last']:+.2f} | {a['diff_swa_last_bn']:+.2f} | {a['better']} |")
++    L.append("")
++    for tag, a in arms.items():
++        L.append(f"{tag}: Δ_k (SWA − last.pt ЦП), п. п.: " + ", ".join(f"{k} {v:+.2f}" for k, v in sorted(a["per_vk_swa_minus_last"].items())))
++    agree = [r["agree_last_cpu_gpu"] for r in runs]
++    rb = [r["stem_bn_var_over_last_p50"] for r in runs]
++    L += ["", f"Справочно: совпадение top-1 last.pt ЦП (float32) и ГП (bf16) — от {100 * min(agree):.1f} до {100 * max(agree):.1f} %; "
++          "пересчитанная дисперсия stem-BN / бегущая last.pt (медиана каналов, медиана по прогонам): last.pt + BN "
++          f"{np.median([x['last_bn'] for x in rb]):.3f}, SWA + BN {np.median([x['swa'] for x in rb]):.3f}; прогонов {len(runs)}, "
++          f"ЦП {sec / 60:.1f} мин (по прогонам, посчитанным в этом выходе); код прогонов: "
++          + ", ".join(f"{c} × {n}" for c, n in sorted(cm.items())) + ("" if len(cm) == 1 else " — **РАЗНЫЙ**") + "."]
++    for p in (md, js):
++        p.parent.mkdir(parents=True, exist_ok=True)
++        if p.is_file():   # копии вместо перезаписи (правило автора)
++            p.rename(p.with_name(f"{p.stem}_{time.strftime('%Y%m%dT%H%M%S')}{p.suffix}"))
++    md.write_text("\n".join(L) + "\n", encoding="utf-8")
++    js.write_text(json.dumps({"prereg": "reports/UZSOHN_prereg.md разд. 6; Поправка 2 разд. 5", "note": NOTE, "params": prm, "code": code,
++                              "arms": arms, "runs": runs}, ensure_ascii=False, indent=1))
++    print("\n".join(L))
++
++
++def main(argv: list[str] | None = None) -> None:
++    ap = argparse.ArgumentParser(description="U30: SWA прогонов отбора этапа 1 UzSohn (ЦП, справочно)")
++    ap.add_argument("--tags", default="", help="плечи через запятую (по умолчанию — теги итога этапа 1, runs/UZSOHN/stage1.json)")
++    ap.add_argument("--folds", default="", help="S-коды фолдов через запятую (по умолчанию — все 10)")
++    ap.add_argument("--out", default=None, help="каталог выхода (по умолчанию reports/UZSOHN_u30.md, runs/UZSOHN/u30.json и u30/)")
++    ap.add_argument("--seed", type=int, default=SEED, help="затравка порядка, аугментации и dropout прохода BN")
++    ap.add_argument("--part", type=int, default=64, help="записей в части (как при обучении)")
++    ap.add_argument("--no-aug", action="store_true", help="проход BN без аугментации (предрег. разд. 6 — с ней)")
++    ap.add_argument("--threads", type=int, default=4)
++    a = ap.parse_args(argv)
++    torch.set_num_threads(a.threads)
++    codes = json.loads(M.CODES.read_text())["signers"]
++    tags = a.tags.split(",") if a.tags else [r["tag"] for r in json.loads((M.ROOT / "runs/UZSOHN/stage1.json").read_text())]
++    folds = sorted(f for f in json.loads(M.SPLIT["alluz"].read_text())["folds"] if f != "all")
++    assert len(folds) == 10, len(folds)
++    if a.folds:
++        folds = [f for f in folds if codes[f] in a.folds.split(",")]
++        assert sorted(codes[f] for f in folds) == sorted(a.folds.split(",")), a.folds
++    prm = {"seed": a.seed, "part": a.part, "aug": not a.no_aug, "epochs": EPOCHS + [LAST_EPOCH]}
++    out = Path(a.out) if a.out else None
++    rdir = out / "u30" if out else M.ROOT / "runs/UZSOHN/u30"
++    rdir.mkdir(parents=True, exist_ok=True)
++    code = M.git(Path(__file__).resolve().parents[1], ("scripts/uzsohn_u30_swa.py", "scripts/m13_train.py", "src/mpk/sohn.py"))
++    res = {}
++    for tag in tags:
++        for f in folds:
++            p = rdir / f"{tag}__{codes[f]}.json"
++            if p.is_file():   # готовое — пропуск; другие параметры прохода — стоп (не смешивать)
++                r = json.loads(p.read_text())
++                assert r["params"] == prm, f"{p}: параметры прохода {r['params']} ≠ {prm} — другой --out"
++            else:
++                t0 = time.time()
++                r = run_one(tag, f, prm, codes) | {"params": prm, "code": code}
++                r["sec"] = round(time.time() - t0, 1)
++                p.write_text(json.dumps(r, ensure_ascii=False, indent=1))
++            res[tag, codes[f]] = r
++            print(f"{tag} {r['fold']} (V_k {r['vk']}): " + ", ".join(f"{k} {100 * r[f'top1_{k}']:.2f}" for k in COLS)
++                  + f"; {r.get('sec', 0)} с", flush=True)
++    report(res, tags, [codes[f] for f in folds], prm, (out or M.ROOT / "reports") / "UZSOHN_u30.md",
++           (out or M.ROOT / "runs/UZSOHN") / "u30.json", code)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/tests/test_uzsohn_u30.py b/tests/test_uzsohn_u30.py
+new file mode 100644
+index 0000000..8c4c4a3
+--- /dev/null
++++ b/tests/test_uzsohn_u30.py
+@@ -0,0 +1,157 @@
++"""U30 (scripts/uzsohn_u30_swa.py; Поправка 2 разд. 5) — без ГП и без данных: пересчёт MaskedBN — (i) сброс, (ii) равное среднее
++по частям прохода, (iii) смещённая дисперсия по шагам маски внутри части; равное среднее весов (11 одинаковых → last); update_bn
++MaskedBN не трогает; генераторы обучения и детерминизм прохода; отчёт — столбцы, дословная строка, файлы.
++CUDA_VISIBLE_DEVICES= PYTHONPATH=src python -m pytest -q tests/test_uzsohn_u30.py"""
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++import torch
++
++from mpk import sohn
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++import uzsohn_u30_swa as U  # noqa: E402
++
++
++def parts_synth(seed=0):
++    """3 части разного размера и длины со своим сдвигом среднего; у части записей половина шагов вне маски (там — мусор)."""
++    g = torch.Generator().manual_seed(seed)
++    out = []
++    for b, t, shift in ((4, 12, 0.0), (2, 3, 3.0), (6, 20, -2.0)):
++        x = torch.randn(b, t, sohn.CHANNELS, generator=g) + shift
++        m = torch.ones(b, t, dtype=torch.bool)
++        m[1:, t // 2:] = False
++        x[~m] = 1e3
++        out.append((x, m))
++    return out
++
++
++def stem_h(model, parts):
++    """Вход stem-BN по шагам маски каждой части — своей формулой (Masking + stem), не через MaskedBN."""
++    with torch.no_grad():
++        return [model.stem(x * m[..., None])[m] for x, m in parts]
++
++
++def test_recompute_bn_reset_equal_parts_biased_masked():
++    torch.manual_seed(0)
++    model = sohn.SohnNet(5)
++    parts = parts_synth()
++    for b in model.bns():
++        b.running_mean.fill_(5.0)
++        b.running_var.fill_(7.0)
++    assert U.recompute_bn(model, parts, seed=1) == 3
++    hs = stem_h(model, parts)
++    bn = model.stem_bn
++    assert torch.allclose(bn.running_mean, torch.stack([h.mean(0) for h in hs]).mean(0), atol=1e-5)
++    assert torch.allclose(bn.running_var, torch.stack([h.var(0, unbiased=False) for h in hs]).mean(0), rtol=1e-5, atol=1e-6)
++    pooled = torch.cat(hs)                                     # (ii): не по шагам маски; (iii): не общая и не несмещённая
++    assert not torch.allclose(bn.running_mean, pooled.mean(0), atol=1e-2)
++    assert not torch.allclose(bn.running_var, pooled.var(0, unbiased=False), rtol=1e-2)
++    assert not torch.allclose(bn.running_var, torch.stack([h.var(0, unbiased=True) for h in hs]).mean(0), rtol=1e-3)
++    assert not model.training and all(b.acc == {} for b in model.bns())
++    ref = {k: v.clone() for k, v in model.state_dict().items()}
++    for b in model.bns():                                      # (i): итог не зависит от прежних бегущих средних
++        b.running_mean.fill_(-3.0)
++        b.running_var.fill_(0.1)
++    U.recompute_bn(model, parts, seed=1)
++    assert all(torch.equal(ref[k], v) for k, v in model.state_dict().items())
++
++
++def test_recompute_bn_deterministic_dropout_as_training():
++    parts = parts_synth()
++
++    def run(seed):
++        torch.manual_seed(0)
++        model = sohn.SohnNet(5)
++        U.recompute_bn(model, parts, seed)
++        return {k: v for k, v in model.state_dict().items() if k.endswith(U.RUNNING)}
++
++    a, b, c = run(1), run(1), run(2)
++    assert all(torch.equal(a[k], b[k]) for k in a)
++    assert torch.equal(a["stem_bn.running_var"], c["stem_bn.running_var"])   # до первого dropout затравка не влияет
++    assert not all(torch.equal(a[k], c[k]) for k in a)                       # dropout в режиме обучения
++
++
++def test_swa_average_equal_mean_buffers_not_averaged():
++    sds = []
++    for s in range(3):
++        torch.manual_seed(s)
++        m = sohn.SohnNet(5)
++        for b in m.bns():
++            b.running_mean.fill_(s)
++            b.running_var.fill_(s + 1.0)
++        sds.append(m.state_dict())
++    avg = U.swa_average(sds)
++    assert list(avg) == list(sds[0])
++    for k, v in avg.items():
++        if k.endswith(U.RUNNING):
++            assert torch.equal(v, sds[-1][k])
++        else:
++            assert v.dtype == torch.float32 and torch.allclose(v, (sds[0][k] + sds[1][k] + sds[2][k]) / 3, atol=1e-7)
++    sohn.SohnNet(5).load_state_dict(avg)
++
++
++def test_pass_order_parts_and_determinism():
++    """Порядок — основа порядка m13_train.Stream (default_rng([затравка, 7]).permutation), части по 64, неполная — нет."""
++    train = list(range(10, 160))
++    o1 = U.pass_order(train, 48, 64)
++    assert o1 == U.pass_order(train, 48, 64) and [len(p) for p in o1] == [64, 64]       # неполная часть (22) — нет
++    flat = sum(o1, [])
++    assert len(set(flat)) == 128 and set(flat) <= set(train) and U.pass_order(train, 7, 64) != o1
++    assert flat == np.random.default_rng([48, 7]).permutation(train)[:128].tolist()
++
++
++def test_bn_parts_aug_deterministic():
++    rng = np.random.default_rng(0)
++    recs = [(rng.uniform(0.2, 0.8, (T, sohn.NUM_NODES, 2)).astype(np.float32), np.zeros((T, 4), bool)) for T in range(20, 60)]
++    order = U.pass_order(list(range(len(recs))), 48, 16)
++    a, b = list(U.bn_parts(recs, order, 48, True)), list(U.bn_parts(recs, order, 48, True))
++    c = list(U.bn_parts(recs, order, 48, False))
++    assert len(a) == len(order) == 2 and all(x.shape[0] == 16 for x, _ in a)
++    assert all(torch.equal(x1, x2) and torch.equal(m1, m2) for (x1, m1), (x2, m2) in zip(a, b))
++    assert not any(torch.equal(x1, x3) for (x1, _), (x3, _) in zip(a, c))
++    assert torch.equal(c[0][0][0, :len(recs[order[0][0]][0])], torch.from_numpy(sohn.preprocess(recs[order[0][0]][0])))
++
++
++def test_swa_eleven_identical_is_last():
++    torch.manual_seed(0)
++    sd = sohn.SohnNet(5).state_dict()
++    avg = U.swa_average([{k: v.clone() for k, v in sd.items()} for _ in range(11)])
++    assert all(torch.equal(avg[k], sd[k]) for k in sd)
++
++
++def test_update_bn_skips_maskedbn():
++    """Посылка своего пересчёта (к3 0039 разд. 6): в SohnNet нет _BatchNorm, и torch.optim.swa_utils.update_bn буферы MaskedBN не
++    трогает (выходит до прохода по данным)."""
++    torch.manual_seed(0)
++    model = sohn.SohnNet(5)
++    for b in model.bns():
++        b.running_mean.fill_(5.0)
++        b.running_var.fill_(7.0)
++    ref = {k: v.clone() for k, v in model.state_dict().items()}
++    torch.optim.swa_utils.update_bn([(x, m) for x, m in parts_synth()], model)
++    assert not any(isinstance(m, torch.nn.modules.batchnorm._BatchNorm) for m in model.modules()) and len(model.bns()) == 11
++    assert all(torch.equal(ref[k], v) for k, v in model.state_dict().items())
++
++
++def test_report_columns_note_files(tmp_path):
++    """Отчёт: столбцы Поправки 2, 5.4 (в т. ч. SWA − (last.pt + BN)), дословная строка, reports/UZSOHN_u30.md и runs/UZSOHN/u30.json,
++    прежние — в копию; коммиты всех прогонов в печати; только S-коды."""
++    res = {}
++    for tag, inp in (("ctrl", []), ("arm", ["u04"])):
++        for k, (vk, last, bn, swa) in enumerate((("S02", 0.20, 0.21, 0.23), ("S03", 0.30, 0.30, 0.29))):
++            res[tag, f"S{k + 1:02d}"] = {"vk": vk, "input": inp, "top1_last_gpu": last, "top1_last": last, "top1_last_bn": bn,
++                                         "top1_swa": swa, "agree_last_cpu_gpu": 0.99, "stem_bn_var_over_last_p50": {"last_bn": 1.0, "swa": 0.9},
++                                         "code": {"commit": "a" * 40 if tag == "ctrl" else "b" * 40, "dirty": False}}
++    md, js = tmp_path / "reports/UZSOHN_u30.md", tmp_path / "runs/UZSOHN/u30.json"
++    md.parent.mkdir(parents=True)
++    md.write_text("старый")
++    U.report(res, ["ctrl", "arm"], ["S01", "S02"], {"seed": 48, "part": 64, "aug": True}, md, js, {"commit": "c" * 40, "dirty": False})
++    t = md.read_text()
++    assert U.NOTE in t and U.NOTE == "U30 — справочно: ни одно решение UzSohn и турнира от этих чисел не зависит (Поправка 2, разд. 5)"
++    assert "| SWA + BN | SWA − last.pt | SWA − (last.pt + BN) | лучше (SWA − last.pt) |" in t
++    assert "| ctrl (Sohn) | 2/10 | 25.0 | 25.0 | 25.5 | 26.0 | +1.00 | +0.50 | 1/2 |" in t and "S02 +3.00, S03 -1.00" in t
++    assert "aaaaaaa × 2, bbbbbbb × 2 — **РАЗНЫЙ**" in t and len(list(md.parent.glob("UZSOHN_u30_*.md"))) == 1
++    assert json.loads(js.read_text())["arms"]["arm"]["diff_swa_last_bn"] == 0.5

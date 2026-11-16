@@ -1,0 +1,572 @@
+diff --git a/scripts/uzsohn_code.txt b/scripts/uzsohn_code.txt
+index 2cd31b8..889f69e 100644
+--- a/scripts/uzsohn_code.txt
++++ b/scripts/uzsohn_code.txt
+@@ -10,6 +10,7 @@ scripts/m13_train.py
+ scripts/m13_build.py
+ scripts/weekend_gate.sh
+ scripts/uzsohn_chain.sh
++scripts/uzsohn_stage2_chain.sh   # этап 2 (U01b, UZSOHN_prereg_popravka2.md)
+ scripts/uzsohn_code.txt
+ scripts/uzsohn_sel.py
+ scripts/uzsohn_gates.py
+diff --git a/scripts/uzsohn_sel.py b/scripts/uzsohn_sel.py
+index 28c0153..57f8b39 100644
+--- a/scripts/uzsohn_sel.py
++++ b/scripts/uzsohn_sel.py
+@@ -9,6 +9,7 @@ cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src python
+   report TAG…          таблица этапа 1 → reports/UZSOHN_stage1.md (параметры, из них stem, мс/запись ЦП, часы ГП, примеры; решения
+                        шагов и ворот U04 без V_j = S_k (ворота U01a — только печать, q без V_j = S_k — справка), условие U01b,
+                        Δ_k S11/S12 у U01a, статистики U02 и доля ветки Sohn опоры U02, код прогонов, оценка ложного принятия)
++  report2 CUR CAND     этап 2 (U01b, UZSOHN_prereg_popravka2.md): CAND против контроля этапа 1 CUR → reports/UZSOHN_stage2.md
+ Счёт — только metrics.json прогонов runs/UzSohn/<тег>/<фолд>/seed48 (top1 на V_k); тест S_k не читается.
+ """
+ import json
+@@ -148,6 +149,26 @@ FALSE_ACCEPT = ("Ошибка жадного отбора (оценка по м
+                 "потоки случайных чисел затравки 48 — при положительной связи шума оценки скорее верхние (угроза 1).")
+ 
+ 
++RISK2 = ("Риск отбора (модель шума затравок базы; угроза 1 предрегистрации, Поправка 2 разд. 3.5): одного шага — при нулевом эффекте "
++         "шаг принимается с вероятностью ≈ 0,05–0,11; накопленный по серии — хотя бы один ложный шаг из 5 плеч этапов 1–2 (все против "
++         "одного контроля) — ≈ 0,19–0,32. Модель считает шум плеч и контроля независимым; у них общие потоки случайных чисел затравки "
++         "48 — при положительной связи оценки скорее верхние (угроза 1).")   # этап 2: дословно Поправка 2, 3.5
++
++
++def code_vs(ctrl: list[dict], cand: list[dict]) -> str:
++    """Этап 2 (Поправка 2, 3.4): код этапа прогонов U01b против кода прогонов контроля — одной строкой (code_note сверяет код
++    только внутри одного плеча)."""
++    import m13_train
++    om = m13_train.uzsohn_code()[0]
++    cm = lambda ms: sorted({(m.get("git_osnovnaya_model") or {}).get("commit") or "?" for m in ms})
++    a, b = cm(ctrl), cm(cand)
++    same = "?" not in a + b and all(subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", x, y, "--", *om]).returncode == 0
++                                    for x in a for y in b)
++    return (f"Код этапа (scripts/uzsohn_code.txt) U01b ({', '.join(c[:7] for c in b)}) против контроля ({', '.join(c[:7] for c in a)}): "
++            f"{'одинаков' if same else 'РАЗЛИЧАЕТСЯ или неизвестен'} — ожидаемо «РАЗЛИЧАЕТСЯ»: U01b добавлена в код этапа только "
++            "добавлением; путь Sohn — бит в бит с базой (тест), сравнение с готовым контролем — Поправка 2, 3.4 пп. 1–3")
++
++
+ def selftest() -> None:
+     a = {str(i): 30.0 for i in range(10)}
+     assert not judge(a, {k: v + 1.0 for k, v in a.items()})[3]                 # +1,00 < δ = 1,008
+@@ -414,6 +435,69 @@ def report(tags: list[str]) -> None:
+     print("\n".join(L))
+ 
+ 
++def report2(cur: str, cand: str) -> None:
++    """Этап 2 (UZSOHN_prereg_popravka2.md): U01b поверх Sohn против контроля этапа 1 → reports/UZSOHN_stage2.md и
++    runs/UZSOHN/stage2.json (прежние — в копию с датой). Решение — decide_<cand>.json (правило этапа 1); числа — только V_k."""
++    import m13_build
++    T = int(min(np.median(np.diff(m13_build.load("alluz")["offsets"])), 384))
++    codes = json.loads(CODES.read_text())["signers"]
++    d = json.loads((OUT / f"decide_{cand}.json").read_text())
++    assert (d["current"], d["candidate"]) == (cur, cand), d
++    rows, ms_of, sc = [], {}, {}
++    for tag in (cur, cand):
++        ms = [json.loads((RUNS / tag / f / f"seed{SEED}/metrics.json").read_text()) for f in FOLDS]
++        sc[tag] = scores(tag)
++        pre = RUNS / ms[0]["init"]["init_from"].split("runs/UzSohn/", 1)[1]
++        pm = json.loads((pre.parent / "metrics.json").read_text())
++        assert pm.get("seed") == SEED and full_budget(pm) and pm.get("steps") == PRE_STEPS, (pre, "предобучение не то")
++        ms_of[tag] = ms + [pm]
++        tok = tuple(ms[0].get("input") or ())
++        rows.append({"tag": tag, "variant": list(tok) or ["Sohn"], "macro_vk": round(float(np.mean(list(sc[tag].values()))), 2),
++                     "params": ms[0]["params_keras_count"]["total"], "params_stem": ms[0].get("channels", 708) * ms[0]["cfg"]["dim"],
++                     "ms_cpu": ms_per_record({}, ms[0]["n_classes"], T, tokens=tok), "gpu_h": round(sum(m["train_sec"] for m in ms) / 3600, 2),
++                     "pre_gpu_h": round(pm["train_sec"] / 3600, 2), "examples_M": round(sum(m["steps"] for m in ms) * 512 / 1e6, 2),
++                     "gpu_mem_gb": max(m.get("gpu_max_mem_gb") or 0 for m in ms)})
++    vk_of = {f: m["inner_val"] for f, m in zip(FOLDS, ms_of[cand])}
++    assert vk_of == {f: m["inner_val"] for f, m in zip(FOLDS, ms_of[cur])}, "V_k плеча ≠ V_k контроля"
++    per = {f: sc[cand][f] - sc[cur][f] for f in FOLDS}
++    ok = d["accepted"]
++    L = ["# UzSohn, этап 2 — U01b на внутренних V_k (короткий итог автору)", "",
++         "U01b: вход Sohn (118 точек, бит в бит) + 84 столбца в конце того же stem, сырыми: на кисть 21 точка (x, y · H/W), (точка − "
++         "запястье) / ладонь, ладонь — медиана |9 − 0| по кадрам входа с точками 0 и 9 (после аугментации и масок, первые 384 кадра); "
++         "без поворота и скоростей; NaN → 0, обрезка [−10; 10]; кисть без таких кадров — её 42 столбца 0; 4 столбца «запястье − "
++         "запястье» тождественно 0 (оставлены). Определение — 0153, к1 0136 п. 5, к3 0039 разд. 5; ворот ЦП нет.", "",
++         f"Правило этапа 1 (разд. 3): Δ macro ≥ {THR:.3f} п. п. и лучше у ≥ {MIN_BETTER}/10 V_k против контроля этапа 1 ({cur}; путь "
++         "Sohn — бит в бит с базой, тест test_stage1_default_path_bit_exact_vs_base). Затравка 48, 1 прогон на фолд; **это отбор, не "
++         "вывод**.", "", RISK2, "",
++         f"| вариант (вход) | macro V_k | Δ к контролю | лучше | принята | параметры | из них stem | мс/запись ЦП (T = {T}) | ч ГП* отбор | ч ГП* предобуч. S+B | примеры, млн | ГП, ГБ |",
++         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
++    for r, dd in zip(rows, (None, d)):
++        L.append(f"| {r['tag']} ({'+'.join(r['variant'])}) | {r['macro_vk']} | {'' if not dd else format(dd['diff'], '+.3f')} | "
++                 f"{'' if not dd else dd['better']} | {'контроль' if not dd else ('да' if ok else 'нет')} | {r['params']} | "
++                 f"{r['params_stem']} | {r['ms_cpu']} | {r['gpu_h']} | {r['pre_gpu_h']} | {r['examples_M']} | {r['gpu_mem_gb']} |")
++    kk = {codes.get(vk_of[f], "?"): per[f] for f in FOLDS}
++    rest = [v for s, v in kk.items() if s not in ("S11", "S12")]
++    L += ["", "Δ_k по V_k, п. п.: " + ", ".join(f"{s} {v:+.2f}" for s, v in sorted(kk.items())),
++          f"U01b: Δ_k на V_k = S11 {kk.get('S11', float('nan')):+.2f}, S12 {kk.get('S12', float('nan')):+.2f} п. п., среднее по "
++          f"остальным {len(rest)} V_k {float(np.mean(rest)):+.2f} — признаки формы кисти, а записи harf:* на V_k в основном у S11, S12 "
++          "(как у U04, разд. 4.3)",
++          nested_line(cand, ok, per, vk_of, ok_delta, codes, lambda s: float(np.mean(list(s.values()))), "Δ macro"), "",
++          ("**U01b ПРИНЯТА** (серия UzSohn на ALL-UZ: UzSohn = Sohn + U01b); подтверждение (3 затравки на S_k, ≈ 23–25 ч ГП) — только "
++           "по решению автора." if ok else "**U01b не принята** → UzSohn = Sohn (этапы 1–2 не приняли ничего)."),
++          "Турнир (толкование к2 решения автора 16.11, вариант (а′)): U01b — в списке кандидатов Э2 при любом итоге здесь; отбор — только "
++          "на валидации Slovo + Bukva (П5), корпус — только тест.", "",
++          "Код U01b: " + code_note(ms_of[cand]), "Код контроля (этап 1): " + code_note(ms_of[cur]), code_vs(ms_of[cur], ms_of[cand]), "",
++          "* часы ГП — по часам (train_sec); отбор U01b — по 2 прогона на ГП, контроль — по 3 (этап 1), поэтому часы между строками не "
++          "сравнимы; мера без искажения — примеры (шаги × 512)."]
++    for p in (ROOT / "reports/UZSOHN_stage2.md", OUT / "stage2.json"):
++        if p.is_file():   # копии вместо перезаписи (правило автора)
++            p.rename(p.with_name(f"{p.stem}_{time.strftime('%Y%m%dT%H%M%S')}{p.suffix}"))
++    (ROOT / "reports/UZSOHN_stage2.md").write_text("\n".join(L) + "\n", encoding="utf-8")
++    dj = {**d, "per_vk": {codes.get(vk_of[f], "?"): v for f, v in d["per_vk"].items()}}   # S-коды V_k (decide_*.json — названия, только ПК)
++    (OUT / "stage2.json").write_text(json.dumps({"rows": rows, "decision": dj}, ensure_ascii=False, indent=1))
++    print("\n".join(L))
++
++
+ if __name__ == "__main__":
+     c = sys.argv[1]
+     if c == "base":
+@@ -426,5 +510,7 @@ if __name__ == "__main__":
+         selftest()
+     elif c == "report":
+         report(sys.argv[2:])
++    elif c == "report2":
++        report2(*sys.argv[2:4])
+     else:
+         sys.exit(f"неизвестная команда {c}")
+diff --git a/scripts/uzsohn_stage2_chain.sh b/scripts/uzsohn_stage2_chain.sh
+new file mode 100644
+index 0000000..5464c10
+--- /dev/null
++++ b/scripts/uzsohn_stage2_chain.sh
+@@ -0,0 +1,132 @@
++#!/usr/bin/env bash
++# UzSohn, этап 2 — U01b (reports/UZSOHN_prereg_popravka2.md; определение — 0153 + к1 0136 п. 5, к3 0039 разд. 5). Решение автора
++# 16.11 «давай всё попробуем», толкование к2: окно (а) — после группы 1 турнира, до M13 (M13 и группа 2 сдвигаются ≈ 7 ч).
++# До ожидания: интерпретатор, runs/UZSOHN_stage2.done (есть — выход). Ждёт runs/TURNIR_E1_g1.done и 3 мин подряд без python на ГП
++# (как m13_chain_v4.sh, урок 27); M13 в ожидании не проверяется — к2 останавливает её после старта этого юнита (строка «жду» её
++# показывает). Окно (а) решается после ожидания (Поправка 2, 4.2 п. 4): нет runs/UZSOHN_STAGE2_OK (1-я строка — полный хеш
++# сверенного коммита), m13-sohn-2 активен или M13 уже завершена (runs/UzSohn_M13.done) — выход без U01b. Иначе: код этапа
++# (scripts/uzsohn_code.txt) и предрег. с поправками 1–2 закоммичены и = хешу маркера, текст цепочки = HEAD → нет CUDA — стоп →
++# селфтест (ЦП) → этап 1 завершён и ничего не принял (U01b — поверх Sohn) → своё предобучение S+B sb_in_u01b (затравка 48, одна
++# повторная попытка) → отбор U01b на 10 V_k ALL-UZ (затравка 48, по 2 прогона) → uzsohn_sel.py decide против контроля этапа 1
++# uzsohn_sel_alluz_v0 (Δ macro ≥ 1,008 п. п. и лучше у ≥ 6/10 V_k) → report2 → reports/UZSOHN_stage2.md → runs/UZSOHN_stage2.done
++# → СТОП. Подтверждение (3 затравки на S_k) сюда не входит — только по решению автора. При любом выходе — успех, пропуск окна,
++# ошибка, остановка юнита (trap EXIT) — запускает юнит m13-sohn-2 (m13_chain_v4.sh), если он не активен и нет runs/UzSohn_M13.done
++# (SIGKILL — без trap: тогда M13 — вручную, шапка m13_chain_v4.sh). Готовое пропускается. Ошибки — строки «!!!». Интерпретатор —
++# каталог mise 3.14.7 (урок 30; UZSOHN_PY — замена). Править этот файл — только при остановленном юните: тело — функция main,
++# после ожидания текст сверяется с HEAD. Запуск — до TURNIR_E1_g1.done: (1) юнит этапа 2 (он ждёт); (2) затем M13 — стоп, только
++# пока юнит этапа 2 идёт, а M13 ждёт (последняя строка runs/m13_chain.log — «… жду ГП …», m13_train.py не идёт):
++#   cd ~/uzsign/osnovnaya_model && systemd-run --user --unit=uzsohn-stage2 --collect -p WorkingDirectory=$PWD -p MemoryMax=40G \
++#     -p MemorySwapMax=0 -E PATH="$PATH" -E HOME="$HOME" bash -c "bash scripts/uzsohn_stage2_chain.sh >> runs/uzsohn_stage2_chain.log 2>&1"
++#   cd ~/uzsign/osnovnaya_model && systemctl --user is-active --quiet uzsohn-stage2 && tail -1 runs/m13_chain.log | grep -q 'жду ГП' \
++#     && ! pgrep -f 'scripts/[m]13_train.py' > /dev/null && systemctl --user stop m13-sohn-2
++main() {   # всё тело — функция: bash разбирает файл целиком до запуска
++set -u
++cd "$(dirname "$0")/.."
++H0=$(git hash-object scripts/uzsohn_stage2_chain.sh)
++UZ2=$PWD/../uzsign_ai_v2
++PY=${UZSOHN_PY:-$HOME/.local/share/mise/installs/python/3.14.7/bin/python}
++export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++export PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src
++say() { echo "[$(date '+%F %T')] $*"; }
++keep() { [ -f "$1" ] && mv "$1" "$1.$(date +%Y%m%dT%H%M%S)"; return 0; }
++gpu_busy() { nvidia-smi --query-compute-apps=process_name --format=csv,noheader 2>/dev/null | grep -q python; }
++busy() { [ -f runs/TURNIR_E1_g1.done ] || return 0; gpu_busy; }   # как m13_chain_v4.sh: до маркера группы 1 — ждать
++m13_on() { systemctl --user is-active --quiet m13-sohn-2 || pgrep -f "bash scripts/m13_chain_v" > /dev/null; }
++m13_stop() { m13_on && { say "!!! юнит m13-sohn-2 активен (или идёт bash scripts/m13_chain_v*) перед ГП этапа 2 — стоп, M13 не трогаю"; exit 1; }; return 0; }
++m13_back() {   # trap EXIT: ГП — M13 (m13_chain_v4.sh сама ждёт TURNIR_E1_g1.done и 3 мин свободной ГП)
++  m13_on && return 0
++  [ -f runs/UzSohn_M13.done ] && return 0
++  systemd-run --user --unit=m13-sohn-2 --collect -p WorkingDirectory="$PWD" -p MemoryMax=40G -p MemorySwapMax=0 -E PATH="$PATH" \
++    -E HOME="$HOME" bash -c "bash scripts/m13_chain_v4.sh >> runs/m13_chain.log 2>&1" \
++    && say "юнит m13-sohn-2 запущен (m13_chain_v4.sh)" || say "!!! юнит m13-sohn-2 не запущен — запустить вручную (шапка m13_chain_v4.sh)"
++}
++trap m13_back EXIT
++trap "exit 143" TERM INT
++J=${UZSOHN_JOBS_U01B:-2}   # как U04 (UZSOHN_prereg разд. 7; у U01b 792 столбца против 1 158 у U04)
++SEED=48                    # отбор целиком на 48 (UZSOHN_prereg разд. 5)
++SET=alluz; TOK=u01b; CTRL=uzsohn_sel_alluz_v0; PRE=sb_in_u01b; TAG=uzsohn_sel_alluz_in_u01b
++P2=reports/UZSOHN_prereg_popravka2.md
++PREREG="reports/UZSOHN_prereg.md reports/UZSOHN_prereg_popravka1.md $P2"
++mkdir -p runs/UzSohn/logs runs/UZSOHN
++say "=== UzSohn этап 2 (U01b): старт, жду TURNIR_E1_g1.done и 3 мин подряд без python на ГП"
++$PY -c "import numpy, torch, pytest" 2> /dev/null || { say "!!! в $PY нет numpy/torch/pytest (UZSOHN_PY) — стоп до ожидания"; exit 1; }
++[ -f runs/UZSOHN_stage2.done ] && { say "этап 2 уже завершён (runs/UZSOHN_stage2.done) — выход до ожидания"; exit 0; }
++n=0
++while true; do   # как m13_chain_v4.sh:44–48
++  while busy; do
++    [ $((n % 60)) -eq 0 ] && say "жду: TURNIR_E1_g1.done=$([ -f runs/TURNIR_E1_g1.done ] && echo да || echo нет), ГП занята (python)=$(gpu_busy && echo да || echo нет); UZSOHN_STAGE2_OK=$([ -f runs/UZSOHN_STAGE2_OK ] && echo да || echo нет), m13-sohn-2 активен=$(m13_on && echo да || echo нет)"
++    n=$((n + 1)); sleep 60
++  done
++  ok=1; for i in 1 2 3; do sleep 60; busy && { ok=0; break; }; done
++  [ $ok = 1 ] && break
++done
++[ -f runs/UZSOHN_stage2.done ] && { say "этап 2 уже завершён — выход"; exit 0; }
++# окно (а) — только сейчас (Поправка 2, 4.2 п. 4); выход — ГП юниту M13 (trap)
++[ -f runs/UZSOHN_STAGE2_OK ] || { say "окно (а) пропущено: нет runs/UZSOHN_STAGE2_OK (сверки нет) — выход, ГП — M13"; exit 0; }
++m13_on && { say "окно (а) пропущено: юнит m13-sohn-2 активен (его не остановили) — M13 первой, выход"; exit 0; }
++[ -f runs/UzSohn_M13.done ] && { say "окно (а) пропущено: M13 уже завершена (runs/UzSohn_M13.done), дальше ГП турнира — выход"; exit 0; }
++# код — только закоммиченный и = хешу сверенного коммита (1-я строка маркера); список — scripts/uzsohn_code.txt (как у этапа 1)
++CODE=$(sed 's/#.*//' scripts/uzsohn_code.txt 2> /dev/null | grep -v '^ *v2:' | xargs)
++V2CODE=$(sed 's/#.*//' scripts/uzsohn_code.txt 2> /dev/null | grep '^ *v2:' | sed 's/^ *v2://' | xargs)
++[ -n "$CODE" ] && [ -n "$V2CODE" ] || { say "!!! нет списка кода этапа (scripts/uzsohn_code.txt) — стоп"; exit 1; }
++for p in $PREREG; do [ -f $p ] || { say "!!! нет $p (предрегистрация и поправки 1–2) — стоп"; exit 1; }; done
++[ -z "$(git status --porcelain -- $CODE $PREREG)" ] || { say "!!! незакоммиченный код или предрегистрация: $(git status --porcelain -- $CODE $PREREG | tr '\n' ' ')— стоп"; exit 1; }
++OKH=$(head -1 runs/UZSOHN_STAGE2_OK | grep -oE '^[0-9a-f]{40}')
++[ -n "$OKH" ] || { say "!!! в 1-й строке runs/UZSOHN_STAGE2_OK нет полного хеша сверенного коммита — стоп"; exit 1; }
++git diff --quiet "$OKH" HEAD -- $CODE $PREREG || { say "!!! код ($CODE) или $PREREG ≠ сверенному хешу $OKH (или хеш неверен) — стоп"; exit 1; }
++[ "$H0" = "$(git rev-parse HEAD:scripts/uzsohn_stage2_chain.sh 2> /dev/null)" ] || { say "!!! scripts/uzsohn_stage2_chain.sh изменена после старта юнита (исполняется копия со старта, $H0) — перезапустить юнит; стоп"; exit 1; }
++[ -z "$(git -C $UZ2 status --porcelain -- $V2CODE)" ] || { say "!!! незакоммиченный код uzsign_ai_v2 ($V2CODE) — стоп"; exit 1; }
++say "код: HEAD $(git rev-parse HEAD) = хеш маркера $OKH по $PREREG и коду этапа; uzsign_ai_v2 HEAD $(git -C $UZ2 rev-parse HEAD)"
++$PY -c "import sys, torch; sys.exit(not torch.cuda.is_available())" || { say "!!! нет CUDA — прогоны молча пошли бы на ЦП; стоп"; exit 1; }
++say "селфтест кода (ЦП)"
++keep runs/UZSOHN/selftest_stage2.log
++{ CUDA_VISIBLE_DEVICES= $PY -m pytest -q -p no:cacheprovider tests/test_sohn.py && $PY scripts/uzsohn_sel.py selftest \
++  && CUDA_VISIBLE_DEVICES= $PY scripts/uzsohn_gates.py selftest; } > runs/UZSOHN/selftest_stage2.log 2>&1 \
++  || { say "!!! ОШИБКА селфтеста (runs/UZSOHN/selftest_stage2.log)"; exit 1; }
++# U01b задана поверх текущей = Sohn: этап 1 завершён и ничего не принял (UZSOHN_stage1.md, 13.11)
++[ -f runs/UZSOHN_stage1.done ] && [ -f runs/UZSOHN/accepted.txt ] || { say "!!! этап 1 не завершён (UZSOHN_stage1.done, UZSOHN/accepted.txt) — стоп"; exit 1; }
++[ -z "$(tr -d '[:space:]' < runs/UZSOHN/accepted.txt)" ] || { say "!!! этап 1 принял [$(cat runs/UZSOHN/accepted.txt)] — U01b задана поверх Sohn; решение автора — стоп"; exit 1; }
++FOLDS=$($PY -c "import json;print(' '.join(sorted(json.load(open('$UZ2/splits/uzsl_allz_loso.json'))['folds'])))")
++m13_stop
++INIT=runs/UzSohn/$PRE/all/seed$SEED
++pretrain() {   # своё предобучение S+B плеча (рецепт и данные базы, вход u01b)
++  local log=runs/UzSohn/logs/${PRE}_seed$SEED.log
++  [ -f $INIT/metrics.json ] && return 0
++  say "предобучение S+B $PRE (вход: $TOK)"
++  keep $log
++  if $PY scripts/m13_train.py --set sb --seed $SEED --tag $PRE --input $TOK > $log 2>&1; then say "$PRE: $(tail -1 $log)"
++  else say "!!! ОШИБКА предобучения $PRE (см. $log)"; fi
++}
++pretrain
++pretrain   # одна повторная попытка (как у непервых плеч этапа 1)
++[ -f $INIT/metrics.json ] || { say "!!! нет $INIT/metrics.json (предобучение не завершено; best.pt без него не годится) — стоп"; exit 1; }
++run() {   # фолд
++  local f=$1 log=runs/UzSohn/logs/${TAG}_${1}_seed$SEED.log
++  [ -f runs/UzSohn/$TAG/$f/seed$SEED/metrics.json ] && return 0
++  keep $log
++  if $PY scripts/m13_train.py --set $SET --fold $f --seed $SEED --tag $TAG --init $INIT/best.pt --input $TOK \
++       --inner-val --save-from-epoch 200 > $log 2>&1; then say "$TAG $f: $(tail -1 $log)"
++  else say "!!! ОШИБКА $TAG $f (см. $log)"; fi
++}
++say "--- $TAG (вход: $TOK; веса: $INIT/best.pt; параллельно $J)"
++for f in $FOLDS; do   # разнесённый старт; не прошедшие — ещё раз по одному
++  [ -f runs/UzSohn/$TAG/$f/seed$SEED/metrics.json ] && continue
++  while [ "$(jobs -rp | wc -l)" -ge "$J" ]; do wait -n; done
++  run $f &
++  sleep 180
++done
++wait
++for f in $FOLDS; do run $f; done
++k=$(ls runs/UzSohn/$TAG/*/seed$SEED/metrics.json 2> /dev/null | wc -l)
++[ "$k" -eq 10 ] || { say "!!! $TAG: готово $k из 10 — стоп (перезапуск юнита продолжит)"; exit 1; }
++R=$($PY scripts/uzsohn_sel.py decide $CTRL $TAG U01b); rc=$?
++say "U01b [$TOK] поверх [Sohn], против контроля этапа 1 $CTRL: $R"
++if [ $rc -eq 0 ]; then say "U01b ПРИНЯТА; подтверждение (3 затравки на S_k) — по решению автора"
++elif [ $rc -eq 10 ]; then say "U01b не принята → UzSohn = Sohn"
++else say "!!! ОШИБКА отбора U01b"; exit 1; fi
++keep runs/UZSOHN/report_stage2.out
++$PY scripts/uzsohn_sel.py report2 $CTRL $TAG > runs/UZSOHN/report_stage2.out 2>&1 || { say "!!! ОШИБКА отчёта (runs/UZSOHN/report_stage2.out)"; exit 1; }
++touch runs/UZSOHN_stage2.done
++say "=== UzSohn этап 2 завершён → reports/UZSOHN_stage2.md; дальше — M13 (юнит m13-sohn-2), решение автора"
++}
++main "$@"; exit
+diff --git a/src/mpk/sohn.py b/src/mpk/sohn.py
+index 26f9f2b..cd8a454 100644
+--- a/src/mpk/sohn.py
++++ b/src/mpk/sohn.py
+@@ -245,14 +245,17 @@ def preprocess_pose(x: np.ndarray, max_len: int = MAX_LEN) -> np.ndarray:
+ # Sohn (x, y, dx, dx2: 732 столбца), отражение 11↔12, 13↔14; u04 — на кисть 210 попарных расстояний / медиана ладони |9 − 0|
+ # по кадрам + 15 значений 1 + cos углов суставов (без dx), +450 столбцов.
+ # Запись x [T, 122, 2] = 118 точек Sohn + поза 11–14 (поза нужна и без u01a — для u02*). filter_nans — по 118 (как у Sohn).
+-INPUT_TOKENS = ("u02s", "u02c", "u01a", "u04")
++# Этап 2 (UZSOHN_prereg_popravka2.md): u01b — на кисть 21 точка (x, y · H/W) в своей системе, +84 столбца в конце (hand_local).
++INPUT_TOKENS = ("u02s", "u02c", "u01a", "u04", "u01b")
+ FINGERS = [[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [0, 9, 10, 11, 12], [0, 13, 14, 15, 16], [0, 17, 18, 19, 20]]
+ PAIRS = np.array([(i, j) for i in range(21) for j in range(i + 1, 21)])   # 210
+ HAND_FEATS = 2 * (len(PAIRS) + 15)                                        # 450
++HAND_LOCAL = 2 * 21 * 2                                                   # 84: кисти Л, П × 21 точка × (x, y)
+ 
+ 
+ def input_channels(tokens) -> int:
+-    return 6 * (NUM_NODES_POSE if "u01a" in tokens else NUM_NODES) + (HAND_FEATS if "u04" in tokens else 0)
++    return (6 * (NUM_NODES_POSE if "u01a" in tokens else NUM_NODES) + (HAND_FEATS if "u04" in tokens else 0)
++            + (HAND_LOCAL if "u01b" in tokens else 0))
+ 
+ 
+ def hand_feats(xp: np.ndarray) -> np.ndarray:
+@@ -280,6 +283,23 @@ def hand_feats(xp: np.ndarray) -> np.ndarray:
+     return np.clip(np.nan_to_num(f, nan=0.0, posinf=0.0, neginf=0.0), -EXTRA_CLIP, EXTRA_CLIP).astype(np.float32)
+ 
+ 
++def hand_local(xp: np.ndarray) -> np.ndarray:
++    """U01b (этап 2; 0153 + к1 0136 п. 5, к3 0039 разд. 5): xp [T, 118, 2] в изотропных координатах (x, y · H/W) → [T, 84]: на
++    кисть Л, П — 21 точка (x, y) в своей системе: (точка − запястье 0 этого кадра) / ладонь; ладонь — медиана |9 − 0| по кадрам
++    xp, где есть точки 0 и 9 этой кисти (как у hand_feats U04: по кадрам входа, при обучении — после масок); таких кадров нет —
++    42 столбца кисти 0. Без поворота и скоростей; NaN → 0; обрезка [−10; 10]. Столбцы «запястье − запястье» (0, 1, 42, 43)
++    тождественно 0 — оставлены (к1 0136 п. 5)."""
++    out = []
++    with np.errstate(invalid="ignore", divide="ignore"):
++        for H in (LH_LOC, RH_LOC):
++            q = xp[:, H]
++            palm = np.linalg.norm(q[:, 9] - q[:, 0], axis=-1)
++            med = np.nanmedian(palm) if np.isfinite(palm).any() else np.nan   # nanmedian пустого — предупреждение
++            out.append(((q - q[:, :1]) / med).reshape(len(q), -1))
++    f = np.concatenate(out, 1)
++    return np.clip(np.nan_to_num(f, nan=0.0, posinf=0.0, neginf=0.0), -EXTRA_CLIP, EXTRA_CLIP).astype(np.float32)
++
++
+ def center_scale_u(x: np.ndarray, aspect: float, tokens, stat: str = "median") -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+     """→ (k, mean, std): z = (x · k − mean) / std. По умолчанию (нет u02*) — center_scale Sohn по 118 точкам, k = (1, 1).
+     u02s (U02-1): k = (1, H/W), std = медиана по кадрам ширины плеч на обе оси; центр — u02c: медиана середины плеч, иначе
+@@ -323,6 +343,8 @@ def preprocess_u(x: np.ndarray, aspect: float, tokens, max_len: int = MAX_LEN) -
+     out = [np.nan_to_num(np.concatenate([z.reshape(T, -1), dx.reshape(T, -1), dx2.reshape(T, -1)], 1), nan=0.0)]
+     if "u04" in tokens:
+         out.append(hand_feats(x[:max_len, :NUM_NODES] * np.array([1.0, aspect], np.float32)))
++    if "u01b" in tokens:   # этап 2: +84 столбца в конце, сырыми (как U04); x — после аугментации (отражение меняет кисти местами)
++        out.append(hand_local(x[:max_len, :NUM_NODES] * np.array([1.0, aspect], np.float32)))
+     return np.concatenate(out, 1).astype(np.float32)
+ 
+ 
+diff --git a/tests/test_sohn.py b/tests/test_sohn.py
+index 7d4aaf3..62b117f 100644
+--- a/tests/test_sohn.py
++++ b/tests/test_sohn.py
+@@ -616,3 +616,243 @@ def test_stage1_code_list():
+     root = Path(__file__).resolve().parents[1]
+     assert {"src/mpk/sohn.py", "scripts/m13_train.py", "scripts/uzsohn_code.txt", "tests/test_sohn.py"} <= set(om)
+     assert all((root / p).is_file() for p in om) and v2 and all((root.parent / "uzsign_ai_v2" / p).is_file() for p in v2)
++
++
++# ---------------------------------------------------------------- UzSohn этап 2: U01b (UZSOHN_prereg_popravka2.md; 0153, к1 0136 п. 5, к3 0039 разд. 5)
++def test_stage2_u01b_width_and_sohn_path():
++    """u01b — только +84 столбца в конце (после u04); первые 708 = Sohn бит в бит; сеть — +84 × 192 параметров stem."""
++    x, asp = _rec122(T=37), 0.5625
++    u = sohn.preprocess_u(x, asp, ("u01b",))
++    assert sohn.HAND_LOCAL == 84 and sohn.input_channels(("u01b",)) == 708 + 84 == u.shape[1]
++    assert np.array_equal(u[:, :708], sohn.preprocess(x[:, :118]))
++    assert np.array_equal(u[:, 708:], sohn.hand_local(x[:, :118] * np.array([1, asp], np.float32)))
++    assert sohn.input_channels(("u01a", "u01b")) == 732 + 84 and sohn.input_channels(sohn.INPUT_TOKENS) == 732 + 450 + 84
++    w = sohn.preprocess_u(x, asp, ("u04", "u01b"))
++    assert np.array_equal(w[:, :1158], sohn.preprocess_u(x, asp, ("u04",))) and np.array_equal(w[:, 1158:], u[:, 708:])
++    torch.manual_seed(0)
++    m = sohn.SohnNet(250, channels=sohn.input_channels(("u01b",))).eval()
++    assert sohn.keras_param_count(m)["total"] == 1_836_569 + 84 * 192
++    with torch.no_grad():
++        assert torch.isfinite(m(*sohn.collate([u]))).all()
++
++
++def test_stage2_u01b_hand_local():
++    """(точка − запястье) / ладонь; ладонь — медиана |9 − 0| только по кадрам с точками 0 и 9 (не среднее, не max, не покадрово),
++    окно — первые 384 кадра; кисть без таких кадров — её 42 столбца 0; «запястье − запястье» (4 столбца) ≡ 0; NaN → 0;
++    обрезка [−10; 10]; y · H/W (окружность в пикселях → все |точка − запястье| / ладонь = 1)."""
++    rng = np.random.default_rng(3)
++    x = rng.uniform(0.3, 0.7, (4, 118, 2)).astype(np.float32)
++    lh, rh = sohn.LH_LOC, sohn.RH_LOC
++    x[:, lh[1:]] = x[:, lh[:1]] + rng.uniform(-0.04, 0.04, (4, 20, 2)).astype(np.float32)   # |точка − запястье| / ладонь ≤ 2,3
++    u9 = np.array([0.6, 0.8], np.float32)
++    x[:, lh[9]] = x[:, lh[0]] + np.array([0.01, 0.02, 0.03, 0.10], np.float32)[:, None] * u9   # медиана 0,025; ср. 0,04; max 0,1
++    loc = lambda z, pal: ((z[:, lh] - z[:, lh[:1]]) / pal).reshape(len(z), -1)
++    h = sohn.hand_local(x)
++    assert h.shape == (4, 84) and np.abs(h).max() < 10 and np.allclose(h[:, :42], loc(x, 0.025), atol=1e-5)
++    assert (h[:, [0, 1, 42, 43]] == 0).all()
++    xw = x.copy()
++    xw[3, lh[1:9]] = np.nan                                             # кадр 3: точки 1–8 закрыты, 0 и 9 видны — кадр годен
++    hw = sohn.hand_local(xw)
++    assert np.allclose(hw[:3, :42], h[:3, :42], atol=1e-6) and (hw[3, 2:18] == 0).all() and np.isfinite(hw).all()
++    xm = x.copy()
++    xm[3, lh[9]] = np.nan                                               # кадр 3 без точки 9 — не годен: медиана 0,01 / 0,02 / 0,03
++    assert np.allclose(sohn.hand_local(xm)[:3, :42], loc(x, 0.02)[:3], atol=1e-5)
++    xn = x.copy()
++    xn[:, lh[9]] = np.nan                                               # точки 9 нет ни в одном кадре — 42 столбца кисти 0
++    hn = sohn.hand_local(xn)
++    assert (hn[:, :42] == 0).all() and np.array_equal(hn[:, 42:], h[:, 42:])
++    xa = x.copy()
++    xa[:, rh] = np.nan                                                  # кисти нет — 0
++    assert (sohn.hand_local(xa)[:, 42:] == 0).all() and np.array_equal(sohn.hand_local(xa)[:, :42], h[:, :42])
++    xc = x.copy()
++    xc[:, lh[4]] = xc[:, lh[0]] + np.array([1.0, -1.0], np.float32)    # 40 ладоней: обрезка ±10
++    assert (sohn.hand_local(xc)[:, 8:10] == [10, -10]).all()
++    xl = np.repeat(x[:1], 400, 0)                                       # T = 400: ладонь 0,02 в кадрах 0–199, 0,04 дальше
++    xl[:, lh[9]] = xl[:, lh[0]] + np.where(np.arange(400) < 200, 0.02, 0.04).astype(np.float32)[:, None] * u9
++    fl = sohn.preprocess_u(np.concatenate([xl, np.full((400, 4, 2), 0.5, np.float32)], 1), 1.0, ("u01b",))
++    assert len(fl) == 384 and np.allclose(fl[:, 708:750], loc(xl[:384], 0.02), atol=1e-4)   # всех 400 — 0,03
++    W, H, asp = 16.0, 9.0, 9.0 / 16.0                                   # к1 0121 разд. 4: окружность 16:9
++    phi = np.linspace(0, 2 * np.pi, 21)[:20]
++    xi = x.copy()
++    xi[:, lh[0]] = np.array([8 / W, 4.5 / H], np.float32)
++    xi[:, lh[1:]] = (np.stack([8 + 3 * np.cos(phi), 4.5 + 3 * np.sin(phi)], -1) / [W, H]).astype(np.float32)
++    r = np.linalg.norm(sohn.hand_local(xi * np.array([1.0, asp], np.float32))[:, 2:42].reshape(4, 20, 2), axis=-1)
++    bad = np.linalg.norm(sohn.hand_local(xi * np.array([asp, 1.0], np.float32))[:, 2:42].reshape(4, 20, 2), axis=-1)
++    assert np.allclose(r, 1, atol=1e-5) and np.ptp(bad) > 0.5
++
++
++def test_stage2_u01b_after_augment_and_flip():
++    """Считается по входу после аугментации (AugSet m13_train = preprocess_u(augment(x))): отражение меняет кисти местами —
++    признаки левой кисти отражённого входа = признаки правой исходного с x → −x; кисть, бывшая только левой, после отражения
++    оказывается в столбцах правой."""
++    x, asp = _rec122(T=40, seed=8), 0.5625
++    xf = x.copy()
++    xf[..., 0] = 1 - xf[..., 0]
++    xf = xf[:, sohn.FLIP_POSE]                                          # отражение augment (flip_lr)
++    k = np.array([1.0, asp], np.float32)
++    a, b = sohn.hand_local(x[:, :118] * k).reshape(40, 2, 21, 2), sohn.hand_local(xf[:, :118] * k).reshape(40, 2, 21, 2)
++    assert np.allclose(b[:, 0], a[:, 1] * [-1, 1], atol=1e-5) and np.allclose(b[:, 1], a[:, 0] * [-1, 1], atol=1e-5)
++    T_ = _m13()
++    xl = x.copy()
++    xl[:, sohn.RH_LOC] = np.nan                                         # только левая кисть
++    ab = np.zeros((40, 4), bool)
++    ab[:, 2] = True
++    r = T_.Recs(xl[:, :118].copy(), ab, np.array([0, 40]), xl[:, 118:].copy(), np.array([asp], np.float32))
++    r.tokens = ("u01b",)
++    ds = T_.AugSet(r, np.array([0]), 7, True)
++    left = right = 0
++    for pos in range(40):
++        g = sohn.augment(xl, ab, np.random.default_rng([7, pos]))
++        f = ds[(0, pos)][0]
++        assert np.array_equal(f, sohn.preprocess_u(g, asp, ("u01b",))) and np.array_equal(f[:, 708:], sohn.hand_local(g[:384, :118] * k))
++        left += bool(np.abs(f[:, 708:750]).sum() > 0)
++        right += bool(np.abs(f[:, 750:]).sum() > 0)
++    assert left > 0 and right > 0                                       # с отражением и без
++
++
++def test_stage2_u01b_gradient_and_palm_as_u04():
++    """Градиент доходит до весов stem всех 80 нетождественных столбцов U01b (4 «запястье − запястье» ≡ 0 — градиент 0); ладонь
++    U01b — та же, что у U04: ‖u(9)‖ = столбцу пары (0, 9) hand_feats у каждой кисти в каждом кадре; ладонь 0 (±∞) → 0."""
++    tok = ("u01b",)
++    f = [sohn.preprocess_u(_rec122(T=T, seed=T), 0.56, tok) for T in (21, 33)]
++    torch.manual_seed(0)
++    m = sohn.SohnNet(7, channels=sohn.input_channels(tok)).train()
++    m(*sohn.collate(f)).sum().backward()
++    g = m.stem.weight.grad.abs().sum(0)[708:].numpy()
++    zero = [0, 1, 42, 43]
++    assert len(g) == 84 and (g[zero] == 0).all() and (np.delete(g, zero) > 0).all()
++    x, asp = _rec122(T=37, seed=11), 0.5625
++    x[5, sohn.LH_LOC[9]] = np.nan                                       # кадр без точки 9: у обоих 0, ладонь — по остальным
++    xp = x[:, :118] * np.array([1, asp], np.float32)
++    h, u = sohn.hand_feats(xp), sohn.hand_local(xp).reshape(37, 2, 21, 2)
++    k = int(np.flatnonzero((sohn.PAIRS == (0, 9)).all(1))[0])         # пара (0, 9): 210 расстояний + 15 углов на кисть
++    assert np.allclose(np.linalg.norm(u[:, 0, 9], axis=-1), h[:, k], atol=1e-5)
++    assert np.allclose(np.linalg.norm(u[:, 1, 9], axis=-1), h[:, 225 + k], atol=1e-5) and h[5, k] == 0
++    xz = xp.copy()
++    xz[:, sohn.LH_LOC[9]] = xz[:, sohn.LH_LOC[0]]                       # ладонь 0: (точка − запястье) / 0 = ±∞ или NaN → 0
++    with np.errstate(all="raise"):
++        hz = sohn.hand_local(xz)
++    assert (hz[:, :42] == 0).all() and np.array_equal(hz[:, 42:], sohn.hand_local(xp)[:, 42:])
++
++
++def test_stage2_u01b_plan_equal_budget(tmp_path):
++    """m13_train --input u01b --inner-val: те же записи обучения, шаги и тест V_k, что у Sohn (равный бюджет)."""
++    import pytest
++    T_ = _m13()
++    if not T_.SPLIT["alluz"].is_file():
++        pytest.skip("нет данных ALL-UZ (только ПК автора)")
++    f = sorted(json.loads(T_.SPLIT["alluz"].read_text())["folds"])[0]
++    p = [T_.main(["--set", "alluz", "--fold", f, "--seed", "48", "--tag", "uzsohn_plan_test", "--input", inp, "--inner-val", "--plan-only",
++                  "--out", str(tmp_path / (inp or "v0") / "seed48")]) for inp in ("", "u01b")]
++    assert p[0] == p[1] and p[0]["n_train"] > 0
++
++
++def test_stage2_report2(tmp_path, monkeypatch):
++    """uzsohn_sel decide + report2 на синтетических metrics.json: правило этапа 1, итог — reports/UZSOHN_stage2.md, исполнители —
++    только коды S.., прежний итог — в копию."""
++    import sys
++    import pytest
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++    import m13_build
++    import uzsohn_sel as S
++    folds = [f"fold_{k}" for k in range(10)]
++    for k, v in (("RUNS", tmp_path / "runs"), ("OUT", tmp_path / "out"), ("ROOT", tmp_path), ("FOLDS", folds)):
++        monkeypatch.setattr(S, k, v)
++    (tmp_path / "codes.json").write_text(json.dumps({"signers": {f: f"S{k + 1:02d}" for k, f in enumerate(folds)}}))
++    monkeypatch.setattr(S, "CODES", tmp_path / "codes.json")
++    monkeypatch.setattr(m13_build, "load", lambda name: {"offsets": np.arange(0, 730, 73)})
++    (tmp_path / "reports").mkdir()
++    full = {"steps": 4200, "steps_run": 4200, "limit_train": 0, "epochs": 300, "stop_epoch": None, "train_sec": 3600.0, "n_classes": 50,
++            "cfg": {"dim": 192}, "params_keras_count": {"total": 1}, "gpu_max_mem_gb": 3.0, "mode": "all", "seed": 48}
++
++    def put(tag, pre, inp, top):
++        p = tmp_path / "runs" / pre / "all/seed48"
++        p.mkdir(parents=True)
++        (p / "metrics.json").write_text(json.dumps({**full, "steps": 13_800, "steps_run": 13_800, "input": inp}))
++        for k, f in enumerate(folds):
++            q = tmp_path / "runs" / tag / f / "seed48"
++            q.mkdir(parents=True)
++            q.joinpath("metrics.json").write_text(json.dumps({**full, "inner_val": folds[(k + 1) % 10], "top1": top[k], "input": inp,
++                                                              "channels": sohn.input_channels(inp),
++                                                              "init": {"init_from": f"runs/UzSohn/{pre}/all/seed48/best.pt"}}))
++    put("ctrl", "sb", [], [0.30] * 10)
++    put("arm", "sb_in_u01b", ["u01b"], [0.33] * 6 + [0.29] * 4)          # +1,4 п. п., лучше у 6/10 — принята
++    with pytest.raises(SystemExit) as e:
++        S.decide("ctrl", "arm", "U01b")
++    assert e.value.code == 0
++    (tmp_path / "reports/UZSOHN_stage2.md").write_text("старый итог")
++    S.report2("ctrl", "arm")
++    t = (tmp_path / "reports/UZSOHN_stage2.md").read_text()
++    assert "U01b ПРИНЯТА" in t and "| arm (u01b) | 31.4 | +1.400 | 6/10 | да |" in t and "S02 +3.00" in t and "S01 -1.00" in t
++    assert not any(f in t for f in folds) and len(list((tmp_path / "reports").glob("UZSOHN_stage2_*.md"))) == 1
++    assert S.RISK2 in t and "≈ 0,19–0,32" in t and "среднее по остальным 10 V_k +1.40" in t   # S11, S12 у синтетики нет
++    assert "U01b (?) против контроля (?): РАЗЛИЧАЕТСЯ или неизвестен" in t
++    js = (tmp_path / "out/stage2.json").read_text()
++    assert not any(f in js for f in folds) and sorted(json.loads(js)["decision"]["per_vk"]) == [f"S{k:02d}" for k in range(1, 11)]
++
++
++def test_stage2_chain_guards():
++    """Цепочка этапа 2: тело — функция main (вызов и exit — последней строкой); trap EXIT (возврат ГП юниту M13) — до ожидания;
++    ожидание — маркер группы 1 и 3 мин подряд без python на ГП (как m13_chain_v4.sh); окно (а) решается после ожидания (маркер
++    сверки, M13 активна, M13 завершена), затем код = хешу маркера по предрег. и поправкам 1–2, текст = HEAD, селфтест, M13 активна —
++    стоп перед ГП; U01b — затравка 48, своё предобучение, решение против контроля этапа 1."""
++    ch = (Path(__file__).resolve().parents[1] / "scripts/uzsohn_stage2_chain.sh").read_text()
++    L = ch.rstrip("\n").split("\n")
++    assert L[-1] == 'main "$@"; exit' and L[-2] == "}" and sum(s.startswith("main() {") for s in L) == 1
++    w = ch.index("while busy; do")
++    assert ch.index("H0=$(git hash-object scripts/uzsohn_stage2_chain.sh)") < ch.index("trap m13_back EXIT") < w
++    assert "busy() { [ -f runs/TURNIR_E1_g1.done ] || return 0; gpu_busy; }" in ch and "for i in 1 2 3; do sleep 60; busy" in ch
++    ok = ch.index("[ -f runs/UZSOHN_STAGE2_OK ] ||")
++    assert w < ok < ch.index("m13_on && {", ok) < ch.index("[ -f runs/UzSohn_M13.done ] &&", ok) < ch.index("git diff --quiet \"$OKH\"")
++    assert ch.index("git diff --quiet \"$OKH\"") < ch.index('[ "$H0" = "$(git rev-parse HEAD:scripts/uzsohn_stage2_chain.sh') < ch.index("selftest_stage2.log")
++    assert ch.rindex("m13_stop", 0, ch.index("pretrain()")) > ch.index("selftest_stage2.log")
++    assert 'PREREG="reports/UZSOHN_prereg.md reports/UZSOHN_prereg_popravka1.md $P2"' in ch
++    assert "SEED=48 " in ch and "--set sb --seed $SEED --tag $PRE --input $TOK" in ch and "decide $CTRL $TAG U01b" in ch
++    assert "CTRL=uzsohn_sel_alluz_v0; PRE=sb_in_u01b; TAG=uzsohn_sel_alluz_in_u01b" in ch and "report2 $CTRL $TAG" in ch
++    assert "--unit=m13-sohn-2" in ch and 'bash -c "bash scripts/m13_chain_v4.sh >> runs/m13_chain.log 2>&1"' in ch
++    assert "--unit=uzsohn-stage2" in ch and "pgrep -f 'scripts/[m]13_train.py'" in ch
++
++
++def test_stage2_chain_runs(tmp_path):
++    """Цепочка этапа 2 исполняется в tmp с заглушками PATH (systemctl, systemd-run, pgrep, nvidia-smi, sleep) и UZSOHN_PY: ждёт
++    маркер группы 1 (печать «жду» с M13 и маркером сверки), затем окно (а): нет маркера сверки → выход 0 и M13 сразу (trap); M13
++    активна → выход 0 без U01b и без нового юнита; M13 завершена → выход 0, юнит не запускается; ошибка после маркера («!!!») →
++    выход 1 и M13 (trap). Обучение не запускается ни в одной ветке; настоящие юниты и ГП не трогаются."""
++    import shutil
++    import subprocess
++    src = Path(__file__).resolve().parents[1] / "scripts/uzsohn_stage2_chain.sh"
++    stub, calls, act = tmp_path / "stub", tmp_path / "calls.log", tmp_path / "m13_active"
++
++    def put(name, body):
++        (stub / name).write_text("#!/usr/bin/env bash\n" + body + "\n")
++        (stub / name).chmod(0o755)
++    stub.mkdir()
++    put("systemctl", f'echo "systemctl $*" >> {calls}\n[ "$2" = is-active ] && exit $(cat {act})\nexit 0')
++    put("systemd-run", f'echo "systemd-run $*" >> {calls}')
++    put("pgrep", "exit 1")
++    put("nvidia-smi", "exit 0")                                        # ГП без python
++    put("sleep", "touch runs/TURNIR_E1_g1.done")                       # первый сон — конец группы 1
++    put("fakepy", f'echo "PY $*" >> {calls}\ncase "$1" in -c) exit 0;; esac\nexit 2')
++    env = {"PATH": f"{stub}:/usr/bin:/bin", "HOME": str(tmp_path), "UZSOHN_PY": str(stub / "fakepy")}
++    assert all(shutil.which(t, path=env["PATH"]) == str(stub / t) for t in ("systemctl", "systemd-run", "pgrep", "nvidia-smi", "sleep"))
++    for name, active, marker, done, rc, says, m13_started in (
++            ("no_ok", 3, False, False, 0, "окно (а) пропущено: нет runs/UZSOHN_STAGE2_OK", True),
++            ("m13_on", 0, True, False, 0, "окно (а) пропущено: юнит m13-sohn-2 активен", False),
++            ("m13_done", 3, True, True, 0, "окно (а) пропущено: M13 уже завершена", False),
++            ("error", 3, True, False, 1, "!!! нет списка кода этапа", True)):
++        om = tmp_path / name
++        (om / "scripts").mkdir(parents=True)
++        (om / "runs").mkdir()
++        shutil.copy(src, om / "scripts")
++        if marker:
++            (om / "runs/UZSOHN_STAGE2_OK").write_text("0" * 40 + "\n")
++        if done:
++            (om / "runs/UzSohn_M13.done").touch()
++        act.write_text(str(active))
++        calls.write_text("")
++        r = subprocess.run(["bash", "scripts/uzsohn_stage2_chain.sh"], cwd=om, env=env, capture_output=True, text=True, timeout=60)
++        c = calls.read_text()
++        assert r.returncode == rc and says in r.stdout and "жду: TURNIR_E1_g1.done=нет" in r.stdout, (name, r.stdout, r.stderr)
++        assert f"UZSOHN_STAGE2_OK={'да' if marker else 'нет'}, m13-sohn-2 активен={'да' if active == 0 else 'нет'}" in r.stdout, name
++        assert c.count("systemd-run --user --unit=m13-sohn-2") == m13_started and "m13_train" not in c and "-m pytest" not in c, (name, c)
++        assert ("юнит m13-sohn-2 запущен" in r.stdout) == m13_started and (om / "runs/TURNIR_E1_g1.done").is_file(), name
