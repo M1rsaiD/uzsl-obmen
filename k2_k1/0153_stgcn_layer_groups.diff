@@ -1,0 +1,18 @@
+diff --git a/src/mpk/baselines.py b/src/mpk/baselines.py
+index 0bf7c02..e514794 100644
+--- a/src/mpk/baselines.py
++++ b/src/mpk/baselines.py
+@@ -345,6 +345,13 @@ class STGCNOrig(_Base):
+         self.register_buffer("nodes", torch.tensor(NODES))
+         self.register_buffer("node_col", torch.tensor([PART_MASK_COL[p] for p in NODE_PART]))
+ 
++    def layer_groups(self) -> list[list]:
++        """Турнир (перенос, общий рецепт): группы для послойной разморозки (§4) сверху вниз — пары их блоков st_gcn
++        вместе с их edge_importance, data_bn — в нижней (5 групп, как у SLGCNOrig и A1)."""
++        b, e = self.net.st_gcn_networks, self.net.edge_importance
++        g = [[b[i], b[i - 1], e[i], e[i - 1]] for i in (9, 7, 5, 3, 1)]
++        return g[:-1] + [g[-1] + [self.net.data_bn]]
++
+     def encode(self, x, mask, aspect):
+         if self.feat == "mpk6":  # M12-1 (B): Н2 [x_т, y_т, x_к, y_к, m, c] на 27 узлах
+             X = normalize(x, mask, aspect, self.eps, self.clip)[:, :, self.nodes]
