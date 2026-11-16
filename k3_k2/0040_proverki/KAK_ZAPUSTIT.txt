@@ -1,0 +1,6 @@
+к3 0040 — как повторить (ЦП, numpy; torch не нужен)
+1) риск: python3 -I risk_k3.py ../../k2_k1/0154_risk_inputs_by_scode.json > risk_k3.out
+2) U01b: каталог W; cp -r ../../k2_k3/0055_u01a_sintetika/code/src W/src; git -C W init; (блоб src/mpk/sohn.py = 26f9f2b)
+   git -C W apply --include=src/mpk/sohn.py ../../k2_k1/0154_u01b_045fd7d_120eced.diff   # → блоб cd8a454
+   заглушка torch: stub/torch/__init__.py скопировать также в stub/torch/nn/__init__.py, stub/torch/nn/functional.py, stub/torch/optim/__init__.py
+   PYTHONPATH=stub:W/src python3 -W ignore u01b_k3.py > u01b_k3.out
