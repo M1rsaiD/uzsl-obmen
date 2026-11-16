@@ -1,0 +1,84 @@
+# к3 0039 — сверка ссылок к1 0136 и к2 0153 (4.7); 16.11.2026 16:57
+
+## github.com/yysijie/st-gcn: git clone --filter=blob:none; git show 221c0e1:net/st_gcn.py (строки 44–67)
+221c0e152054b8da593774c0d483e59befdb9061 2019-08-31 22:46:48 +0800
+44	        self.st_gcn_networks = nn.ModuleList((
+45	            st_gcn(in_channels, 64, kernel_size, 1, residual=False, **kwargs0),
+46	            st_gcn(64, 64, kernel_size, 1, **kwargs),
+47	            st_gcn(64, 64, kernel_size, 1, **kwargs),
+48	            st_gcn(64, 64, kernel_size, 1, **kwargs),
+49	            st_gcn(64, 128, kernel_size, 2, **kwargs),
+50	            st_gcn(128, 128, kernel_size, 1, **kwargs),
+51	            st_gcn(128, 128, kernel_size, 1, **kwargs),
+52	            st_gcn(128, 256, kernel_size, 2, **kwargs),
+53	            st_gcn(256, 256, kernel_size, 1, **kwargs),
+54	            st_gcn(256, 256, kernel_size, 1, **kwargs),
+55	        ))
+56	
+57	        # initialize parameters for edge importance weighting
+58	        if edge_importance_weighting:
+59	            self.edge_importance = nn.ParameterList([
+60	                nn.Parameter(torch.ones(self.A.size()))
+61	                for i in self.st_gcn_networks
+62	            ])
+63	        else:
+64	            self.edge_importance = [1] * len(self.st_gcn_networks)
+65	
+66	        # fcn for prediction
+67	        self.fcn = nn.Conv2d(256, num_class, kernel_size=1)
+
+## github.com/jackyjsy/CVPR21Chal-SLR: git show de6c53a:SL-GCN/model/decouple_gcn_attn.py (строки 235–251)
+de6c53a6fbbc08a5d9a728e33614a4541836714c 2022-05-10 23:58:15 -0400
+235	        self.data_bn = nn.BatchNorm1d(num_person * in_channels * num_point)
+236	
+237	        self.l1 = TCN_GCN_unit(in_channels, 64, A, groups, num_point,
+238	                               block_size, residual=False)
+239	        self.l2 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
+240	        self.l3 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
+241	        self.l4 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
+242	        self.l5 = TCN_GCN_unit(
+243	            64, 128, A, groups, num_point, block_size, stride=2)
+244	        self.l6 = TCN_GCN_unit(128, 128, A, groups, num_point, block_size)
+245	        self.l7 = TCN_GCN_unit(128, 128, A, groups, num_point, block_size)
+246	        self.l8 = TCN_GCN_unit(128, 256, A, groups,
+247	                               num_point, block_size, stride=2)
+248	        self.l9 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
+249	        self.l10 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
+250	
+251	        self.fc = nn.Linear(256, num_class)
+
+## github.com/pytorch/pytorch, тег v2.14.1: torch/optim/swa_utils.py, update_bn (строки 400–427)
+5c4886908584029761b579af026dcfb627c84070
+400	        is assumed that :meth:`model.forward()` should be called on the first
+401	        element of the list or tuple corresponding to the data batch.
+402	    """
+403	    momenta = {}
+404	    for module in model.modules():
+405	        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+406	            module.reset_running_stats()
+407	            momenta[module] = module.momentum
+408	
+409	    if not momenta:
+410	        return
+411	
+412	    was_training = model.training
+413	    model.train()
+414	    for module in momenta:
+415	        module.momentum = None
+416	
+417	    for input in loader:
+418	        if isinstance(input, (list, tuple)):
+419	            input = input[0]
+420	        if device is not None:
+421	            input = input.to(device)
+422	
+423	        model(input)
+424	
+425	    for bn_module in momenta:
+426	        bn_module.momentum = momenta[bn_module]
+427	    model.train(was_training)
+
+## арифметика (python)
+U04 по V_k: -1.235
+U28: центр t9 1.05 ; SE 0.4123 ; перцентильный: полуширины в SE 2.377 2.425 ; ожидаемо z*sqrt(9/10) = 2.444
+повтор 55 прогонов, ч: 2.38 ; U01b процесс-ч: 12.69 ; по часам, ч: 6.81
