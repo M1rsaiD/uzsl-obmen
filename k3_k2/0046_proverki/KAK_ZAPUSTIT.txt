@@ -1,0 +1,6 @@
+к3 0046 — предварительная сверка кода № 2–4 (0163 + (Б)), 17.11.2026; ЦП, синтетика.
+1) sohn.py ветки turnir-e2-levers (d7b0d68) восстановлен из обмена: k2_k3/0055_u01a_sintetika/code/src/mpk/sohn.py (блоб 26f9f2b)
+   + хунк sohn.py из k2_k1/0154_u01b_045fd7d_120eced.diff (→ cd8a454) + из 0163_e2_levers_diff_ot_f6a5a72.diff (→ 77e50eb)
+   + из 0163_n4_variant_B.diff (→ 7a87d90 — как в диффе).
+2) torch 2.5.1+cpu (download.pytorch.org/whl/cpu) в venv; PYTHONPATH=<src> python parts_k3.py → parts_k3.out.
+3) python3 -I balanced_k3.py (из корня обмена; balanced_p берётся из диффа 0163, строки 80–94) → balanced_k3.out.
