@@ -1,0 +1,46 @@
+== ff
+[say] master перемотан на сверенный заранее <lev> (runs/TURNIR_E2_PREOK, Б10); runs/TURNIR_E2_OK записан цепочкой
+HEAD=277f6d3 ветка=master OK=277f6d3
+== notff
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=35b397f ветка=master OK=нет
+== dirty
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=99ca3c5 ветка=master OK=нет
+== staged
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=99ca3c5 ветка=master OK=нет
+== detached
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=99ca3c5 ветка=detached OK=нет
+== ahead
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=7940037 ветка=master OK=нет
+== same
+[say] master перемотан на сверенный заранее <lev> (runs/TURNIR_E2_PREOK, Б10); runs/TURNIR_E2_OK записан цепочкой
+HEAD=4fe536f ветка=master OK=4fe536f
+== okexists
+HEAD=6a282ac ветка=master OK=manual
+== nopreok
+HEAD=6a282ac ветка=master OK=нет
+== badhash
+fatal: Not a valid commit name deadbeef00000000000000000000000000000000
+[say] !!! перемотка на deadbeef00000000000000000000000000000000 (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=6a282ac ветка=master OK=нет
+== short
+HEAD=6a282ac ветка=master OK=нет
+== untracked
+error: Указанные неотслеживаемые файлы в рабочем каталоге будут перезаписаны при слиянии:
+	src/new_lever.py
+Переместите эти файлы или удалите их перед переключением веток.
+Прерываю
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=6a282ac ветка=master OK=нет
+== опыт: исполняемый скрипт меняется git merge --ff-only
+старая: шаг 1
+старая: шаг 2 (inode 1000943 → 1000951)
+старая: шаг 3
+файл после: echo "НОВАЯ: шаг 1"
+== контроль: тот же скрипт, но замена перезаписью на месте (>)
+НОВАЯ: шаг 1
+chain.sh: строка 4: неожиданный конец файла во время поиска «"»

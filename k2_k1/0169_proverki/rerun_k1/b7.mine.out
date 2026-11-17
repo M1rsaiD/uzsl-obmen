@@ -1,0 +1,7 @@
+not_nested — нет файлов: False
+not_nested — 8 шагов, все j совпали: False
+not_nested — 8 шагов, у r3 j=3 иначе: True
+not_nested — 7 шагов (нет r3, он был бы иначе): False
+пометка «не вложенный» стоит у: [(True, 'Slovo', 'Sohn', 'UzSohn'), (True, 'Slovo', 'UzSohn', 'A1'), (True, 'Slovo', 'UzSohn', 'Sohn')]
+изменена строка ('Э2', 'UzSohn') → ('UzSohn (Э2: U01a, № 3)', 'M13; общий рецепт UzSohn не обучался (поправка 4, 22.8)')
+Б7: все проверки пройдены

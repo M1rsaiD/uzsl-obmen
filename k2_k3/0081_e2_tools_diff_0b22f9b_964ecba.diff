@@ -1,0 +1,157 @@
+diff --git a/scripts/turnir_e2_chain.sh b/scripts/turnir_e2_chain.sh
+index 2238feb..1320b43 100644
+--- a/scripts/turnir_e2_chain.sh
++++ b/scripts/turnir_e2_chain.sh
+@@ -70,7 +70,7 @@ CELLS="slovo/fold1 slovo/fold2 slovo/fold3 slovo/fold4 slovo/fold5 bukva/fold1 b
+ PR=runs/UZSOHN/e2_probe
+ CG=${E2_CGROUP:-/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup)}   # cgroup юнита (MemoryMax=40G); E2_CGROUP — для теста
+ mkdir -p runs/UzSohn/logs runs/UZSOHN
+-say "=== Э2 турнира, режим ($([ $MODE = ii ] && echo "ii′" || echo а)): старт"
++say "=== Э2 турнира, режим ($([ $MODE = ii ] && echo "ii′" || echo а)): старт; блоб цепочки $H0 (Б10: = блобу в сверяемом коммите)"
+ python -c 'import numpy, torch, pytest' 2> /dev/null || { say "!!! $(command -v python) без numpy/torch/pytest (урок 30) — стоп"; exit 1; }
+ [ -f runs/UzSohn_E2.done ] && { [ ! -s runs/UzSohn_E2.done ] || [ -f runs/UzSohn_E2_E1.done ]; } \
+   && { say "Э2 уже завершён (runs/UzSohn_E2.done; принято: [$(cat runs/UzSohn_E2.done)]) — выход"; exit 0; }
+@@ -94,15 +94,19 @@ else
+ fi
+ grep -q ЗАКРЫТА runs/TURNIR/stoprule.md && { say "правило остановки: ветка UzSohn ЗАКРЫТА — Э2 не начинается, UzSohn ≡ Sohn; выход"; exit 0; }
+ # Б10 (к1 0149, к3 0048): хеш Э2 сверен к1 и к3 до конца M13 (runs/TURNIR_E2_PREOK, 1-я строка — полный хеш; пишет к2) → перемотку
+-# master и runs/TURNIR_E2_OK делает цепочка — на ночном пути нет человека. Не master, правки в дереве, не fast-forward — обычный путь
++# master и runs/TURNIR_E2_OK делает цепочка — на ночном пути нет человека. Не master, правки в дереве, не fast-forward — обычный путь.
++# Цепочка в коммите ≠ запущенной ($H0) — тоже обычный путь: после перемотки стоп «изменена после старта» увёл бы Э2 за группу 2 (к3 0049)
+ PH=$(head -1 runs/TURNIR_E2_PREOK 2> /dev/null | grep -oE '^[0-9a-f]{40}')
+ if [ -n "$PH" ] && [ ! -f runs/TURNIR_E2_OK ]; then
+   if [ "$(git symbolic-ref -q --short HEAD)" = master ] && [ -z "$(git status --porcelain --untracked-files=no)" ] \
++     && [ "$(git rev-parse -q --verify "$PH:scripts/turnir_e2_chain.sh")" = "$H0" ] \
+      && git merge-base --is-ancestor HEAD "$PH" && git merge --ff-only -q "$PH" && [ "$(git rev-parse HEAD)" = "$PH" ]; then
+     echo "$PH" > runs/TURNIR_E2_OK && say "master перемотан на сверенный заранее $PH (runs/TURNIR_E2_PREOK, Б10); runs/TURNIR_E2_OK записан цепочкой"
+   else
+-    say "!!! перемотка на $PH (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь"
++    say "!!! перемотка на $PH (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве, цепочка в коммите ≠ запущенной ($H0) или не fast-forward — обычный путь"
+   fi
++elif [ -f runs/TURNIR_E2_PREOK ] && [ ! -f runs/TURNIR_E2_OK ]; then   # Б10-д (к1 0150): иначе молча ждали бы 12 ч
++  say "!!! runs/TURNIR_E2_PREOK: в 1-й строке нет полного хеша (40 hex) — перемотки нет, обычный путь"
+ fi
+ say "правило остановки: ветка UzSohn продолжается; жду runs/TURNIR_E2_OK (не дольше 12 ч после UzSohn_M13.done)"
+ until [ -f runs/TURNIR_E2_OK ] || past 43200; do sleep 60; done
+diff --git a/scripts/turnir_eval.py b/scripts/turnir_eval.py
+index 46a9d1d..0789dc5 100644
+--- a/scripts/turnir_eval.py
++++ b/scripts/turnir_eval.py
+@@ -683,9 +683,13 @@ def e2_state() -> tuple[str, str]:
+ 
+ 
+ def not_nested() -> bool:
+-    """22.7: решение хоть одного шага Э2 без группы теста Slovo j ≠ общему (uzsohn_sel.py e2 → runs/UZSOHN/decide_e2_<шаг>.json)."""
+-    ds = [json.loads(p.read_text(encoding="utf-8")) for p in (RUNS / "UZSOHN").glob("decide_e2_*.json")]
+-    return any(x["accepted"] != d["accepted"] for d in ds for x in d["without_group"].values())
++    """22.7: решение хоть одного шага Э2 без группы теста Slovo j ≠ общему (uzsohn_sel.py e2 → runs/UZSOHN/decide_e2_<шаг>.json).
++    Б7-д (к1 0150): решений — ровно 8 шагов 22.3, в каждом 5 групп; иначе отказ, а не молчаливое «вложенный»."""
++    ds = {p.name[len("decide_e2_"):-len(".json")]: json.loads(p.read_text(encoding="utf-8"))
++          for p in (RUNS / "UZSOHN").glob("decide_e2_*.json")}
++    assert set(ds) == {*LEVER.values(), "r2", "r3", "r4"} and all(len(d["without_group"]) == 5 for d in ds.values()), \
++        f"!!! 22.7: решения Э2 {sorted(ds)} — нужны 8 шагов по 5 групп"
++    return any(x["accepted"] != d["accepted"] for d in ds.values() for x in d["without_group"].values())
+ 
+ 
+ def e2_outside() -> set:
+@@ -991,6 +995,10 @@ def selftest() -> None:
+     (run / "metrics.json").write_text(json.dumps({"input": ["u01b"], "flags": {"part_tokens": True}, "ema": False, "balanced": False}))
+     (RUNS / "UzSohn_E2.done").write_text("u01b,r2")
+     (RUNS / "UzSohn_E2_E1.done").touch()
++    (RUNS / "UZSOHN").mkdir(parents=True)   # решения 8 шагов 22.3, как пишет uzsohn_sel.py e2 (Б7-д: без них not_nested — отказ)
++    for s in (*LEVER.values(), "r2", "r3", "r4"):
++        (RUNS / f"UZSOHN/decide_e2_{s}.json").write_text(json.dumps({"accepted": s in ("U01b", "r2"),
++                                                                    "without_group": {str(j): {"accepted": s in ("U01b", "r2")} for j in range(1, 6)}}))
+     assert e2_state() == ("Э2", "UzSohn (Э2: U01b, № 2)"), e2_state()
+     shutil.copytree(PRED / "Slovo/SL-GCN/shared/scratch", PRED / "Slovo/UzSohn/native/scratch")
+     (PRED / "Slovo/Sohn/native/scratch").mkdir(parents=True)
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index 5c2ec4a..4ec4023 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -117,6 +117,10 @@ def build(base: Path, rng, uz=None) -> None:
+         tok = list(uz["input"]) + [r for r, k in (("r2", uz["flags"].get("part_tokens")), ("r3", uz["ema"]), ("r4", uz["balanced"])) if k]
+         (runs / "UzSohn_E2.done").write_text(",".join(tok))
+         (runs / "UzSohn_E2_E1.done").touch()
++        (runs / "UZSOHN").mkdir(parents=True, exist_ok=True)   # решения 8 шагов 22.3 (uzsohn_sel.py e2); без них not_nested — отказ (Б7-д)
++        for s in ("U02-1", "U02-2", "U01a", "U04", "U01b", "r2", "r3", "r4"):
++            (runs / f"UZSOHN/decide_e2_{s}.json").write_text(json.dumps({"accepted": True, "without_group": {
++                str(j): {"accepted": True} for j in range(1, 6)}}))
+     for d in ("slovo", "bukva"):
+         for sub in ("splits", "cache/M13", "reports"):
+             (base / "OM" / sub).mkdir(parents=True, exist_ok=True)
+@@ -247,15 +251,19 @@ def test_not_nested_mark(stand):
+     base = stand(UZ)
+     run_stand(te)
+     d = base / "OM/runs/UZSOHN"
+-    d.mkdir()
++    d.mkdir(exist_ok=True)
+     wg = {str(j): {"accepted": True} for j in range(1, 6)}
+-    (d / "decide_e2_U01b.json").write_text(json.dumps({"accepted": True, "without_group": wg}))
++    for s in ("U02-1", "U02-2", "U01a", "U04", "U01b", "r2", "r3", "r4"):   # 8 шагов 22.3 (Б7-д: иначе отказ)
++        (d / f"decide_e2_{s}.json").write_text(json.dumps({"accepted": True, "without_group": wg}))
+     rows = lambda: te.pairs_table(te.MAIN_PAIRS, True) + te.pairs_table(te.REF_PAIRS, False)  # noqa: E731
+     assert not any("не вложенный" in r for r in rows())
+     (d / "decide_e2_r4.json").write_text(json.dumps({"accepted": True, "without_group": wg | {"3": {"accepted": False}}}))
+     mark = [r for r in rows() if "; отбор не вложенный (22.7) |" in r]
+     assert sorted(r.split(" | ")[1] for r in mark) == sorted(f"{UZ_NAME} − {b}" for b in ("A1", "SL-GCN", "наша реализация Sohn"))
+     assert all(r.startswith("| Slovo | ") for r in mark)
++    (d / "decide_e2_r3.json").unlink()   # Б7-д (к1 0150): 7 решений из 8 — громкий отказ, а не молчаливое «вложенный»
++    with pytest.raises(AssertionError, match="нужны 8 шагов"):
++        rows()
+ 
+ 
+ def test_both_rule_needs_t_too():
+@@ -944,30 +952,46 @@ def test_e2_chain_b10_preok_fast_forward(tmp_path):
+     """Б10: после UzSohn_M13.done цепочка сама перематывает master на сверенный заранее коммит и пишет TURNIR_E2_OK — Э2 идёт
+     без человека; код Э2 = сверенному (проверка строк 117–121 проходит на перемотанном дереве)."""
+     om, env, lev = _b10_case(tmp_path)
++    h0 = _git(om, "hash-object", "scripts/turnir_e2_chain.sh")
+     r, calls, m13 = _run_chain(om, env)
+     assert r.returncode == 0 and "master перемотан на сверенный заранее" in r.stdout, r.stdout
++    assert f"старт; блоб цепочки {h0}" in r.stdout   # к3 0049: блоб запущенной цепочки — в журнал, для сверки с коммитом PREOK
+     assert _git(om, "rev-parse", "HEAD") == lev and _git(om, "symbolic-ref", "--short", "HEAD") == "master"
+     assert (om / "runs/TURNIR_E2_OK").read_text().split()[0] == lev and (om / "runs/UzSohn_E2.done").is_file()
+ 
+ 
+-@pytest.mark.parametrize("case", ["not_ff", "dirty", "not_master"])
++@pytest.mark.parametrize("case", ["not_ff", "dirty", "not_master", "chain_differs", "short"])
+ def test_e2_chain_b10_falls_back(tmp_path, case):
+-    """Б10: master сдвинулся после сверки (не fast-forward), правка отслеживаемого файла или не ветка master → «!!!», HEAD не
+-    трогается, обычный путь: ждём runs/TURNIR_E2_OK (приходит позже — Э2 идёт)."""
++    """Б10: master сдвинулся после сверки (не fast-forward), правка отслеживаемого файла, не ветка master, цепочка в коммите
++    ≠ запущенной (к3 0049) или в PREOK не полный хеш (к1 0150, Б10-д) → «!!!», HEAD не трогается, обычный путь: ждём
++    runs/TURNIR_E2_OK (приходит позже — Э2 идёт)."""
+     om, env, lev = _b10_case(tmp_path)
+-    if case == "not_ff":
++    say = "!!! перемотка на " + lev
++    if case == "short":
++        (om / "runs/TURNIR_E2_PREOK").write_text(_git(om, "rev-parse", "--short", lev) + "\n")
++        say = "!!! runs/TURNIR_E2_PREOK: в 1-й строке нет полного хеша"
++    elif case == "chain_differs":   # коммит PREOK сверх рычагов меняет файл цепочки: перемотка прошла бы, а затем стоп по H0
++        _git(om, "checkout", "-q", "lev")
++        with open(om / "scripts/turnir_e2_chain.sh", "a", encoding="utf-8") as f:
++            f.write("# правка цепочки после старта юнита\n")
++        _git(om, "commit", "-qam", "цепочка иная")
++        lev = _git(om, "rev-parse", "HEAD")
++        _git(om, "checkout", "-q", "master")
++        (om / "runs/TURNIR_E2_PREOK").write_text(lev + "\n")
++        say = "!!! перемотка на " + lev
++    elif case == "not_ff":
+         (om / "notes.txt").write_text("правка master после сверки\n")
+         _git(om, "add", "notes.txt")
+         _git(om, "commit", "-qm", "master сдвинулся")
+     elif case == "dirty":
+         with open(om / ".gitignore", "a", encoding="utf-8") as f:
+             f.write("# правка без коммита\n")
+-    else:
++    elif case == "not_master":
+         _git(om, "checkout", "-q", "--detach")
+     head = _git(om, "rev-parse", "HEAD")
+     (tmp_path / "sleep_hook").write_text(f"[ -f runs/TURNIR_E2_OK ] || cp {tmp_path / 'ok'} runs/TURNIR_E2_OK\n")
+     r, calls, m13 = _run_chain(om, env)
+-    assert r.returncode == 0 and "!!! перемотка на " + lev in r.stdout and "перемотан" not in r.stdout, r.stdout
++    assert r.returncode == 0 and say in r.stdout and "перемотан" not in r.stdout, r.stdout
+     assert _git(om, "rev-parse", "HEAD") == head != lev and (om / "runs/UzSohn_E2.done").is_file()
+ 
+ 
