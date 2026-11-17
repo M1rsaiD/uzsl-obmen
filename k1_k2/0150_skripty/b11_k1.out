@@ -1,0 +1,4 @@
+строка 51 = CUDA_VISIBLE_DEVICES= nice python scripts/turnir_eval.py stoprule >> runs/TURNIR/stoprule.…
+идёт правило остановки (pid жив: да); tail -1 журнала: жду M13 (runs/UzSohn_M13.done; юнит m13-sohn-2)
+после правила tail -1: правило остановки: Δ = +1.00
+с runs/M13.done и без UzSohn_M13.done: 1 строка правила — цикл не ждал

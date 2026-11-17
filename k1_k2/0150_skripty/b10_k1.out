@@ -1,0 +1,46 @@
+== ff
+[say] master перемотан на сверенный заранее <lev> (runs/TURNIR_E2_PREOK, Б10); runs/TURNIR_E2_OK записан цепочкой
+HEAD=08d29e5 ветка=master OK=08d29e5
+== notff
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=2d71db6 ветка=master OK=нет
+== dirty
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=9c85298 ветка=master OK=нет
+== staged
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=9c85298 ветка=master OK=нет
+== detached
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=9c85298 ветка=detached OK=нет
+== ahead
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=4698fd1 ветка=master OK=нет
+== same
+[say] master перемотан на сверенный заранее <lev> (runs/TURNIR_E2_PREOK, Б10); runs/TURNIR_E2_OK записан цепочкой
+HEAD=0fdb54e ветка=master OK=0fdb54e
+== okexists
+HEAD=00b16cc ветка=master OK=manual
+== nopreok
+HEAD=00b16cc ветка=master OK=нет
+== badhash
+fatal: Not a valid commit name deadbeef00000000000000000000000000000000
+[say] !!! перемотка на deadbeef00000000000000000000000000000000 (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=00b16cc ветка=master OK=нет
+== short
+HEAD=a4369ff ветка=master OK=нет
+== untracked
+error: The following untracked working tree files would be overwritten by merge:
+	src/new_lever.py
+Please move or remove them before you merge.
+Aborting
+[say] !!! перемотка на <lev> (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь
+HEAD=a4369ff ветка=master OK=нет
+== опыт: исполняемый скрипт меняется git merge --ff-only
+старая: шаг 1
+старая: шаг 2 (inode 1147374 → 1147398)
+старая: шаг 3
+файл после: echo "НОВАЯ: шаг 1"
+== контроль: тот же скрипт, но замена перезаписью на месте (>)
+НОВАЯ: шаг 1
+chain.sh: line 4: unexpected EOF while looking for matching `"'
