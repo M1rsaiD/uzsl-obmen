@@ -1,0 +1,99 @@
+== 0. Где задано (файл:строка)
+  osnovnaya_model/configs/common.yaml:36: ema: false               # A-EMA: true (приём обучения: если примут — для всех моделей)
+  osnovnaya_model/configs/common.yaml:37: ema_decay: 0.999         # [старт] §6
+  osnovnaya_model/configs/common.yaml:38: ema_decay_short: 0.99    # [старт] при steps < ema_short_below
+  osnovnaya_model/configs/common.yaml:39: ema_short_below: 3000
+  osnovnaya_model/configs/common.yaml:40: ema_warmup: false        # M9.7: true — decay_t = min(decay, (1+t)/(10+t)); false — прежние прогоны
+  osnovnaya_model/src/mpk/train.py:171: def shares(sizes: list[int], bs: int) -> list[int]:
+  osnovnaya_model/src/mpk/train.py:193: def ema_decay_at(decay: float, t: int) -> float:
+  osnovnaya_model/src/mpk/train.py:195: return min(decay, (1 + t) / (10 + t))
+  osnovnaya_model/src/mpk/train.py:198: def ema_avg_fn(decay: float, warmup: bool):
+  osnovnaya_model/src/mpk/train.py:208: torch._foreach_copy_(e, c)
+  osnovnaya_model/src/mpk/train.py:343: decay = tc["ema_decay"] if steps >= tc["ema_short_below"] else tc["ema_decay_short"]
+  osnovnaya_model/src/mpk/train.py:344: ema = torch.optim.swa_utils.AveragedModel(model, multi_avg_fn=ema_avg_fn(decay, tc["ema_warmup"]), use_buffers=True)
+  osnovnaya_model/src/mpk/train.py:345: evaluator = model if ema is None else ema.module
+  osnovnaya_model/src/mpk/train.py:408: opt.step()
+  osnovnaya_model/src/mpk/train.py:411: ema.update_parameters(model)
+  osnovnaya_model/src/mpk/train.py:315: share = shares([len(s["idx"]["train"]) for s in S], bs)
+  osnovnaya_model/src/mpk/train.py:395: loss = sum(n / bs * seg_loss(r, y) for r, y, n in zip(rs, ys, share))
+  osnovnaya_model/src/mpk/sohn.py:40: CFG = dict(max_len=384, replicas=8, lr=5e-4 * 8, weight_decay=0.1, lr_min=1e-6, epoch=300, warmup=0, batch_size=64 * 8,
+  osnovnaya_model/src/mpk/sohn.py:801: torch._foreach_sub_(params, d)
+  osnovnaya_model/src/mpk/sohn.py:804: opt.step(lr, wd)
+  osnovnaya_model/src/mpk/sohn.py:806: model.commit_bn()
+  osnovnaya_model/scripts/m13_train.py:290: return cfg_for(SPLIT["alluz"], fold, n, True, PRETRAIN.format(seed=seed), A1_CACHE, True, "_allz", ema_warmup=False)
+  osnovnaya_model/scripts/m13_train.py:669: spe = n_epoch // cfg["batch_size"]
+  osnovnaya_model/scripts/m13_train.py:671: total = a.epochs * spe
+  osnovnaya_model/scripts/m13_train.py:650: train = tr + va if mode == "all" else tr
+  osnovnaya_model/scripts/m13_train.py:732: run_loss += sohn.train_step(model, opt, parts, lr, wd, awp_on=cfg["awp"] and step >= awp0,
+  osnovnaya_model/scripts/m13_train.py:523: model.commit_bn()
+  osnovnaya_model/scripts/m13_train.py:524: ema.update_parameters(model)
+  osnovnaya_model/reports/TURNIR_prereg.md:15: 3. **Два рецепта:** родной (рецепт авторов архитектуры) и общий (наш цикл `mpk.train`: AdamW 1·10⁻³, wd 0,05, прогрев 5 % + косинус, батч 128, сглажив
+  osnovnaya_model/reports/M9_report.md:81: - (а) EMA с прогревом: `decay_t = min(0,99, (1 + t)/(10 + t))`;
+  osnovnaya_model/reports/M9_report.md:104: Решение консультанта_1 (письмо 0005 п. 1.1, вариант (а)): `decay_t = min(0,99, (1 + t)/(10 + t))`, t — число уже усреднённых шагов. Ключ `train.ema_wa
+  osnovnaya_model/reports/m9_tables.md:42: ## M9.7. Повтор пилота с EMA с прогревом (decay_t = min(0,99, (1+t)/(10+t))), A1 и A2
+  uzsign_ai_v2/scripts/loso.py:66: cond: str = "", ema_warmup: bool = True) -> dict:
+  uzsign_ai_v2/scripts/loso.py:79: if ema_warmup:
+  osnovnaya_model/src/mpk/baselines.py:47: self.heads = nn.ModuleDict({k: nn.Linear(D, n) for k, n in n_classes.items()})
+  osnovnaya_model/src/mpk/baselines.py:48: self.emb = nn.Linear(D, mc["emb_dim"])
+  osnovnaya_model/src/mpk/baselines.py:49: self.protos = nn.ParameterDict({k: nn.Parameter(torch.randn(n, mc["emb_dim"])) for k, n in n_classes.items()})
+
+== 1. EMA: формула прогрева, смысл t, целые буферы
+  decay 0.999: прогрев действует при t < 8990 (decay_t(0) = 0.1000, decay_t(100) = 0.9182)
+  decay 0.99: прогрев действует при t < 890 (decay_t(0) = 0.1000, decay_t(100) = 0.9182)
+  AveragedModel decay 0.999, прогрев True: |EMA − рекурсия (t = k − 1, k = 1 — копия)| ≤ 8.5e-14 на 3 000 шагах
+  AveragedModel decay 0.99, прогрев True: |EMA − рекурсия (t = k − 1, k = 1 — копия)| ≤ 4.3e-14 на 3 000 шагах
+  AveragedModel decay 0.999, прогрев False: |EMA − рекурсия (t = k − 1, k = 1 — копия)| ≤ 1.2e-13 на 3 000 шагах
+  целые 0…20 000, одно обновление, decay 0.999, прогрев False: изменилось 0 значений
+  целые 0…20 000, одно обновление, decay 0.999, прогрев True: изменилось 0 значений
+  целые 0…20 000, одно обновление, decay 0.99, прогрев False: изменилось 0 значений
+  целые 0…20 000, одно обновление, decay 0.99, прогрев True: изменилось 0 значений
+  SohnNet(по умолчанию): буферов float 22, целых 0 []; без прогрева испортилось бы элементов: 0,999 → 0, 0,99 → 0
+  SohnNet{'parts': True}: буферов float 22, целых 8 ['part_base0', 'part_ext0', 'part_base1', 'part_ext1']…; без прогрева испортилось бы элементов: 0,999 → 0, 0,99 → 0
+  SohnNet{'cos_head': True}: буферов float 22, целых 0 []; без прогрева испортилось бы элементов: 0,999 → 0, 0,99 → 0
+  SohnNet{'parts': True, 'cos_head': True}: буферов float 22, целых 8 ['part_base0', 'part_ext0', 'part_base1', 'part_ext1']…; без прогрева испортилось бы элементов: 0,999 → 0, 0,99 → 0
+
+== 2. Шаги Sohn = epoch × ⌊n / batch⌋ (m13_train: fold — только train; all — train + val; sb — train pretrain_all)
+  sohn.CFG: epoch 300, batch_size 512; порог EMA 3000 шагов → 0.999 / 0.99
+  slovo: fold1 n 18375 → 10500 шагов, decay 0.999, прогрев 86% шагов; fold2 n 18475 → 10800 шагов, decay 0.999, прогрев 83% шагов; fold3 n 18365 → 10500 шагов, decay 0.999, прогрев 86% шагов; fold4 n 18422 → 10500 шагов, decay 0.999, прогрев 86% шагов; fold5 n 18544 → 10800 шагов, decay 0.999, прогрев 83% шагов; Σ 53100
+  bukva: fold1 n 2682 → 1500 шагов, decay 0.99, прогрев 59% шагов; fold2 n 2732 → 1500 шагов, decay 0.99, прогрев 59% шагов; fold3 n 2744 → 1500 шагов, decay 0.99, прогрев 59% шагов; fold4 n 2727 → 1500 шагов, decay 0.99, прогрев 59% шагов; fold5 n 2757 → 1500 шагов, decay 0.99, прогрев 59% шагов; Σ 7500
+  корпус (11 фолдов, train + val; без названий): шаги [1200, 1500, 1500, 1500, 1800, 1800, 1800, 1800, 1800, 1800, 1800], Σ 18300; decay 0,999 у 0 из 11; прогрев (0,99) — 49%–74% шагов
+  S+B: n 23560 → 13800 шагов, decay 0.999, прогрев 65% шагов
+  горизонт 1/(1 − decay): 0,999 → 1000 шагов, 0,99 → 100 шагов
+
+== 3. Общий рецепт: шаблоны группы 1 (config.yaml; ключа нет → configs/common.yaml, как turnir_train.with_defaults)
+  Slovo/A1/native/scratch (M7/slovo_a_ema/fold*/seed*; 10 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/A2/native/scratch (M8/m85_slovo_a1_bez_grafa/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/MPK_large/native/scratch (M8/m83_slovo_a1_big/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/ST-GCN/shared/scratch (M11G3/g3_slovo_stgcn_orig_mpkrec/fold*/seed*; 5 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/SL-GCN/shared/scratch (M11G2/g2_slovo_slgcn_orig_mpkrec/fold*/seed*; 5 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/E1/native/scratch (M8/m81_slovo_e1_transformer_e1rec/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['64']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/E1/shared/scratch (M8/m81_slovo_e1_transformer_mpkrec/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['True']; прогрев ['False']; decay ['0.999']; T ['64']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/BiLSTM/native/scratch (E1F/slovo_e16_bilstm/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['False']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/transformer2L/native/scratch (E1F/slovo_e16_transformer/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['False']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Slovo/MLP/native/scratch (E1F/slovo_e16_mlp/fold*/seed*; 15 конф.): шаги 14488–14488; ema ['False']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/A1/native/scratch (M7/bukva_a_ema/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['True']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/A2/native/scratch (M8/m85_bukva_a1_bez_grafa/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['True']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/MPK_large/native/scratch (M8/m83_bukva_a1_big/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['True']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/ST-GCN/shared/scratch (M12/m12_1_bukva_stgcn_orig_A3/fold*/seed*; 5 конф.): шаги 2154–2154; ema ['True']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/SL-GCN/shared/scratch (M12/m12_1_bukva_slgcn_orig_A3/fold*/seed*; 5 конф.): шаги 2154–2154; ema ['True']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/E1/native/scratch (M8/m81_bukva_e1_transformer_e1rec/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['True']; прогрев ['False']; decay ['0.99']; T ['64']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/BiLSTM/native/scratch (E1F/bukva_e16_bilstm/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['False']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/transformer2L/native/scratch (E1F/bukva_e16_transformer/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['False']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  Bukva/MLP/native/scratch (E1F/bukva_e16_mlp/fold*/seed*; 15 конф.): шаги 2154–2154; ema ['False']; прогрев ['False']; decay ['0.99']; T ['32']; пакет ['128']; голов ['1']; select ['best_val']; merge_val ['False']
+  UzSL/A1/native/transfer (V2:runs/loso; 33 конф.): шаги 3802–5571; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['last']; merge_val ['True']
+  UzSL/SL-GCN/shared/transfer (V2:runs/M12_slgcn_loso; 33 конф.): шаги 3802–5571; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['last']; merge_val ['True']
+  UzSL/A1/native/scratch (V2:runs/loso1b/B1; 33 конф.): шаги 26609–38992; ema ['True']; прогрев ['False']; decay ['0.999']; T ['32']; пакет ['128']; голов ['1']; select ['last']; merge_val ['True']
+
+== 4. Предобучение S+B общим рецептом (pre_tpl): доли пакета (train.shares) — по разбиению и по batch_share прогона
+  M8/m83_pretrain_sb_a1: головы ['slovo', 'bukva']; train [19979, 3581] → shares [109, 19] (прогон: {'slovo': 109, 'bukva': 19}); шаги 18407; ema True, прогрев False, decay 0.999; T 32
+  M9/pretrain_slovo_bukva_a2: головы ['slovo', 'bukva']; train [19979, 3581] → shares [109, 19] (прогон: {'slovo': 109, 'bukva': 19}); шаги 18407; ema True, прогрев False, decay 0.999; T 32
+  M8/m83_pretrain_sb_a1_big: головы ['slovo', 'bukva']; train [19979, 3581] → shares [109, 19] (прогон: {'slovo': 109, 'bukva': 19}); шаги 18407; ema True, прогрев False, decay 0.999; T 32
+  M11P/pretrain_sb_slgcn_orig: головы ['slovo', 'bukva']; train [19979, 3581] → shares [109, 19] (прогон: {'slovo': 109, 'bukva': 19}); шаги 18407; ema True, прогрев False, decay 0.999; T 32
+
+== 5. Что меняет прогрев при бюджетах Sohn: веса итераций θ_k в EMA на последнем шаге S (точный расчёт по рекурсии)
+  Slovo S 10500, decay 0.999: TV(с прогревом, без) = 6.90e-03; вес последних 10 % шагов 0.6502 / 0.6502; вес θ_1 на конце: 2.1e-30 / 2.7e-05; вес θ_1 в EMA после эпохи 1/10/30 (с прогревом / без): 1.4e-08/0.97, 4.1e-17/0.71, 2.2e-21/0.35
+  Slovo S 10800, decay 0.999: TV(с прогревом, без) = 5.11e-03; вес последних 10 % шагов 0.6606 / 0.6606; вес θ_1 на конце: 1.5e-30 / 2.0e-05; вес θ_1 в EMA после эпохи 1/10/30 (с прогревом / без): 1.1e-08/0.97, 3.2e-17/0.70, 1.7e-21/0.34
+  S+B S 13800, decay 0.999: TV(с прогревом, без) = 2.54e-04; вес последних 10 % шагов 0.7486 / 0.7486; вес θ_1 на конце: 7.7e-32 / 1.0e-06; вес θ_1 в EMA после эпохи 1/10/30 (с прогревом / без): 1.6e-09/0.96, 3.6e-18/0.63, 1.9e-22/0.25
+  Bukva S 1500, decay 0.99: TV(с прогревом, без) = 6.83e-05; вес последних 10 % шагов 0.7785 / 0.7785; вес θ_1 на конце: 2.1e-23 / 2.9e-07; вес θ_1 в EMA после эпохи 1/10/30 (с прогревом / без): 5.0e-03/0.96, 8.0e-10/0.61, 7.0e-14/0.22
+  корпус S 1200, decay 0.99: TV(с прогревом, без) = 1.39e-03; вес последних 10 % шагов 0.7006 / 0.7006; вес θ_1 на конце: 4.4e-22 / 5.8e-06; вес θ_1 в EMA после эпохи 1/10/30 (с прогревом / без): 1.4e-02/0.97, 4.9e-09/0.68, 4.9e-13/0.30
+  корпус S 1800, decay 0.99: TV(с прогревом, без) = 3.35e-06; вес последних 10 % шагов 0.8362 / 0.8362; вес θ_1 на конце: 1.1e-24 / 1.4e-08; вес θ_1 в EMA после эпохи 1/10/30 (с прогревом / без): 2.0e-03/0.95, 1.8e-10/0.55, 1.4e-14/0.17
