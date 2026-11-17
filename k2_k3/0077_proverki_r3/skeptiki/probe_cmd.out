@@ -1,0 +1,11 @@
+usage: m13_train.py [-h] --set {slovo,bukva,uzsl,sb,asl,alluz,alluz_x10}
+                    [--fold FOLD] --seed SEED [--tag TAG] [--init INIT]
+                    [--out OUT] [--workers WORKERS]
+                    [--limit-train LIMIT_TRAIN] [--epochs EPOCHS]
+                    [--stop-epoch STOP_EPOCH] [--variant VARIANT]
+                    [--inner-val] [--input INPUT]
+                    [--save-from-epoch SAVE_FROM_EPOCH] [--arch {sohn,a1}]
+                    [--recipe {sohn,a1}] [--max-steps MAX_STEPS] [--plan-only]
+                    [--ema] [--balanced]
+m13_train.py: error: the following arguments are required: --seed
+exit=2

@@ -1,0 +1,22 @@
+usage: probe_argv_check.py [-h]
+                           --set {slovo,bukva,uzsl,sb,asl,alluz,alluz_x10}
+                           [--fold FOLD] --seed SEED [--tag TAG] [--init INIT]
+                           [--out OUT] [--workers WORKERS]
+                           [--limit-train LIMIT_TRAIN] [--epochs EPOCHS]
+                           [--stop-epoch STOP_EPOCH] [--variant VARIANT]
+                           [--inner-val] [--input INPUT]
+                           [--save-from-epoch SAVE_FROM_EPOCH]
+                           [--arch {sohn,a1}] [--recipe {sohn,a1}]
+                           [--max-steps MAX_STEPS] [--plan-only] [--ema]
+                           [--balanced]
+probe_argv_check.py: error: the following arguments are required: --seed
+[1: команда 22.10 п. 3 как есть (+ --plan-only)] SystemExit(2) — argparse отказал
+[2: + --seed 48 (фолд по умолчанию)] KeyError: 'all'
+   фолд по умолчанию: all | фолды slovo_p5: ['fold1', 'fold2', 'fold3', 'fold4', 'fold5']
+[3: + --seed 48 --fold fold1 --plan-only] AssertionError: 64
+{"tag": "slovo", "fold": "fold1", "seed": 48, "top1": 0.3125, "best_epoch": 1, "steps": 4, "steps_per_sec": 2.038238086922885}
+[4: + --fold fold1 --seed 48 --epochs 4 --max-steps 3 (ЦП)] main вернул: NoneType
+   файлы: ['best.pt', 'labels.json', 'last.pt', 'log.csv', 'logits.npz', 'metrics.json', 'predictions.csv', 'predictions_best.csv', 'predictions_last.csv', 'probs.npz']
+   metrics: top1 (тест) есть: True | n_test 16 | ema True | balanced True | flags.part_tokens True | flags.cos_head True | channels 1266
+   last.pt: tok.*  20 ключей; stem.weight — False | cos_scale 15.99850845336914
+без --out/--tag каталог: /tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/wt_e2/runs/UzSohn/slovo/fold1/seed48

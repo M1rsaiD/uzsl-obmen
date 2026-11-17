@@ -1,0 +1,38 @@
+== H1: turnir-e1 — транзиентный юнит (systemd-run --collect), рестарт в ред. 3 — systemctl start
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+CollectMode=inactive-or-failed
+TURNIR_JOBS=1
+TURNIR_JOBS_SMALL=1
+30:J=${TURNIR_JOBS:-2}; JS=${TURNIR_JOBS_SMALL:-3}
+11:#   cd ~/uzsign/osnovnaya_model && systemd-run --user --unit=turnir-e1 --collect -p WorkingDirectory=$PWD -p MemoryMax=40G \
+39:  systemd-run --user --unit=m13-sohn-2 --collect -p WorkingDirectory="$PWD" -p MemoryMax=40G -p MemorySwapMax=0 -E PATH="$PATH" \
+164:      `ExecStopPost=systemctl --user start turnir-e1` у юнита Э2. По systemd.service(5) `ExecStopPost=` исполняется 
+548:   - **при (ii′) 22.1:** юнит с `ExecStopPost=systemctl --user start turnir-e1` и trap EXIT с той же командой; ждёт
+== M1: цена отступления (ii′) через 12 ч
+192:  сдвигается за группу 2. **Закрыт:** без «да» (ii′) не делается — тогда (а); сдвиг за группу 2 — та же цена, что у (б), только
+197:  - (i) Э2 после группы 2 — механизм не нужен, но главные пары UzSohn появятся на ≈ 195 ч позже;
+935:     п. 6 идут после группы 3, на границе прогонов группы 2; при (ii′) — после группы 2;
+949:  идёт раньше Э2: главные пары UzSohn — на ≈ 1–2 суток позже; если (б) наступил по истечении 12 ч, эти 12 ч простоя добавляются к
+96:    - простой ГП — тот же, ≤ 12 ч, затем (б).
+== M2: корпус без --input против 22.8 (UzSohn в Э1 на корпусе)
+402:    S+B — все 5 затравок заново (новый вход — свой stem: `UZSOHN_prereg.md`, разд. 5); корпус с переносом 11 × 5; корпус с нуля
+503:     `sb` вызывает `records(ds, …, inp)`). У `uzsl` (корпус) `--input` по-прежнему запрещён: позы и H/W нет.
+64:POSE_NPZ = {"alluz": ROOT / "cache/UZSOHN/alluz_pose.npz", "alluz_x10": ROOT / "cache/UZSOHN/alluz_x10_pose.npz",  # uzsohn_pose.py
+66:ASPECT_NPZ = {"alluz": UZ / "uzsign_ai_v2/cache/uzsl_allz.npz", "slovo": ROOT / "cache/slovo.npz", "bukva": ROOT / "cache/bukva.npz"}  # 
+615:    assert not tokens or a.set in ("sb", "alluz", "slovo", "bukva"), \
+== M3: время пробы памяти ред. 2 → ред. 3
+/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/letter/0159/TURNIR_prereg_popravka4_DRAFT.md:461:   - **проба памяти** (
+/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/letter/0159/TURNIR_prereg_popravka4_DRAFT.md:850:   `r2`–`r4`), 22.9 (+3
+/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/letter/0165/TURNIR_prereg_popravka4_DRAFT.md:556:   - **проба памяти** (
+/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/letter/0165/TURNIR_prereg_popravka4_DRAFT.md:1054:| 22.10 пп. 3, 4 | цеп
+== П29: sohn_groups и порядок блоков
+def sohn_groups(model) -> list[list]:
+    """Группы кодировщика Sohn сверху вниз для послойной разморозки (как MPK.layer_groups): верх + последний блок, блоки по
+    одному, вход (stem + BN); голова (classifier) сюда не входит."""
+    b = list(model.blocks)
+    return [[model.top, b[-1]], *([x] for x in reversed(b[:-1])), [model.stem, model.stem_bn]]
+== № 2: параметры n_tok · 37 440 + 37 248
+{3: 149568, 4: 187008}
+== фильтр M13
+/home/error_404/uzsign/osnovnaya_model/scripts/m13_tables.py:0
+/home/error_404/uzsign/osnovnaya_model/scripts/m13_train.py:0

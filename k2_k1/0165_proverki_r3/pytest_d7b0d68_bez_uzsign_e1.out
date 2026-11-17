@@ -1,0 +1,223 @@
+.......................................FF...........F.                   [100%]
+=================================== FAILURES ===================================
+____________________ test_e2_ema_decay_by_steps_and_warmup _____________________
+
+    def test_e2_ema_decay_by_steps_and_warmup():
+        """(б) decay — по полному бюджету прогона в шагах: 0,999 при total ≥ 3 000, иначе 0,99 (= configs/common.yaml, где прогрев
+        выключен); прогрев M9.7 включён: 1 000 обновлений = ручная рекурсия с mpk.train.ema_decay_at (шаг 1 — копия, t — число уже
+        усреднённых шагов) и ≠ рекурсии с другим decay (различаются с t = 890)."""
+        import yaml
+>       from mpk.train import ema_decay_at
+
+../../../wt_e2/tests/test_sohn.py:1031: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """Обучение и оценка МПК и базовых линий (SPEC_MPK §4–5, §8); соглашения цикла — как в uzsign_e1.train.
+    
+    cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src python -m mpk.train --config CFG --seed K [--out DIR] [--max-steps N]
+    Данные, окна и аугментации целиком на ГП (augment.GpuSet): ЦП в цикле не участвует; параллельные прогоны — отдельными процессами.
+    
+    Конфиг (все ключи обязательны, null — ошибка; значения A0 — configs/a0.yaml):
+      model.arch          mpk | имя базовой линии (model.build_model)
+      data                один набор (ключи dataset, cache, split, fold, disjoint, partial_split_ok) или
+                          data.sets: {голова: {те же ключи + boundary_inward_only}} — многоязычное обучение (§3.7):
+                          батч делится между наборами пропорционально числу записей train, CE — по голове своего набора;
+                          выбор контрольной точки — по среднему val top-1 наборов. has_test: false — набор без теста
+                          (предобучение на всех записях, §5.0 п. 2).
+      train.augment       false — A-без-аугм (проверочные окна при обучении)
+      train.ema           A-EMA: веса для val/test — EMA (ema_decay; ema_decay_short при steps < ema_short_below)
+      train.ema_warmup    M9.7: decay_t = min(decay, (1 + t)/(10 + t)) — прогрев EMA для коротких прогонов (false — как раньше)
+      train.refit_trainval §5.0 п. 3 (пилот): после прогона — заново на train ∪ val с числом шагов best_step → <out>/refit
+      train.merge_val     M7 (§10.3 п. 7): обучение сразу на train ∪ val (val нет), бюджет шагов задан заранее
+      train.select        best_val — контрольная точка по val; last — последний шаг (val, если есть, только в log.csv)
+      finetune            §4: init_from (false — с нуля), freeze_steps, unfreeze_every (послойно сверху вниз), backbone_lr_mult
+      dominant.mode       none | detected — A-доминант (ведущая рука по доле кадров с кистью, как E1; не по QC-движению)
+      synth.enabled       A-синт (synth85, только train; равный бюджет шагов)
+    """
+    from __future__ import annotations
+    
+    import argparse
+    import copy
+    import csv
+    import json
+    import math
+    import os
+    import platform
+    import statistics
+    import subprocess
+    import time
+    from pathlib import Path
+    
+    import numpy as np
+    import torch
+    import torch.nn.functional as F
+    import yaml
+    from torch.utils.flop_counter import FlopCounterMode
+>   from uzsign_e1.data import detect_dominant
+E   ModuleNotFoundError: No module named 'uzsign_e1'
+
+../../../wt_e2/src/mpk/train.py:42: ModuleNotFoundError
+_____________________________ test_e2_ema_m13_loop _____________________________
+
+tmp_path = PosixPath('/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/letter/0165/proverki/pytest_tmp/test_e2_ema_m13_loop0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4de8341a30>
+
+    def test_e2_ema_m13_loop(tmp_path, monkeypatch):
+        """№ 3 в цикле m13_train (3 шага, 2 с AWP, синтетика): (а) без --ema main = main master бит в бит — состояние после каждого
+        шага, best.pt, last.pt, логиты и предсказания теста, log.csv (кроме времени); с --ema сырые веса по шагам те же (EMA обучение не
+        меняет). (в) EMA обновляется один раз за шаг, после полного sohn.train_step: веса и буферы EMA = ручная рекурсия по состояниям
+        модели после шагов (шаг 1 — копия, далее lerp с 1 − ema_decay_at(0,99, t): бюджет 4 < 3 000); decay — от полного бюджета (4),
+        не от числа сделанных шагов (3). (г) бегущие средние MaskedBN усредняются (≠ модели). (д) val каждой эпохи, best.pt (эпоха
+        best_epoch), last.pt и тест — по EMA-модели."""
+        import csv
+>       from mpk.train import ema_decay_at
+
+../../../wt_e2/tests/test_sohn.py:1077: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """Обучение и оценка МПК и базовых линий (SPEC_MPK §4–5, §8); соглашения цикла — как в uzsign_e1.train.
+    
+    cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src python -m mpk.train --config CFG --seed K [--out DIR] [--max-steps N]
+    Данные, окна и аугментации целиком на ГП (augment.GpuSet): ЦП в цикле не участвует; параллельные прогоны — отдельными процессами.
+    
+    Конфиг (все ключи обязательны, null — ошибка; значения A0 — configs/a0.yaml):
+      model.arch          mpk | имя базовой линии (model.build_model)
+      data                один набор (ключи dataset, cache, split, fold, disjoint, partial_split_ok) или
+                          data.sets: {голова: {те же ключи + boundary_inward_only}} — многоязычное обучение (§3.7):
+                          батч делится между наборами пропорционально числу записей train, CE — по голове своего набора;
+                          выбор контрольной точки — по среднему val top-1 наборов. has_test: false — набор без теста
+                          (предобучение на всех записях, §5.0 п. 2).
+      train.augment       false — A-без-аугм (проверочные окна при обучении)
+      train.ema           A-EMA: веса для val/test — EMA (ema_decay; ema_decay_short при steps < ema_short_below)
+      train.ema_warmup    M9.7: decay_t = min(decay, (1 + t)/(10 + t)) — прогрев EMA для коротких прогонов (false — как раньше)
+      train.refit_trainval §5.0 п. 3 (пилот): после прогона — заново на train ∪ val с числом шагов best_step → <out>/refit
+      train.merge_val     M7 (§10.3 п. 7): обучение сразу на train ∪ val (val нет), бюджет шагов задан заранее
+      train.select        best_val — контрольная точка по val; last — последний шаг (val, если есть, только в log.csv)
+      finetune            §4: init_from (false — с нуля), freeze_steps, unfreeze_every (послойно сверху вниз), backbone_lr_mult
+      dominant.mode       none | detected — A-доминант (ведущая рука по доле кадров с кистью, как E1; не по QC-движению)
+      synth.enabled       A-синт (synth85, только train; равный бюджет шагов)
+    """
+    from __future__ import annotations
+    
+    import argparse
+    import copy
+    import csv
+    import json
+    import math
+    import os
+    import platform
+    import statistics
+    import subprocess
+    import time
+    from pathlib import Path
+    
+    import numpy as np
+    import torch
+    import torch.nn.functional as F
+    import yaml
+    from torch.utils.flop_counter import FlopCounterMode
+>   from uzsign_e1.data import detect_dominant
+E   ModuleNotFoundError: No module named 'uzsign_e1'
+
+../../../wt_e2/src/mpk/train.py:42: ModuleNotFoundError
+____________________ test_x_ema_every_step_not_every_epoch _____________________
+
+tmp_path = PosixPath('/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/letter/0165/proverki/pytest_tmp/test_x_ema_every_step_not_ever0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f4ef959da90>
+
+    def test_x_ema_every_step_not_every_epoch(tmp_path, monkeypatch):
+        """№ 3: EMA обновляется на КАЖДОМ шаге — при 2 шагах на эпоху (пакет 32 = 8 × 4) n_averaged = числу шагов."""
+        T_ = _m13()
+        made = []
+    
+        class Spy(torch.optim.swa_utils.AveragedModel):
+            def __init__(self, *a, **k):
+                super().__init__(*a, **k)
+                made.append(self)
+        monkeypatch.setattr(torch.optim.swa_utils, "AveragedModel", Spy)
+        monkeypatch.setitem(sohn.CFG, "batch_size", 32)
+        for k, v in (("awp_start_epoch", 1), ("dropout_start_epoch", 2)):
+            monkeypatch.setitem(sohn.CFG, k, v)
+        def records(set_, fold, pose=False, inp=False):
+            rng = np.random.default_rng(0)
+            off = np.concatenate([[0], np.cumsum(rng.integers(8, 40, 96))])
+            xy = rng.uniform(0.2, 0.8, (off[-1], sohn.NUM_NODES, 2)).astype(np.float32)
+            clips = [{"sample_id": f"s{i}", "signer_id": f"p{i % 6}", "gloss": f"g{i % 4}"} for i in range(96)]
+            return (T_.Recs(xy, np.zeros((off[-1], 4), bool), off), [c["gloss"] for c in clips], clips,
+                    (list(range(64)), list(range(64, 80)), list(range(80, 96))))
+        monkeypatch.setattr(T_, "records", records)
+        monkeypatch.setenv("WEEKEND_GATE_NOW", "2026-11-10 10:00")
+>       T_.main(["--set", "bukva", "--fold", "fold1", "--seed", "1", "--epochs", "4", "--max-steps", "5", "--workers", "1",
+                 "--out", str(tmp_path / "ema"), "--ema"])
+
+../../../wt_e2/tests/test_sohn.py:1483: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../../wt_e2/scripts/m13_train.py:775: in main
+    ema = sohn_ema(model, total) if a.ema else None
+          ^^^^^^^^^^^^^^^^^^^^^^
+../../../wt_e2/scripts/m13_train.py:566: in sohn_ema
+    from mpk.train import ema_avg_fn
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    """Обучение и оценка МПК и базовых линий (SPEC_MPK §4–5, §8); соглашения цикла — как в uzsign_e1.train.
+    
+    cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src python -m mpk.train --config CFG --seed K [--out DIR] [--max-steps N]
+    Данные, окна и аугментации целиком на ГП (augment.GpuSet): ЦП в цикле не участвует; параллельные прогоны — отдельными процессами.
+    
+    Конфиг (все ключи обязательны, null — ошибка; значения A0 — configs/a0.yaml):
+      model.arch          mpk | имя базовой линии (model.build_model)
+      data                один набор (ключи dataset, cache, split, fold, disjoint, partial_split_ok) или
+                          data.sets: {голова: {те же ключи + boundary_inward_only}} — многоязычное обучение (§3.7):
+                          батч делится между наборами пропорционально числу записей train, CE — по голове своего набора;
+                          выбор контрольной точки — по среднему val top-1 наборов. has_test: false — набор без теста
+                          (предобучение на всех записях, §5.0 п. 2).
+      train.augment       false — A-без-аугм (проверочные окна при обучении)
+      train.ema           A-EMA: веса для val/test — EMA (ema_decay; ema_decay_short при steps < ema_short_below)
+      train.ema_warmup    M9.7: decay_t = min(decay, (1 + t)/(10 + t)) — прогрев EMA для коротких прогонов (false — как раньше)
+      train.refit_trainval §5.0 п. 3 (пилот): после прогона — заново на train ∪ val с числом шагов best_step → <out>/refit
+      train.merge_val     M7 (§10.3 п. 7): обучение сразу на train ∪ val (val нет), бюджет шагов задан заранее
+      train.select        best_val — контрольная точка по val; last — последний шаг (val, если есть, только в log.csv)
+      finetune            §4: init_from (false — с нуля), freeze_steps, unfreeze_every (послойно сверху вниз), backbone_lr_mult
+      dominant.mode       none | detected — A-доминант (ведущая рука по доле кадров с кистью, как E1; не по QC-движению)
+      synth.enabled       A-синт (synth85, только train; равный бюджет шагов)
+    """
+    from __future__ import annotations
+    
+    import argparse
+    import copy
+    import csv
+    import json
+    import math
+    import os
+    import platform
+    import statistics
+    import subprocess
+    import time
+    from pathlib import Path
+    
+    import numpy as np
+    import torch
+    import torch.nn.functional as F
+    import yaml
+    from torch.utils.flop_counter import FlopCounterMode
+>   from uzsign_e1.data import detect_dominant
+E   ModuleNotFoundError: No module named 'uzsign_e1'
+
+../../../wt_e2/src/mpk/train.py:42: ModuleNotFoundError
+=============================== warnings summary ===============================
+wt_e2/tests/test_sohn.py: 139 warnings
+  /home/error_404/.local/share/mise/installs/python/3.14.7/lib/python3.14/multiprocessing/popen_fork.py:76: DeprecationWarning: This process (pid=1776158) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+wt_e2/tests/test_sohn.py::test_x_part_tokens_mpk_formula_and_init
+  /tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/wt_e2/tests/test_sohn.py:1421: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+    assert abs(float(pt.part_emb.std()) - 0.02) < 0.004 and abs(float(pt.fuse_q.std()) - 0.02) < 0.005
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED ../../../wt_e2/tests/test_sohn.py::test_e2_ema_decay_by_steps_and_warmup
+FAILED ../../../wt_e2/tests/test_sohn.py::test_e2_ema_m13_loop - ModuleNotFou...
+FAILED ../../../wt_e2/tests/test_sohn.py::test_x_ema_every_step_not_every_epoch
+3 failed, 51 passed, 140 warnings in 33.01s
+exit=1

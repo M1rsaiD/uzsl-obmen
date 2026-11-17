@@ -1,0 +1,19 @@
+slovo  база           ch= 708 n_tok=3 base=  2119175 d= 149568 +7.06%
+slovo  u01b           ch= 792 n_tok=3 base=  2135303 d= 149568 +7.00%
+slovo  u04            ch=1158 n_tok=3 base=  2205575 d= 149568 +6.78%
+slovo  u04+u01b       ch=1242 n_tok=3 base=  2221703 d= 149568 +6.73%
+slovo  u01a           ch= 732 n_tok=4 base=  2123783 d= 187008 +8.81%
+slovo  u01a+u01b      ch= 816 n_tok=4 base=  2139911 d= 187008 +8.74%
+slovo  u01a+u04       ch=1182 n_tok=4 base=  2210183 d= 187008 +8.46%
+slovo  u01a+u04+u01b  ch=1266 n_tok=4 base=  2226311 d= 187008 +8.40%
+bukva  база           ch= 708 n_tok=3 base=  1746495 d= 149568 +8.56%
+bukva  u01b           ch= 792 n_tok=3 base=  1762623 d= 149568 +8.49%
+bukva  u04            ch=1158 n_tok=3 base=  1832895 d= 149568 +8.16%
+bukva  u04+u01b       ch=1242 n_tok=3 base=  1849023 d= 149568 +8.09%
+bukva  u01a           ch= 732 n_tok=4 base=  1751103 d= 187008 +10.68%
+bukva  u01a+u01b      ch= 816 n_tok=4 base=  1767231 d= 187008 +10.58%
+bukva  u01a+u04       ch=1182 n_tok=4 base=  1837503 d= 187008 +10.18%
+bukva  u01a+u04+u01b  ch=1266 n_tok=4 base=  1853631 d= 187008 +10.09%
+прирост по n_tok: {3: [149568], 4: [187008]}
+диапазон %: 6.73 … 10.68
+формула n_tok·37440 + 37248: {3: 149568, 4: 187008}

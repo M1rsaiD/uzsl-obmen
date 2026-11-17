@@ -1,0 +1,14 @@
+......................................................                   [100%]
+=============================== warnings summary ===============================
+wt_e2/tests/test_sohn.py: 219 warnings
+  /home/error_404/.local/share/mise/installs/python/3.14.7/lib/python3.14/multiprocessing/popen_fork.py:76: DeprecationWarning: This process (pid=1777121) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+wt_e2/tests/test_sohn.py::test_x_part_tokens_mpk_formula_and_init
+  /tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/wt_e2/tests/test_sohn.py:1421: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+    assert abs(float(pt.part_emb.std()) - 0.02) < 0.004 and abs(float(pt.fuse_q.std()) - 0.02) < 0.005
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+54 passed, 220 warnings in 44.64s
+exit=0
