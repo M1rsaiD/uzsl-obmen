@@ -1,0 +1,3 @@
+# 17.11.2026 20:51: процессы с контекстом CUDA (nvidia-smi --query-compute-apps), только python
+3020337, python (прогон mpk.train), 2320 MiB
+# раннер турнира: PID 12586 (python scripts/turnir_train.py run --groups 1 --jobs 1 --jobs-small 1) — в списке: 0 раз

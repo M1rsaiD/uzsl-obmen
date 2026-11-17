@@ -1,0 +1,19 @@
+# слитое дерево 35560e0 = turnir-e2-levers 49b93bd + turnir-e2-tools 964ecba; 2026-11-17 20:46:09
+........................................................................ [ 62%]
+............................................                             [100%]
+=============================== warnings summary ===============================
+tests/test_sohn.py: 282 warnings
+  /home/error_404/.local/share/mise/installs/python/3.14.7/lib/python3.14/multiprocessing/popen_fork.py:76: DeprecationWarning: This process (pid=3023336) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+tests/test_sohn.py::test_x_part_tokens_mpk_formula_and_init
+  /tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/mutfix/merged/tests/test_sohn.py:1520: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+    assert abs(float(pt.part_emb.std()) - 0.02) < 0.004 and abs(float(pt.fuse_q.std()) - 0.02) < 0.005
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+116 passed, 283 warnings in 102.42s (0:01:42)
+# selftest turnir_eval
+|---|---|---|---|---|---|---|
+| Slovo | A1 − ST-GCN | +11.93 | [+6.33; +17.80] | лучше | +11.93 [+6.33; +17.80] | 5 % |
+самопроверка пройдена; 17 строк сводки (синтетика, не результаты)
