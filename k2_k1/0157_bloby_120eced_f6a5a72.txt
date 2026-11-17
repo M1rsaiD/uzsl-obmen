@@ -1,0 +1,23 @@
+# к2 0157: блобы кода этапа (scripts/uzsohn_code.txt) и предрегистрации — сверенный 120eced и master f6a5a72
+# путь | 120eced | f6a5a72
+src/mpk/__init__.py | e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 | e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 | равны
+src/mpk/sohn.py | cd8a4541a632fc8b8057582593a08120e6339272 | cd8a4541a632fc8b8057582593a08120e6339272 | равны
+src/mpk/data.py | bbaae45ee18bdcda2d018b7166732a91a46b1685 | bbaae45ee18bdcda2d018b7166732a91a46b1685 | равны
+scripts/m13_train.py | 5d9aebb0610e916a1fe64878394949c147bbac97 | 5d9aebb0610e916a1fe64878394949c147bbac97 | равны
+scripts/m13_build.py | 971de9eef8df41ed45b835f71151f8186ca20dcf | 971de9eef8df41ed45b835f71151f8186ca20dcf | равны
+scripts/weekend_gate.sh | f2b5d94a0d1f67c4b8992f1abb8fe632feb40379 | f2b5d94a0d1f67c4b8992f1abb8fe632feb40379 | равны
+scripts/uzsohn_chain.sh | 719cf5eeb0771b6a55ce4143b10244381d47a0d9 | 719cf5eeb0771b6a55ce4143b10244381d47a0d9 | равны
+scripts/uzsohn_stage2_chain.sh | 5464c10e939386fbcfcd89de20fa88ca52e13de3 | 5464c10e939386fbcfcd89de20fa88ca52e13de3 | равны
+scripts/uzsohn_code.txt | 889f69e168c5119e9a050770cb7208b1df7a4191 | 889f69e168c5119e9a050770cb7208b1df7a4191 | равны
+scripts/uzsohn_sel.py | 57f8b3968f762ace74a789a9e85dc8ee84a59302 | 57f8b3968f762ace74a789a9e85dc8ee84a59302 | равны
+scripts/uzsohn_gates.py | a6f8a0df751275cc6fbe510552e989443423c26a | a6f8a0df751275cc6fbe510552e989443423c26a | равны
+scripts/uzsohn_pose_check.py | 6cd5df7477dab7a51f2ac49e5f7edc2a95ec70ad | 6cd5df7477dab7a51f2ac49e5f7edc2a95ec70ad | равны
+tests/test_sohn.py | 62b117f41aba81306ea293e968368523324f068b | 62b117f41aba81306ea293e968368523324f068b | равны
+reports/uzsohn_selftest_ref.json | 625f30d2510c2b078254cc72fe4b4d872831686e | 625f30d2510c2b078254cc72fe4b4d872831686e | равны
+reports/UZSOHN_prereg.md | 10c1e1f3df1d29b7cc914e50ffb8698edb96a1ae | 10c1e1f3df1d29b7cc914e50ffb8698edb96a1ae | равны
+reports/UZSOHN_prereg_popravka1.md | 94e452710ead1a5b88fe3b7c9993a307656f5fd0 | 94e452710ead1a5b88fe3b7c9993a307656f5fd0 | равны
+reports/UZSOHN_prereg_popravka2.md | нет | 210423342ad07478fbb7ecf016b2308d135819da | РАЗНЫЕ
+# git diff --stat 120eced f6a5a72:
+ reports/UZSOHN_prereg_popravka2.md | 559 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 559 insertions(+)
+# v2 (uzsign_ai_v2 HEAD 9f22151): незакоммиченного в scripts/uzsohn_stage1_cpu.py scripts/alluz.py — []
