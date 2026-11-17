@@ -1,0 +1,7 @@
+реш. 3: при затравке 48 все 92 общих тензоров сети с № 2 = сети без № 2 бит в бит; различаются только stem / tok
+   контроль: лишний расход ГСЧ до сети меняет 35 из 93 тензоров — тест чувствителен
+реш. 1: --balanced=True: s = 16.0 (ожид. 16.0); classifier — новый; энкодер — из S+B
+реш. 1: --balanced=False: s = 23.5 (ожид. 23.5); classifier — новый; энкодер — из S+B
+bf16: cos_head=False: dtype логитов под autocast = torch.bfloat16
+bf16: cos_head=True: dtype логитов под autocast = torch.bfloat16
+ВСЁ СОВПАЛО
