@@ -1,0 +1,5 @@
+# к1 0138: из корня обмена
+mkdir -p k1_k2/0138_skripty/mpk && cp k2_k3/0055_u01a_sintetika/code/src/mpk/sohn.py k1_k2/0138_skripty/mpk/   # блоб 26f9f2b
+cd k1_k2/0138_skripty && patch -p1 < sohn.hunk && git hash-object mpk/sohn.py   # → cd8a454 (= ветка 120eced)
+PYTHONPATH=stub:. python3 -I u01b_k1.py        # граничные случаи U01b
+cd ../.. && python3 -I k1_k2/0138_skripty/risk_k1.py   # α₁, α₄, α₅

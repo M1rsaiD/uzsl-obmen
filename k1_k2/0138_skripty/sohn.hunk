@@ -1,0 +1,57 @@
+diff --git a/mpk/sohn.py b/mpk/sohn.py
+index 26f9f2b..cd8a454 100644
+--- a/mpk/sohn.py
++++ b/mpk/sohn.py
+@@ -245,14 +245,17 @@ def preprocess_pose(x: np.ndarray, max_len: int = MAX_LEN) -> np.ndarray:
+ # Sohn (x, y, dx, dx2: 732 столбца), отражение 11↔12, 13↔14; u04 — на кисть 210 попарных расстояний / медиана ладони |9 − 0|
+ # по кадрам + 15 значений 1 + cos углов суставов (без dx), +450 столбцов.
+ # Запись x [T, 122, 2] = 118 точек Sohn + поза 11–14 (поза нужна и без u01a — для u02*). filter_nans — по 118 (как у Sohn).
+-INPUT_TOKENS = ("u02s", "u02c", "u01a", "u04")
++# Этап 2 (UZSOHN_prereg_popravka2.md): u01b — на кисть 21 точка (x, y · H/W) в своей системе, +84 столбца в конце (hand_local).
++INPUT_TOKENS = ("u02s", "u02c", "u01a", "u04", "u01b")
+ FINGERS = [[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [0, 9, 10, 11, 12], [0, 13, 14, 15, 16], [0, 17, 18, 19, 20]]
+ PAIRS = np.array([(i, j) for i in range(21) for j in range(i + 1, 21)])   # 210
+ HAND_FEATS = 2 * (len(PAIRS) + 15)                                        # 450
++HAND_LOCAL = 2 * 21 * 2                                                   # 84: кисти Л, П × 21 точка × (x, y)
+ 
+ 
+ def input_channels(tokens) -> int:
+-    return 6 * (NUM_NODES_POSE if "u01a" in tokens else NUM_NODES) + (HAND_FEATS if "u04" in tokens else 0)
++    return (6 * (NUM_NODES_POSE if "u01a" in tokens else NUM_NODES) + (HAND_FEATS if "u04" in tokens else 0)
++            + (HAND_LOCAL if "u01b" in tokens else 0))
+ 
+ 
+ def hand_feats(xp: np.ndarray) -> np.ndarray:
+@@ -280,6 +283,23 @@ def hand_feats(xp: np.ndarray) -> np.ndarray:
+     return np.clip(np.nan_to_num(f, nan=0.0, posinf=0.0, neginf=0.0), -EXTRA_CLIP, EXTRA_CLIP).astype(np.float32)
+ 
+ 
++def hand_local(xp: np.ndarray) -> np.ndarray:
++    """U01b (этап 2; 0153 + к1 0136 п. 5, к3 0039 разд. 5): xp [T, 118, 2] в изотропных координатах (x, y · H/W) → [T, 84]: на
++    кисть Л, П — 21 точка (x, y) в своей системе: (точка − запястье 0 этого кадра) / ладонь; ладонь — медиана |9 − 0| по кадрам
++    xp, где есть точки 0 и 9 этой кисти (как у hand_feats U04: по кадрам входа, при обучении — после масок); таких кадров нет —
++    42 столбца кисти 0. Без поворота и скоростей; NaN → 0; обрезка [−10; 10]. Столбцы «запястье − запястье» (0, 1, 42, 43)
++    тождественно 0 — оставлены (к1 0136 п. 5)."""
++    out = []
++    with np.errstate(invalid="ignore", divide="ignore"):
++        for H in (LH_LOC, RH_LOC):
++            q = xp[:, H]
++            palm = np.linalg.norm(q[:, 9] - q[:, 0], axis=-1)
++            med = np.nanmedian(palm) if np.isfinite(palm).any() else np.nan   # nanmedian пустого — предупреждение
++            out.append(((q - q[:, :1]) / med).reshape(len(q), -1))
++    f = np.concatenate(out, 1)
++    return np.clip(np.nan_to_num(f, nan=0.0, posinf=0.0, neginf=0.0), -EXTRA_CLIP, EXTRA_CLIP).astype(np.float32)
++
++
+ def center_scale_u(x: np.ndarray, aspect: float, tokens, stat: str = "median") -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+     """→ (k, mean, std): z = (x · k − mean) / std. По умолчанию (нет u02*) — center_scale Sohn по 118 точкам, k = (1, 1).
+     u02s (U02-1): k = (1, H/W), std = медиана по кадрам ширины плеч на обе оси; центр — u02c: медиана середины плеч, иначе
+@@ -323,6 +343,8 @@ def preprocess_u(x: np.ndarray, aspect: float, tokens, max_len: int = MAX_LEN) -
+     out = [np.nan_to_num(np.concatenate([z.reshape(T, -1), dx.reshape(T, -1), dx2.reshape(T, -1)], 1), nan=0.0)]
+     if "u04" in tokens:
+         out.append(hand_feats(x[:max_len, :NUM_NODES] * np.array([1.0, aspect], np.float32)))
++    if "u01b" in tokens:   # этап 2: +84 столбца в конце, сырыми (как U04); x — после аугментации (отражение меняет кисти местами)
++        out.append(hand_local(x[:max_len, :NUM_NODES] * np.array([1.0, aspect], np.float32)))
+     return np.concatenate(out, 1).astype(np.float32)
+ 
+ 
