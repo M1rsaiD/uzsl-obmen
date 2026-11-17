@@ -1,0 +1,10 @@
+none BASE_OK ['tests/test_e2_review_extra.py'] ['3 passed in 6.07s']
+n2_gelu_relu KILLED ['test_x_part_tokens_mpk_formula_and_init'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_mpk_formula_and_init', '1 failed in 0.63s']
+n2_emb_scale_1 KILLED ['test_x_part_tokens_mpk_formula_and_init'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_mpk_formula_and_init', '1 failed in 0.63s']
+n2_fuseq_scale_1 KILLED ['test_x_part_tokens_mpk_formula_and_init'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_mpk_formula_and_init', '1 failed in 0.63s']
+n2_no_sqrt_dim KILLED ['test_x_part_tokens_mpk_formula_and_init'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_mpk_formula_and_init', '1 failed in 0.67s']
+n2_mask_all_points KILLED ['test_x_part_tokens_mpk_formula_and_init'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_mpk_formula_and_init', '1 failed in 0.65s']
+n2_main_no_tokens_kw KILLED ['test_x_part_tokens_m13_loop'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_m13_loop - Assertion...', '1 failed in 2.47s']
+n2_main_recs_flag_off KILLED ['test_x_part_tokens_m13_loop'] ['FAILED tests/test_e2_review_extra.py::test_x_part_tokens_m13_loop - Assertion...', '1 failed in 0.87s']
+n3_update_epoch_end_only KILLED ['test_x_ema_every_step_not_every_epoch'] ['FAILED tests/test_e2_review_extra.py::test_x_ema_every_step_not_every_epoch', '1 failed in 2.03s']
+done

@@ -1,0 +1,43 @@
+diff --git a/src/mpk/sohn.py b/src/mpk/sohn.py
+index 77e50eb..7a87d90 100644
+--- a/src/mpk/sohn.py
++++ b/src/mpk/sohn.py
+@@ -725,10 +725,12 @@ class SohnNet(nn.Module):
+ 
+     def forward(self, x: torch.Tensor, m: torch.Tensor) -> torch.Tensor:
+         f = self.features(x, m)
++        if self.cos_head:   # № 4, вариант (Б) 0163: нормировка до LateDropout — логит обучения в среднем = логиту оценки (К-3: иначе ×√0,2)
++            f = F.normalize(f.float(), dim=-1)
+         if self.training and self.late_dropout_on:
+             f = F.dropout(f, 0.8, True)
+         if self.cos_head:
+-            return self.cos_scale * F.normalize(f.float(), dim=-1) @ F.normalize(self.classifier.weight.float(), dim=-1).T
++            return self.cos_scale * f @ F.normalize(self.classifier.weight.float(), dim=-1).T
+         return self.classifier(f)
+ 
+     def bns(self) -> list[MaskedBN]:
+diff --git a/tests/test_sohn.py b/tests/test_sohn.py
+index 8d4004d..35337aa 100644
+--- a/tests/test_sohn.py
++++ b/tests/test_sohn.py
+@@ -1485,3 +1485,20 @@ def test_x_ema_every_step_not_every_epoch(tmp_path, monkeypatch):
+     m = json.loads((tmp_path / "ema" / "metrics.json").read_text())
+     (ema,) = made
+     assert m["steps_per_epoch"] == 2 and m["steps_run"] == 5 and int(ema.n_averaged) == 5
++
++
++def test_e2_long_tail_cos_head_dropout_after_norm():
++    """№ 4, вариант (Б) (0163; сводка дебатов UzSohn, разд. 3.1, К-3): LateDropout(0,8) — после нормировки признака, поэтому логит
++    при обучении в среднем равен логиту оценки. При dropout до нормировки он был ≈ √0,2 = 0,447 от него (потолок p при s = 16 и
++    1 001 классе — 0,56)."""
++    torch.manual_seed(0)
++    m = sohn.SohnNet(5, cos_head=True)
++    f = torch.nn.functional.silu(torch.randn(1, 384) * 1.5)
++    with torch.no_grad():
++        m.classifier.weight[0] = f[0]                                   # прототип класса 0 = признак: на оценке логит = s
++    m.features = lambda x, mk: f.expand(4000, -1)
++    m.late_dropout_on = True
++    with torch.no_grad():
++        ev = m.eval()(None, None)[0]
++        tr = m.train()(None, None).mean(0)
++    assert abs(float(ev[0]) - 16.0) < 1e-4 and abs(float(tr[0] / ev[0]) - 1) < 0.03, (ev, tr)

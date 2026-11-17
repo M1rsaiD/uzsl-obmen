@@ -1,0 +1,1046 @@
+diff --git a/scripts/m13_train.py b/scripts/m13_train.py
+index 5d9aebb..8ac5f0f 100644
+--- a/scripts/m13_train.py
++++ b/scripts/m13_train.py
+@@ -21,6 +21,10 @@ UzSohn этап 1 (reports/UZSOHN_prereg.md): --input u02s,u02c,u01a,u04 — в
+ U33 (../uzsign_ai_v2/reports/U33_prereg.md, только --set alluz LOSO с --init): --arch a1 --recipe sohn — A1 на конвейере и
+ рецепте Sohn; --arch sohn --recipe a1 — Sohn с рецептом дообучения A1; по умолчанию (sohn, sohn) — прежний Sohn. --max-steps —
+ проба; --plan-only — план прогона для селфтеста (uzsign_ai_v2/scripts/u33.py selftest).
++Э2 турнира (поправка 4 к TURNIR_prereg, 22.11): --variant 9 — рычаг 0059 № 2 «токены частей» (sohn.PartTokens вместо stem; можно
++с --input — части по столбцам входа); --ema — № 3 «EMA с прогревом» (sohn_ema; val, best.pt, last.pt и тест — по EMA-весам);
++--balanced — № 4 «длинный хвост» (поток Stream по balanced_p: p ∝ 1/n_класса внутри набора, доли наборов S+B прежние; косинусная
++голова cos_head без смещения).
+ """
+ import argparse
+ import csv
+@@ -62,7 +66,8 @@ POSE_NPZ = {"alluz": ROOT / "cache/UZSOHN/alluz_pose.npz", "alluz_x10": ROOT / "
+ ASPECT_NPZ = {"alluz": UZ / "uzsign_ai_v2/cache/uzsl_allz.npz", "slovo": ROOT / "cache/slovo.npz", "bukva": ROOT / "cache/bukva.npz"}  # H/W, кэши МПК
+ CODES = UZ / "uzsign_ai_v2/data/signer_codes.local.json"   # только ПК
+ UZSOHN_SEL_SEED = 48   # UzSohn этап 1: отбор целиком (контроль sb/all/seed48, предобучения плеч, дообучение) — вне 42–47 подтверждения (к1 0123 п. 20)
+-IDEA = {1: "parts", 2: "hand_gcn", 3: "pose", 4: "hand_cross", 5: "ms_conv", 6: "attn_pool", 7: "cos_head", 8: "aux_shape"}  # UZSOHN_prereg
++IDEA = {1: "parts", 2: "hand_gcn", 3: "pose", 4: "hand_cross", 5: "ms_conv", 6: "attn_pool", 7: "cos_head", 8: "aux_shape",  # UZSOHN_prereg
++        9: "part_tokens"}   # № 2 Э2 турнира (поправка 4, 22.11), не идея 0107
+ 
+ 
+ def inner_val(fold: str, folds: list[str]) -> str:
+@@ -173,7 +178,8 @@ def records(set_: str, fold: str, pose: bool = False, inp: bool = False):
+ class AugSet(Dataset):
+     """Элемент (запись, позиция в потоке) → (признаки [T, 708], метка). Случайность аугментации — от (затравка, позиция).
+     U33: a1aug — аугментации A1 вместо Sohn (a1_aug_sohn; aspect — H/W записи). UzSohn этап 1: u02 — общий с воркерами (fork)
+-    счётчик [примеров с u02*, из них без кадра с обоими плечами после масок — ветка Sohn, вариант (в) UZSOHN_prereg 4.1]."""
++    счётчик [примеров с u02*, из них без кадра с обоими плечами после масок — ветка Sohn, вариант (в) UZSOHN_prereg 4.1].
++    № 2 Э2 (recs.part_tokens): к признакам в конце — маска частей sohn.part_mask по тому же x."""
+ 
+     def __init__(self, recs, labels, seed: int, aug: bool, a1aug: dict | None = None, aspect: np.ndarray | None = None):
+         self.recs, self.labels, self.seed, self.aug = recs, labels, seed, aug
+@@ -196,8 +202,12 @@ class AugSet(Dataset):
+                 with self.u02.get_lock():
+                     self.u02[0] += 1
+                     self.u02[1] += not shoulders_seen(x)
+-            return sohn.preprocess_u(x, float(self.recs.aspect[i]), tok), self.labels[i]
+-        return (sohn.preprocess(x) if x.shape[1] == sohn.NUM_NODES else sohn.preprocess_pose(x)), self.labels[i]
++            f = sohn.preprocess_u(x, float(self.recs.aspect[i]), tok)
++        else:
++            f = sohn.preprocess(x) if x.shape[1] == sohn.NUM_NODES else sohn.preprocess_pose(x)
++        if getattr(self.recs, "part_tokens", False):   # маска — по NaN после аугментации (отражение — вместе с кистями), до NaN → 0
++            f = np.concatenate([f, sohn.part_mask(x, tok)], 1)
++        return f, self.labels[i]
+ 
+ 
+ def shoulders_seen(x: np.ndarray) -> bool:
+@@ -207,16 +217,21 @@ def shoulders_seen(x: np.ndarray) -> bool:
+ 
+ class Stream:
+     """Их tf.data: repeat() → shuffle(32768) → padded_batch(512). Порядок эпохи — постоянная перестановка (их чтение
+-    TFRecord идёт в одном порядке файлов), буфер перемешивания 32768 — как ShuffleDataset."""
++    TFRecord идёт в одном порядке файлов), буфер перемешивания 32768 — как ShuffleDataset. № 4 Э2 (p — вероятности записей idx,
++    balanced_p): записи i.i.d. с возвращением по p вместо перестановки с буфером; шаги, пакет и позиции — те же."""
+ 
+-    def __init__(self, idx: list[int], steps: int, seed: int, bs: int, buf: int):
+-        self.idx, self.steps, self.seed, self.bs, self.buf = idx, steps, seed, bs, buf
++    def __init__(self, idx: list[int], steps: int, seed: int, bs: int, buf: int, p: np.ndarray | None = None):
++        self.idx, self.steps, self.seed, self.bs, self.buf, self.p = idx, steps, seed, bs, buf, p
+ 
+     def __len__(self):
+         return self.steps
+ 
+     def __iter__(self):
+         rng = np.random.default_rng([self.seed, 7])
++        if self.p is not None:
++            for k in range(self.steps):
++                yield [(int(i), k * self.bs + j) for j, i in enumerate(rng.choice(self.idx, self.bs, p=self.p))]
++            return
+         base = rng.permutation(self.idx)
+         gen = (int(base[k % len(base)]) for k in range(10 ** 12))
+         buf = [next(gen) for _ in range(self.buf)]
+@@ -231,6 +246,21 @@ class Stream:
+             yield out
+ 
+ 
++def balanced_p(train: list[int], labels: np.ndarray, glosses: list[str], set_: str) -> np.ndarray:
++    """№ 4 Э2 турнира (поправка 4, 22.11; вне Э2 — вариант (II), к1 0142, к3 0043): вероятности записей train в потоке — классы
++    внутри набора поровну (p ∝ 1/n_класса, n — по записям train), доля набора — как без № 4 (его доля записей train). Набор — Slovo
++    или Bukva у S+B (префикс глоссы, records), иначе один (корпус — по фолду)."""
++    lab = labels[train]
++    grp = np.array([glosses[i].split(":")[0] if set_ == "sb" else "" for i in train])
++    assert set_ != "sb" or set(grp) <= {"slovo", "bukva"}, set(grp)   # без префикса каждый класс стал бы своим набором — молча без баланса
++    n = np.bincount(lab)[lab]
++    p = np.empty(len(lab))
++    for g in np.unique(grp):
++        s = grp == g
++        p[s] = s.mean() / (len(np.unique(lab[s])) * n[s])
++    return p / p.sum()
++
++
+ def collate_parts(items):
+     n = len(items) // PARTS
+     parts = []
+@@ -530,6 +560,14 @@ def train_recipe_a1(model, ds, train: list[int], seed: int, c: dict, run_steps:
+     return ema.module
+ 
+ 
++def sohn_ema(model, total: int):
++    """№ 3 Э2 турнира (поправка 4, 22.11): EMA весов и буферов кодом общего рецепта (mpk.train); decay — по полному бюджету прогона
++    в шагах, как configs/common.yaml (0,999; при < 3 000 шагов 0,99); прогрев M9.7 — явно (в common.yaml ema_warmup: false)."""
++    from mpk.train import ema_avg_fn
++    return torch.optim.swa_utils.AveragedModel(model, multi_avg_fn=ema_avg_fn(0.999 if total >= 3000 else 0.99, True),
++                                               use_buffers=True)
++
++
+ def uzsohn_code() -> tuple[list[str], list[str]]:
+     """Код этапа 1 UzSohn (scripts/uzsohn_code.txt; UZSOHN_prereg разд. 14): пути osnovnaya_model и uzsign_ai_v2 («v2:»)."""
+     ls = [s.split("#")[0].strip() for s in Path(__file__).with_name("uzsohn_code.txt").read_text().splitlines()]
+@@ -558,7 +596,7 @@ def main(argv: list[str] | None = None) -> dict | None:
+     ap.add_argument("--limit-train", type=int, default=0)
+     ap.add_argument("--epochs", type=int, default=sohn.CFG["epoch"])
+     ap.add_argument("--stop-epoch", type=int, default=0, help="остановка после эпохи N при расписании на --epochs (Э0: 83)")
+-    ap.add_argument("--variant", default="", help="UzSohn: идеи через запятую из 1…8 (пусто — Sohn; 8 — заготовка)")
++    ap.add_argument("--variant", default="", help="UzSohn: идеи через запятую из 1…9 (пусто — Sohn; 8 — заготовка; 9 — № 2 Э2)")
+     ap.add_argument("--inner-val", action="store_true", help="UzSohn отбор: счёт на V_k, обучение без V_k")
+     ap.add_argument("--input", default="", help="UzSohn этап 1: токены входа через запятую из u02s, u02c, u01a, u04 (пусто — Sohn)")
+     ap.add_argument("--save-from-epoch", type=int, default=0, help="U30 (UZSOHN_prereg): веса ep<N>.pt каждые 10 эпох с N (0 — нет)")
+@@ -566,29 +604,42 @@ def main(argv: list[str] | None = None) -> dict | None:
+     ap.add_argument("--recipe", default="sohn", choices=["sohn", "a1"], help="U33: a1 — рецепт дообучения A1")
+     ap.add_argument("--max-steps", type=int, default=0, help="U33 проба: обрыв после N шагов (расписание не меняется)")
+     ap.add_argument("--plan-only", action="store_true", help="U33 селфтест: план прогона (dict), без обучения")
++    ap.add_argument("--ema", action="store_true", help="Э2 турнира № 3: EMA весов и буферов с прогревом M9.7 (поправка 4, 22.11)")
++    ap.add_argument("--balanced", action="store_true",
++                    help="Э2 турнира № 4: выборка p ∝ 1/n_класса внутри набора + косинусная голова (поправка 4, 22.11)")
+     a = ap.parse_args(argv)
+     ideas = {int(v) for v in a.variant.split(",") if v}
+     tokens = tuple(t for t in sohn.INPUT_TOKENS if t in a.input.split(","))
+     assert set(a.input.split(",")) - {""} == set(tokens), a.input
+-    assert not (tokens and ideas), "этап 1 (--input) и идеи 0107 (--variant) не смешиваются"
+-    assert not tokens or a.set in ("sb", "alluz"), "этап 1: предобучение sb и отбор alluz (база — Sohn ALL-UZ)"
++    assert not (tokens and ideas - {9}), "этап 1 (--input) и идеи 0107 (--variant) не смешиваются (с входом — только № 2 Э2, 9)"
++    assert not tokens or a.set in ("sb", "alluz", "slovo", "bukva"), \
++        "--input: этап 1 — предобучение sb и отбор alluz; Э2 турнира — slovo, bukva с нуля (поправка 4, 22.10 п. 1); у uzsl позы и H/W нет"
+     assert ideas <= set(IDEA), ideas
+     flags = {IDEA[k]: k in ideas for k in sorted(IDEA)}
++    flags["cos_head"] |= a.balanced   # № 4 — одна проба, два механизма: выборка и косинусная голова
++    lev = flags["part_tokens"] or a.ema or a.balanced   # рычаги Э2: веса --init — завершённые и с теми же рычагами (22.10 п. 1а)
+     assert not a.inner_val or (a.set in ("alluz", "alluz_x10") and a.fold != "all")
+     u33 = (a.arch, a.recipe) != ("sohn", "sohn")
+     assert not u33 or (a.arch != a.recipe and a.set == "alluz" and a.fold != "all" and not ideas and not a.inner_val and a.init), \
+         "U33: перекрёстные клетки ALL-UZ LOSO с --init (uzsign_ai_v2/reports/U33_prereg.md)"
+     assert not (tokens and u33), "этап 1 (--input) и U33 не смешиваются"
++    assert not (a.ema and (u33 or a.save_from_epoch)), "№ 3 (--ema) — цикл Sohn; с U33 и весами U30 (ep*.pt) не определён"
++    assert not (a.balanced and u33), "№ 4 (--balanced) — поток Stream и сеть Sohn; с U33 не определён"
+     if a.init and a.arch == "sohn":   # к1 0120 п. 6: у плеча своё предобучение S+B — вход весов = вход прогона
+         im = Path(a.init).with_name("metrics.json")
+         # отбор (--inner-val) — и у контроля: его sb/all/seed48 тоже своё, оборванное без metrics.json не годится (р4)
+-        assert im.is_file() or not (tokens or a.inner_val), f"{im}: нет metrics.json предобучения (не завершено?)"
++        assert im.is_file() or not (tokens or a.inner_val or lev), f"{im}: нет metrics.json предобучения (не завершено?)"
+         if im.is_file():
+             m0 = json.loads(im.read_text())
+             assert (m0.get("input") or []) == list(tokens), f"--init {a.init}: вход весов {m0.get('input')} ≠ {list(tokens)}"
++            pt0 = (m0.get("flags") or {}).get("part_tokens", False)   # поправка 4, 22.10 п. 1а
++            assert pt0 == flags["part_tokens"], f"--init {a.init}: № 2 (токены частей) у весов {pt0} ≠ у прогона {flags['part_tokens']}"
++            assert m0.get("ema", False) == a.ema, f"--init {a.init}: № 3 (EMA) у весов {m0.get('ema', False)} ≠ у прогона {a.ema}"
++            assert m0.get("balanced", False) == a.balanced, \
++                f"--init {a.init}: № 4 (длинный хвост) у весов {m0.get('balanced', False)} ≠ у прогона {a.balanced}"
+             # бюджет предобучения — до дообучения, те же условия, что uzsohn_sel.full_budget: цепочка пропускает готовое по
+             # metrics.json, а report сверяет его лишь в конце этапа (раунд 4 проверки р4)
+-            assert not (tokens or a.inner_val) or (m0.get("steps_run") == m0.get("steps") and m0.get("limit_train") == 0 and
++            assert not (tokens or a.inner_val or lev) or (m0.get("steps_run") == m0.get("steps") and m0.get("limit_train") == 0 and
+                     m0.get("epochs") == sohn.CFG["epoch"] and not m0.get("stop_epoch") and not m0.get("max_steps")), \
+                 f"--init {a.init}: урезанное предобучение " + str({k: m0.get(k) for k in ("steps_run", "steps", "limit_train", "epochs",
+                                                                                      "stop_epoch", "max_steps")}) + \
+@@ -636,11 +687,12 @@ def main(argv: list[str] | None = None) -> dict | None:
+         print(f"оборванный прогон перенесён → {dst}")
+     out.mkdir(parents=True)
+     # код — до обучения (он и загружен); у этапа 1 UzSohn — только его файлы (uzsohn_code.txt): посторонний скрипт не «dirty» (р3)
+-    code = git(ROOT, uzsohn_code()[0] if tokens or a.inner_val or a.seed == UZSOHN_SEL_SEED else ("src/mpk/sohn.py", "scripts"))
++    code = git(ROOT, uzsohn_code()[0] if tokens or a.inner_val or a.seed == UZSOHN_SEL_SEED else
++               ("src/mpk/sohn.py", "scripts") + (("src/mpk/train.py",) if a.ema else ()))   # № 3 исполняет ema_avg_fn из mpk.train
+     t0 = time.time()
+     recs, glosses, clips, (tr, va, te) = records_a1(a.fold) if a.arch == "a1" else \
+         records(a.set, None if a.set == "sb" else a.fold, pose=flags["pose"], inp=bool(tokens))
+-    recs.tokens = tokens
++    recs.tokens, recs.part_tokens = tokens, flags["part_tokens"]
+     mode = "all" if a.set in ("uzsl", "alluz", "alluz_x10") else "fold"
+     lab_idx = tr + va + te
+     names = sorted({glosses[i] for i in lab_idx})                    # как train.prepare_set / build_data Г3
+@@ -693,11 +745,12 @@ def main(argv: list[str] | None = None) -> dict | None:
+             if isinstance(b, torch.nn.modules.batchnorm._BatchNorm):
+                 b.momentum /= PARTS
+     else:
+-        model = sohn.SohnNet(len(names), cfg["dim"], channels=sohn.input_channels(tokens), **flags).to(dev)
++        model = sohn.SohnNet(len(names), cfg["dim"], channels=sohn.input_channels(tokens), tokens=tokens, **flags).to(dev)
+         init_info = None
+     if a.init and a.arch == "sohn":
+         sd = torch.load(a.init, map_location=dev)["model"]
+-        keep = {k: v for k, v in sd.items() if not k.startswith("classifier.")}
++        # № 4 (22.11 «s = 16 со старта»): масштаб — часть головы, а голова новая; у прежних флагов (идея 7) s — из весов, как было
++        keep = {k: v for k, v in sd.items() if not k.startswith("classifier.") and not (a.balanced and k == "cos_scale")}
+         miss = model.load_state_dict(keep, strict=False)
+         new = [k for k in miss.missing_keys if k.startswith(("stem_extra.", "gcn.", "part_mlp.", "cross.", "pool_score.", "cos_scale"))
+                or ".dw_ms." in k]   # UzSohn: новые модули — как созданы
+@@ -719,8 +772,11 @@ def main(argv: list[str] | None = None) -> dict | None:
+                                 a.workers, lw, log)
+     else:
+         opt = sohn.RAdamLookahead(model.parameters())
++        ema = sohn_ema(model, total) if a.ema else None
++        ev = model if ema is None else ema.module   # № 3: val, best.pt, last.pt и тест — по EMA
+         ds = AugSet(recs, labels, a.seed, True) if a.arch == "sohn" else A1Set(recs, labels, a.seed, True, a1c["model"]["T"])
+-        dl = DataLoader(ds, batch_sampler=Stream(train, run_steps, a.seed, cfg["batch_size"], cfg["shuffle"]),
++        dl = DataLoader(ds, batch_sampler=Stream(train, run_steps, a.seed, cfg["batch_size"], cfg["shuffle"],
++                                                 balanced_p(train, labels, glosses, a.set) if a.balanced else None),
+                         collate_fn=collate_parts if a.arch == "sohn" else collate_a1_parts, num_workers=a.workers, prefetch_factor=2,
+                         multiprocessing_context=FORK, persistent_workers=True)   # урок 23: пакет asl до ≈ 0,3 ГБ
+         loss_fn = a1_loss_fn(model, a1c["loss"]) if a.arch == "a1" else None
+@@ -731,21 +787,24 @@ def main(argv: list[str] | None = None) -> dict | None:
+             lr, wd = sohn.schedules(step, total, cfg)
+             run_loss += sohn.train_step(model, opt, parts, lr, wd, awp_on=cfg["awp"] and step >= awp0,
+                                         awp_lambda=cfg["awp_lambda"], ls=cfg["label_smoothing"], amp=dev.type == "cuda", loss_fn=loss_fn)
++            if ema is not None:   # после полного шага: сдвиг AWP снят, Lookahead и commit_bn сделаны
++                ema.update_parameters(model)
+             if (step + 1) % spe == 0:
+                 ep = (step + 1) // spe
+                 vl, vt = "", ""
+                 if mode == "fold":
+-                    z, vloss = predict(model, recs, labels, va, dev, cfg["label_smoothing"])
++                    z, vloss = predict(ev, recs, labels, va, dev, cfg["label_smoothing"])
+                     vt = float((z.argmax(1) == labels[va]).mean())
+                     vl = vloss
+                     if vloss < best:                                        # ModelCheckpoint(save_best_only, mode='min')
+                         best, best_epoch = vloss, ep
+-                        torch.save({"model": model.state_dict(), "epoch": ep, "names": names}, out / "best.pt")
++                        torch.save({"model": ev.state_dict(), "epoch": ep, "names": names}, out / "best.pt")
+                 lw.writerow([ep, step + 1, run_loss / spe, vl, vt, lr, round(time.time() - t0)])
+                 log.flush()
+                 run_loss = 0.0
+                 if a.save_from_epoch and a.save_from_epoch <= ep < a.epochs and ep % 10 == 0:   # U30: только диск
+                     torch.save({"model": model.state_dict(), "epoch": ep, "names": names}, out / f"ep{ep}.pt")
++        model = ev
+     log.close()
+     train_sec = time.time() - t1
+     torch.save({"model": model.state_dict(), "epoch": a.epochs, "names": names}, out / "last.pt")
+@@ -781,8 +840,8 @@ def main(argv: list[str] | None = None) -> dict | None:
+          "params_keras_count": sohn.keras_param_count(model) if a.arch == "sohn" else None, "device": torch.cuda.get_device_name() if dev.type == "cuda" else "cpu",
+          "git_osnovnaya_model": code, "sohn_repo_commit": "1ed5528244812a6e3d8fe2ad6d8b629aa6546dcc",
+          "tf_utils_commit": "85b8d5ff93996b1d6b14ab77e4dc60f960de103e", "cfg": cfg, "init": init_info,
+-         "limit_train": a.limit_train, "variant": sorted(ideas, reverse=True), "flags": flags, "inner_val": vk,
+-         "input": list(tokens), "u02_sohn_branch": u02n, "channels": sohn.input_channels(tokens),
++         "limit_train": a.limit_train, "variant": sorted(ideas, reverse=True), "flags": flags, "ema": a.ema, "balanced": a.balanced,
++         "inner_val": vk, "input": list(tokens), "u02_sohn_branch": u02n, "channels": sohn.input_channels(tokens),
+          "save_from_epoch": a.save_from_epoch or None,
+          "params_torch": sum(p.numel() for p in model.parameters()),
+          "gpu_max_mem_gb": round(torch.cuda.max_memory_allocated() / 2 ** 30, 2) if dev.type == "cuda" else None}
+diff --git a/scripts/uzsohn_code.txt b/scripts/uzsohn_code.txt
+index 889f69e..4df8fe3 100644
+--- a/scripts/uzsohn_code.txt
++++ b/scripts/uzsohn_code.txt
+@@ -6,6 +6,7 @@
+ src/mpk/__init__.py
+ src/mpk/sohn.py
+ src/mpk/data.py
++src/mpk/train.py   # № 3 Э2 турнира: ema_avg_fn (поправка 4, 22.10 п. 1а)
+ scripts/m13_train.py
+ scripts/m13_build.py
+ scripts/weekend_gate.sh
+diff --git a/scripts/uzsohn_sel.py b/scripts/uzsohn_sel.py
+index 57f8b39..aa84e29 100644
+--- a/scripts/uzsohn_sel.py
++++ b/scripts/uzsohn_sel.py
+@@ -242,10 +242,12 @@ def ms_per_record(flags: dict, n_classes: int, T: int, n: int = 30, tokens=()) -
+     from mpk import sohn
+     torch.set_num_threads(1)
+     torch.manual_seed(0)
+-    m = sohn.SohnNet(n_classes, channels=sohn.input_channels(tokens), **flags).eval()
++    m = sohn.SohnNet(n_classes, channels=sohn.input_channels(tokens), tokens=tokens, **flags).eval()
+     rng = np.random.default_rng(0)
+     P = sohn.NUM_NODES_POSE if flags.get("pose") or tokens else sohn.NUM_NODES
+-    pre = (lambda x: sohn.preprocess_u(x, 0.5625, tokens)) if tokens else sohn.preprocess_pose if flags.get("pose") else sohn.preprocess
++    pre0 = (lambda x: sohn.preprocess_u(x, 0.5625, tokens)) if tokens else sohn.preprocess_pose if flags.get("pose") else sohn.preprocess
++    # № 2 Э2: маска частей — в конце входа, как AugSet m13_train
++    pre = (lambda x: np.concatenate([pre0(x), sohn.part_mask(x, tokens)], 1)) if flags.get("part_tokens") else pre0
+     xs = [rng.uniform(0.2, 0.8, (T, P, 2)).astype(np.float32) for _ in range(n + 5)]
+     ts = []
+     with torch.no_grad():
+diff --git a/src/mpk/sohn.py b/src/mpk/sohn.py
+index cd8a454..77e50eb 100644
+--- a/src/mpk/sohn.py
++++ b/src/mpk/sohn.py
+@@ -501,9 +501,9 @@ class TransformerBlock(nn.Module):
+         return x + sample_dropout(h, self.drop, self.training)
+ 
+ 
+-def _cols(points: list[int]) -> list[int]:
+-    """Столбцы входа 708 точек (x, y, dx, dx2 — блоки по 236) для локальных индексов points."""
+-    return [k * 2 * NUM_NODES + 2 * p + a for k in range(3) for p in points for a in (0, 1)]
++def _cols(points: list[int], P: int = NUM_NODES) -> list[int]:
++    """Столбцы входа P точек (x, y, dx, dx2 — блоки по 2P; 708 при P = 118, с U01a P = 122) для локальных индексов points."""
++    return [k * 2 * P + 2 * p + a for k in range(3) for p in points for a in (0, 1)]
+ 
+ 
+ def _zero(m: nn.Linear) -> nn.Linear:
+@@ -567,6 +567,59 @@ class HandCross(nn.Module):
+         return self.out(torch.cat([att(s[0], s[1]), att(s[1], s[0])], -1))
+ 
+ 
++# ---------------------------------------------------------------- Э2 турнира: рычаг 0059 № 2 «токены частей» (поправка 4, 22.11; 0162)
++# Механизм токенов МПК без графа (A2; model.py, строки 12, 267–269, 320, 327–328, 386–397) вместо stem Sohn. Части и порядок
++# токенов — как у МПК (PART_POINTS): кисть Л, кисть П, [тело — поза U01a], лицо = губы 40 + нос 4 + глаза 16 + 16. Без pos и голов.
++def part_points(tokens=()) -> list[list[int]]:
++    """Точки частей (индексы x [T, 118 | 122]) в порядке токенов; тело — только с U01a во входе (токенов 3 или 4)."""
++    body = [list(range(NUM_NODES, NUM_NODES_POSE))] if "u01a" in tokens else []
++    return [LH_LOC, RH_LOC, *body, [LOCAL[k] for k in LIP + NOSE + REYE + LEYE]]
++
++
++def part_cols(tokens=()) -> list[list[int]]:
++    """Столбцы preprocess_u(tokens) по частям part_points (к3 0042:65–69: столбец — в часть своей точки): x, y, dx, dx2 точек части
++    (база 6P), кистям Л / П — ещё U04 [0:225] / [225:450] и U01b [0:42] / [42:84]; U02 столбцов не добавляет."""
++    P = NUM_NODES_POSE if "u01a" in tokens else NUM_NODES
++    cols, o = [_cols(p, P) for p in part_points(tokens)], 6 * P
++    for t, n in (("u04", HAND_FEATS // 2), ("u01b", HAND_LOCAL // 2)):   # порядок — как в preprocess_u
++        if t in tokens:
++            cols[0] += range(o, o + n)
++            cols[1] += range(o + n, o + 2 * n)
++            o += 2 * n
++    assert sorted(sum(cols, [])) == list(range(input_channels(tokens)))
++    return cols
++
++
++def part_mask(x: np.ndarray, tokens=(), max_len: int = MAX_LEN) -> np.ndarray:
++    """x [T, 118 | 122, 2] после аугментации → [min(T, max_len), n_tok]: часть есть в кадре, если хоть одна её точка не NaN (до
++    NaN → 0 предобработки; отражение уже поменяло кисти местами); окно — первые max_len кадров, как у preprocess."""
++    x = x[:max_len]
++    return np.stack([~np.isnan(x[:, p]).all((1, 2)) for p in part_points(tokens)], 1).astype(np.float32)
++
++
++class PartTokens(nn.Module):
++    """Токен части = Linear(столбцы части → dim) → GELU → Linear(dim → dim) + вложение типа части (кисти — раздельные MLP);
++    вектор кадра = Σ a · токен, a = softmax по частям от fuse_k(токен) · fuse_q / √dim с маской присутствия (−1e4: у пустого
++    кадра равные веса, без NaN). Вход — preprocess_u(tokens) и маска part_mask в последних n_tok столбцах. Инициализация — как в
++    model.py: nn.Linear PyTorch, вложение и fuse_q — randn · 0,02."""
++
++    def __init__(self, tokens, dim: int):
++        super().__init__()
++        cols = part_cols(tokens)
++        self.n_in, self.n_tok = input_channels(tokens), len(cols)
++        for i, c in enumerate(cols):
++            self.register_buffer(f"cols{i}", torch.tensor(c), persistent=False)
++        self.mlp = nn.ModuleList([nn.Sequential(nn.Linear(len(c), dim), nn.GELU(), nn.Linear(dim, dim)) for c in cols])
++        self.part_emb = nn.Parameter(torch.randn(self.n_tok, dim) * 0.02)
++        self.fuse_k, self.fuse_q = nn.Linear(dim, dim), nn.Parameter(torch.randn(dim) * 0.02)
++
++    def forward(self, x: torch.Tensor) -> torch.Tensor:
++        assert x.shape[-1] == self.n_in + self.n_tok, (x.shape, self.n_in, self.n_tok)   # без маски частей последние столбцы прочлись бы как маска
++        tok = torch.stack([f(x[..., getattr(self, f"cols{i}")]) + self.part_emb[i] for i, f in enumerate(self.mlp)], 2)
++        s = (self.fuse_k(tok) @ self.fuse_q / math.sqrt(tok.shape[-1])).masked_fill(x[..., self.n_in:] <= 0, -1e4)
++        return (torch.softmax(s, 2)[..., None] * tok).sum(2)
++
++
+ class SohnNet(nn.Module):
+     """[c16] get_model(dim=192): stem Dense + BN → (3 × Conv1DBlock + TransformerBlock) × 2 → Dense(2·dim) → среднее по
+     маске → LateDropout(0,8) → классификатор. late_dropout_on включает LateDropout (с шага dropout_start_epoch·spe).
+@@ -575,11 +628,13 @@ class SohnNet(nn.Module):
+     (2 × Dense dim, выход — нули), слияние — сумма. Новые модули создаются ПОСЛЕ прежних (та же инициализация прежних при
+     той же затравке) и в начале не меняют выход (вариант с весами Sohn = Sohn; tests/test_sohn.py). Идеи 4–7: hand_cross
+     (HandCross к stem), ms_conv (+ depthwise 5 и 11 в каждом Conv1DBlock), attn_pool (внимание вместо среднего), cos_head
+-    (косинусная голова — меняет выход с начала); aux_shape (идея 8) — заготовка, NotImplementedError."""
++    (косинусная голова, s = 16 обучаемый, без отступа и смещения — classifier.bias не обучается; меняет выход с начала);
++    aux_shape (идея 8) — заготовка, NotImplementedError. part_tokens (№ 2 Э2 турнира, tokens — вход preprocess_u): PartTokens
++    вместо stem, к входу в конце — маска part_mask; прочие слои — те же, что без него."""
+ 
+     def __init__(self, n_classes: int, dim: int = 192, channels: int = CHANNELS, pose: bool = False, hand_gcn: bool = False,
+                  parts: bool = False, hand_cross: bool = False, ms_conv: bool = False, attn_pool: bool = False,
+-                 cos_head: bool = False, aux_shape: bool = False):
++                 cos_head: bool = False, aux_shape: bool = False, part_tokens: bool = False, tokens=()):
+         super().__init__()
+         self.stem = dense(channels, dim, False)
+         self.stem_bn = MaskedBN(dim)
+@@ -623,8 +678,17 @@ class SohnNet(nn.Module):
+             self.pool_score = _zero(nn.Linear(2 * dim, 1))
+         if cos_head:    # идея 7: косинусная голова — строки classifier.weight = прототипы классов, масштаб обучаемый
+             self.cos_scale = nn.Parameter(torch.tensor(16.0))
++            # № 4 Э2 (поправка 4, 22.11): смещения в выходе нет — вне RAdam и AWP (иначе autograd.grad AWP: тензор не в графе)
++            self.classifier.bias.requires_grad_(False)
++        self.part_tokens = part_tokens
++        if part_tokens:   # № 2: stem создан выше лишь ради того же расхода ГСЧ — прочие слои = сети без № 2 при той же затравке
++            assert not (pose or hand_gcn or parts or hand_cross) and channels == input_channels(tokens), "№ 2 — вместо stem входа preprocess_u"
++            del self.stem
++            self.tok = PartTokens(tokens, dim)
+ 
+     def stem_in(self, x: torch.Tensor) -> torch.Tensor:
++        if self.part_tokens:
++            return self.tok(x)
+         if not (self.pose or self.hand_gcn or self.parts or self.hand_cross):
+             return self.stem(x)
+         xb = x[..., :CHANNELS]
+diff --git a/tests/test_sohn.py b/tests/test_sohn.py
+index 62b117f..8d4004d 100644
+--- a/tests/test_sohn.py
++++ b/tests/test_sohn.py
+@@ -495,13 +495,15 @@ def test_stage1_init_must_match_input(tmp_path):
+ BASE_COMMIT = "eddcca0993e7871e77ca0445ad4b8a7be6d91ec7"   # код базы alluz_pre (sohn.py тот же, что a516167 — предобучение sb/all)
+ 
+ 
+-def _sohn_at(commit: str):
+-    """sohn.py коммита — отдельным модулем (как uzsign_ai_v2/scripts/u33.py, _ref_sohn)."""
++def _sohn_at(commit: str, path: str = "src/mpk/sohn.py"):
++    """Файл коммита (sohn.py, m13_train.py) — отдельным модулем (как uzsign_ai_v2/scripts/u33.py, _ref_sohn); __file__ — рабочего
++    дерева (m13_train: ROOT, weekend_gate.sh)."""
+     import subprocess
+     import types
+-    src = subprocess.run(["git", "-C", str(Path(__file__).resolve().parents[1]), "show", f"{commit}:src/mpk/sohn.py"],
+-                         capture_output=True, text=True, check=True).stdout
++    root = Path(__file__).resolve().parents[1]
++    src = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{path}"], capture_output=True, text=True, check=True).stdout
+     mod = types.ModuleType("sohn_base")
++    mod.__file__ = str(root / path)
+     exec(compile(src, "sohn_base.py", "exec"), mod.__dict__)
+     return mod
+ 
+@@ -856,3 +858,630 @@ def test_stage2_chain_runs(tmp_path):
+         assert f"UZSOHN_STAGE2_OK={'да' if marker else 'нет'}, m13-sohn-2 активен={'да' if active == 0 else 'нет'}" in r.stdout, name
+         assert c.count("systemd-run --user --unit=m13-sohn-2") == m13_started and "m13_train" not in c and "-m pytest" not in c, (name, c)
+         assert ("юнит m13-sohn-2 запущен" in r.stdout) == m13_started and (om / "runs/TURNIR_E1_g1.done").is_file(), name
++
++
++# ---------------------------------------------------------------- Э2 турнира: рычаг 0059 № 2 «токены частей» (поправка 4, 22.11; 0162)
++COMBOS = [tuple(t for t, on in zip(("u01a", "u04", "u01b"), bits) if on) for bits in itertools.product((0, 1), repeat=3)]
++
++
++def _feat2(x, tok, asp=0.5625):
++    """Вход сети с № 2 — как AugSet m13_train: preprocess_u и маска частей в конце."""
++    return np.concatenate([sohn.preprocess_u(x, asp, tok), sohn.part_mask(x, tok)], 1)
++
++
++def test_e2_part_tokens_columns_by_points():
++    """(б) 8 сочетаний U01a / U04 / U01b (и все токены с U02): каждый столбец preprocess_u — ровно в одной части; часть исчезла
++    (все её точки NaN) → в 0 уходят ровно её ненулевые столбцы, т. е. владелец столбца — точка его части (проверка по выходу
++    preprocess_u, не по раскладке кода); тождественно 0 — только «запястье − запястье» U01b; частей 3 без U01a, 4 с U01a, точки и
++    порядок — как у МПК (кисть Л, кисть П, [тело], лицо 76)."""
++    x, asp = _rec122(T=17, seed=21), 0.5625
++    face = sorted(sohn.LOCAL[k] for k in sohn.LIP + sohn.NOSE + sohn.REYE + sohn.LEYE)
++    for tok in COMBOS + [sohn.INPUT_TOKENS]:
++        pts, cols, W = sohn.part_points(tok), sohn.part_cols(tok), sohn.input_channels(tok)
++        assert len(pts) == len(cols) == 3 + ("u01a" in tok) and sorted(sum(cols, [])) == list(range(W))
++        assert pts[:2] == [sohn.LH_LOC, sohn.RH_LOC] and sorted(pts[-1]) == face and len(face) == 76
++        assert "u01a" not in tok or pts[2] == [118, 119, 120, 121]
++        ref = sohn.preprocess_u(x, asp, tok)
++        nz = (ref != 0).any(0)
++        o = W - 84
++        assert set(np.flatnonzero(~nz)) == ({o, o + 1, o + 42, o + 43} if "u01b" in tok else set()), tok
++        for p, c in zip(pts, cols):
++            y = x.copy()
++            y[:, p] = np.nan
++            gone = set(np.flatnonzero(nz & (sohn.preprocess_u(y, asp, tok) == 0).all(0)))
++            assert gone == set(c) & set(np.flatnonzero(nz)), (tok, len(gone), len(c))
++
++
++def test_e2_part_tokens_mask_and_flip():
++    """(в) Маска — по NaN до предобработки: кадр без кисти Л — её вес 0 (сдвиг её токена кадр не меняет), пустой кадр (как после
++    temporal_mask) — равные веса, без NaN; окно — первые 384 кадра. AugSet m13_train: маска в конце признаков, по x после
++    аугментации — при отражении меняется вместе с кистями."""
++    x, asp, tok = _rec122(T=12, seed=3), 0.5625, ("u04", "u01b")
++    x[2, sohn.LH_LOC] = np.nan
++    x[5] = np.nan
++    pm = sohn.part_mask(x, tok)
++    assert pm.shape == (12, 3) and (pm[2] == [0, 1, 1]).all() and (pm[5] == 0).all() and np.delete(pm, [2, 5], 0).all()
++    assert len(sohn.part_mask(np.repeat(x, 40, 0), tok)) == sohn.MAX_LEN
++    torch.manual_seed(0)
++    pt = sohn.PartTokens(tok, 192)
++    seen = []
++    pt.fuse_k.register_forward_hook(lambda mod, i, o: seen.append(i[0]))     # токены частей [B, T, n_tok, D]
++    xt = torch.from_numpy(_feat2(x, tok))[None]
++    with torch.no_grad():
++        h = pt(xt)
++        pt.part_emb[0] += 5.0
++        h2 = pt(xt)
++    assert torch.isfinite(h).all() and torch.allclose(h[0, 5], seen[0][0, 5].mean(0), atol=1e-6)
++    assert torch.equal(h[0, 2], h2[0, 2]) and not torch.equal(h[0, 3], h2[0, 3])
++    T_ = _m13()
++    xl = _rec122(T=40, seed=8)
++    xl[:, sohn.RH_LOC] = np.nan                                         # только кисть Л
++    ab = np.zeros((40, 4), bool)
++    ab[:, 2] = True
++    r = T_.Recs(xl[:, :118].copy(), ab, np.array([0, 40]), xl[:, 118:].copy(), np.array([asp], np.float32))
++    r.tokens, r.part_tokens = tok, True
++    ds = T_.AugSet(r, np.array([0]), 7, True)
++    sides = set()
++    for pos in range(40):
++        g = sohn.augment(xl, ab, np.random.default_rng([7, pos]))
++        f = ds[(0, pos)][0]
++        assert np.array_equal(f, _feat2(g, tok, asp))
++        sides.add(tuple(f[:, -3:-1].max(0)))                            # (кисть Л есть, кисть П есть) хоть в одном кадре
++    assert {(1, 0), (0, 1)} <= sides                                    # без отражения и с ним
++    r0 = T_.Recs(xl[:, :118].copy(), ab, np.array([0, 40]))            # вход Sohn (118 точек, без позы) — маска из 3 частей
++    r0.tokens, r0.part_tokens = (), True
++    f = T_.AugSet(r0, np.array([0]), 0, False)[(0, 0)][0]
++    assert f.shape == (40, 708 + 3) and np.array_equal(f, np.concatenate([sohn.preprocess(xl[:, :118]), sohn.part_mask(xl, ())], 1))
++
++
++def test_e2_part_tokens_grads_and_awp_steps():
++    """(г) Градиент доходит до всех новых параметров и до всех столбцов входа (маска — без градиента); fuse_k.bias — общий сдвиг
++    оценок всех частей, softmax его не видит: градиент 0 с точностью округления, как у МПК. (д) 3 шага sohn.train_step с AWP на ЦП:
++    № 2 + U04 + U01b (3 токена) и + U01a (4 токена)."""
++    for tok in (("u04", "u01b"), ("u01a", "u04", "u01b")):
++        W = sohn.input_channels(tok)
++        torch.manual_seed(0)
++        m = sohn.SohnNet(7, channels=W, part_tokens=True, tokens=tok).train()
++        x, mk = sohn.collate([_feat2(_rec122(T=T, seed=T), tok) for T in (21, 33)])
++        x.requires_grad_(True)
++        m(x, mk).sum().backward()
++        new = {n: p for n, p in m.named_parameters() if n.startswith("tok.")}
++        assert len(new) == 4 * m.tok.n_tok + 4 and all(p.grad is not None for p in new.values())
++        assert all(p.grad.abs().sum() > 0 for n, p in new.items() if n != "tok.fuse_k.bias")
++        g = x.grad.abs().sum((0, 1))
++        assert (g[:W] > 0).all() and (g[W:] == 0).all()
++        opt = sohn.RAdamLookahead(m.parameters())
++        parts = []
++        for p in range(2):
++            xx, mm = sohn.collate([_feat2(_rec122(T=T, seed=p * 10 + T), tok) for T in (20, 30)])
++            parts.append((xx, mm, torch.tensor([p, p + 1])))
++        w0 = {n: q.detach().clone() for n, q in new.items()}
++        rm0 = m.stem_bn.running_mean.clone()
++        for _ in range(3):
++            assert np.isfinite(sohn.train_step(m, opt, parts, 1e-3, 1e-4, awp_on=True))
++        assert all(not torch.equal(w0[n], q) for n, q in new.items() if n != "tok.fuse_k.bias")
++        assert not torch.equal(rm0, m.stem_bn.running_mean) and m.stem_bn.acc == {}
++
++
++def test_e2_part_tokens_net():
++    """(е) № 2 — только замена stem: новые модули — MLP частей, вложение типа, fuse_k, fuse_q (нет pos, голов частей, графа); выход —
++    логиты [B, n], потеря train_step прежняя; прочие слои — те же веса, что у сети без № 2 при той же затравке (с косинусной головой
++    № 4 — тоже); выход не зависит от длины дополнения; без маски во входе — отказ, а не молча."""
++    import pytest
++    tok = ("u01a", "u04", "u01b")
++    W = sohn.input_channels(tok)
++    torch.manual_seed(0)
++    c = sohn.SohnNet(33, channels=W, cos_head=True)
++    torch.manual_seed(0)
++    m = sohn.SohnNet(33, channels=W, cos_head=True, part_tokens=True, tokens=tok).eval()
++    sc, sm = c.state_dict(), m.state_dict()
++    assert set(sc) - set(sm) == {"stem.weight"} and all(k.startswith("tok.") for k in set(sm) - set(sc))
++    assert all(torch.equal(sc[k], sm[k]) for k in sc if k != "stem.weight")
++    assert {n.split(".")[1] for n, _ in m.named_parameters() if n.startswith("tok.")} == {"mlp", "part_emb", "fuse_k", "fuse_q"}
++    f = [_feat2(_rec122(T=T, seed=T), tok) for T in (17, 40)]
++    with torch.no_grad():
++        y, y2 = m(*sohn.collate(f)), m(*sohn.collate(f, pad_to=384))
++        with pytest.raises(AssertionError):
++            m(*sohn.collate([a[:, :W] for a in f]))
++    assert isinstance(y, torch.Tensor) and y.shape == (2, 33) and torch.allclose(y, y2, atol=1e-5)
++    with pytest.raises(AssertionError):
++        sohn.SohnNet(33, channels=W, part_tokens=True, tokens=tok, parts=True)
++    with pytest.raises(AssertionError):
++        sohn.SohnNet(33, channels=708, part_tokens=True, tokens=tok)
++
++
++def test_e2_part_tokens_m13_flags_and_init(tmp_path):
++    """m13_train: --variant 9 (№ 2) идёт с --input (прочие идеи 0107 — нет); --init — № 2 у весов (metrics.json, flags.part_tokens;
++    нет ключа — нет № 2) = у прогона (поправка 4, 22.10 п. 1а). Проверки — до замка и данных."""
++    import pytest
++    T_ = _m13()
++    assert T_.IDEA[9] == "part_tokens"
++    w = tmp_path / "sb" / "best.pt"
++    w.parent.mkdir()
++    w.write_bytes(b"")
++    done = tmp_path / "done"                                                 # готовый прогон: main выходит после проверок
++    done.mkdir()
++    (done / "metrics.json").write_text("{}")
++    full = {"steps_run": 13800, "steps": 13800, "limit_train": 0, "epochs": 300, "stop_epoch": None, "input": ["u01b"]}
++
++    def run(var, out=done):
++        return T_.main(["--set", "alluz", "--fold", "x", "--seed", "48", "--input", "u01b", "--variant", var, "--init", str(w),
++                        "--plan-only", "--out", str(out)])
++    with pytest.raises(AssertionError, match="не смешиваются"):
++        run("1")
++    for pt_w, var, ok in ((True, "9", True), (False, "", True), (False, "9", False), (True, "", False)):
++        (w.parent / "metrics.json").write_text(json.dumps({**full, **({"flags": {"part_tokens": True}} if pt_w else {})}))
++        if ok:
++            assert run(var) is None
++        else:
++            with pytest.raises(AssertionError, match="№ 2"):
++                run(var, tmp_path / "o")
++    assert not (tmp_path / "o").exists() and not list(tmp_path.glob("*.lock*"))
++
++
++# ---------------------------------------------------------------- Э2 турнира: рычаг 0059 № 3 «EMA с прогревом» (поправка 4, 22.11)
++MASTER_E2 = "f6a5a7291446be8c4b9f35aab696e1b4e9621bf5"   # master, от которого ветка кода Э2 (turnir-e2-levers)
++
++
++def test_e2_ema_decay_by_steps_and_warmup():
++    """(б) decay — по полному бюджету прогона в шагах: 0,999 при total ≥ 3 000, иначе 0,99 (= configs/common.yaml, где прогрев
++    выключен); прогрев M9.7 включён: 1 000 обновлений = ручная рекурсия с mpk.train.ema_decay_at (шаг 1 — копия, t — число уже
++    усреднённых шагов) и ≠ рекурсии с другим decay (различаются с t = 890)."""
++    import yaml
++    from mpk.train import ema_decay_at
++    T_ = _m13()
++    tc = yaml.safe_load((Path(__file__).resolve().parents[1] / "configs/common.yaml").read_text())["train"]
++    assert (tc["ema_decay"], tc["ema_decay_short"], tc["ema_short_below"], tc["ema_warmup"]) == (0.999, 0.99, 3000, False)
++    w = torch.randn(1000, generator=torch.Generator().manual_seed(0))
++    for total, d in ((1500, 0.99), (2999, 0.99), (3000, 0.999), (10_500, 0.999)):
++        lin = torch.nn.Linear(1, 1, bias=False)
++        e = T_.sohn_ema(lin, total)
++        ref = {0.99: None, 0.999: None}
++        for t in range(1000):
++            with torch.no_grad():
++                lin.weight.fill_(w[t])
++            e.update_parameters(lin)
++            for k, r in ref.items():
++                ref[k] = lin.weight.detach().clone() if r is None else torch.lerp(r, lin.weight.detach(), 1 - ema_decay_at(k, t))
++        assert torch.equal(e.module.weight, ref[d]) and not torch.equal(ref[0.99], ref[0.999]), total
++
++
++def _tiny_run(mod, monkeypatch, out, *extra, gloss=lambda i: f"g{i % 4}"):
++    """mod.main (m13_train) на 96 синтетических записях без данных ПК: Bukva, режим fold (val каждую эпоху, best.pt по val_loss),
++    пакет 64 = 8 × 8, расписание на 4 эпохи по шагу, обрыв после 3 шагов (--max-steps), AWP с шага 1, late dropout с шага 2; ЦП.
++    gloss(i) — глосса записи i (train — 0…63, val — 64…79, тест — 80…95)."""
++    def records(set_, fold, pose=False, inp=False):
++        rng = np.random.default_rng(0)
++        off = np.concatenate([[0], np.cumsum(rng.integers(8, 40, 96))])
++        xy = rng.uniform(0.2, 0.8, (off[-1], sohn.NUM_NODES, 2)).astype(np.float32)
++        clips = [{"sample_id": f"s{i}", "signer_id": f"p{i % 6}", "gloss": gloss(i)} for i in range(96)]
++        return (mod.Recs(xy, np.zeros((off[-1], 4), bool), off), [c["gloss"] for c in clips], clips,
++                (list(range(64)), list(range(64, 80)), list(range(80, 96))))
++    monkeypatch.setattr(mod, "records", records)
++    for k, v in (("batch_size", 64), ("awp_start_epoch", 1), ("dropout_start_epoch", 2)):
++        monkeypatch.setitem(sohn.CFG, k, v)
++    monkeypatch.setenv("WEEKEND_GATE_NOW", "2026-11-10 10:00")              # будний день: weekend_gate.sh не ждёт
++    mod.main(["--set", "bukva", "--fold", "fold1", "--seed", "1", "--epochs", "4", "--max-steps", "3", "--workers", "1", "--out", str(out),
++              *extra])
++    return out
++
++
++def test_e2_ema_m13_loop(tmp_path, monkeypatch):
++    """№ 3 в цикле m13_train (3 шага, 2 с AWP, синтетика): (а) без --ema main = main master бит в бит — состояние после каждого
++    шага, best.pt, last.pt, логиты и предсказания теста, log.csv (кроме времени); с --ema сырые веса по шагам те же (EMA обучение не
++    меняет). (в) EMA обновляется один раз за шаг, после полного sohn.train_step: веса и буферы EMA = ручная рекурсия по состояниям
++    модели после шагов (шаг 1 — копия, далее lerp с 1 − ema_decay_at(0,99, t): бюджет 4 < 3 000); decay — от полного бюджета (4),
++    не от числа сделанных шагов (3). (г) бегущие средние MaskedBN усредняются (≠ модели). (д) val каждой эпохи, best.pt (эпоха
++    best_epoch), last.pt и тест — по EMA-модели."""
++    import csv
++    from mpk.train import ema_decay_at
++    T_, base = _m13(), _sohn_at(MASTER_E2, "scripts/m13_train.py")
++    made, seen, after, totals = [], [], [], []
++
++    class Spy(torch.optim.swa_utils.AveragedModel):
++        def __init__(self, *a, **k):
++            super().__init__(*a, **k)
++            made.append(self)
++    step0, pred0, ema0 = sohn.train_step, T_.predict, T_.sohn_ema
++
++    def step(model, *a, **k):
++        r = step0(model, *a, **k)
++        after.append({n: t.detach().clone() for n, t in itertools.chain(model.named_parameters(), model.named_buffers())})
++        return r
++    monkeypatch.setattr(torch.optim.swa_utils, "AveragedModel", Spy)
++    monkeypatch.setattr(sohn, "train_step", step)
++    monkeypatch.setattr(T_, "predict", lambda model, *a: (seen.append(model), pred0(model, *a))[1])
++    monkeypatch.setattr(T_, "sohn_ema", lambda model, total: (totals.append(total), ema0(model, total))[1])
++    git0, gp = T_.git, []
++    monkeypatch.setattr(T_, "git", lambda root, paths: (gp.append(tuple(paths)), git0(root, paths))[1])
++    a, b = _tiny_run(base, monkeypatch, tmp_path / "master"), _tiny_run(T_, monkeypatch, tmp_path / "new")
++    eq = lambda s, t: list(s) == list(t) and all(torch.equal(s[k], t[k]) for k in s)
++    for f in ("best.pt", "last.pt"):
++        assert eq(*(torch.load(d / f)["model"] for d in (a, b))), f
++    za, zb = np.load(a / "logits.npz"), np.load(b / "logits.npz")
++    assert za.files == zb.files and all(np.array_equal(za[k], zb[k]) for k in za.files)
++    for f in ("predictions.csv", "predictions_best.csv", "predictions_last.csv"):
++        assert (a / f).read_bytes() == (b / f).read_bytes(), f
++    log = lambda d: [r[:-1] for r in csv.reader(open(d / "log.csv"))]       # без sec
++    assert log(a) == log(b) and len(log(a)) == 4
++    assert not made and len(after) == 6 and all(eq(s, t) for s, t in zip(after[:3], after[3:]))
++    seen.clear()
++    c = _tiny_run(T_, monkeypatch, tmp_path / "ema", "--ema")
++    assert ["src/mpk/train.py" in p for p in gp] == [False, True]          # commit/dirty: № 3 исполняет mpk.train (затравка ≠ 48)
++    (ema,), raw = made, after[6:]
++    assert int(ema.n_averaged) == len(raw) == 3 and all(eq(s, t) for s, t in zip(after[3:6], raw))
++    refs = []
++    for t, s in enumerate(raw):
++        refs.append(s if t == 0 else {k: torch.lerp(refs[-1][k], v, 1 - ema_decay_at(0.99, t)) for k, v in s.items()})
++    sd = lambda d, f: torch.load(d / f)["model"]
++    m = json.loads((c / "metrics.json").read_text())
++    assert m["ema"] is True and json.loads((b / "metrics.json").read_text())["ema"] is False
++    assert totals == [m["steps"]] == [4] and m["steps_run"] == 3
++    last, best = sd(c, "last.pt"), sd(c, "best.pt")
++    assert all(torch.equal(last[k], refs[2][k]) and torch.equal(best[k], refs[m["best_epoch"] - 1][k]) for k in last)
++    assert m["best_epoch"] > 1                                               # на эпохе 1 EMA = копия: best.pt сырой не отличить
++    assert not torch.equal(last["classifier.weight"], raw[2]["classifier.weight"])
++    rv = "stem_bn.running_var"
++    assert not torch.equal(last[rv], raw[2][rv]) and not torch.equal(raw[2][rv], torch.ones_like(raw[2][rv]))
++    assert len(seen) == 5 and all(x is ema.module for x in seen)            # val × 3 эпохи, тест: last и best
++    assert log(c)[1:] != log(b)[1:]                                          # val_loss по EMA ≠ по сырым весам
++
++
++def test_e2_ema_m13_flag_and_init(tmp_path):
++    """(е) --init: EMA у весов (metrics.json, ключ ema; нет ключа — нет EMA) = у прогона (поправка 4, 22.10 п. 1а); --ema с U33 и с
++    весами U30 (--save-from-epoch) — отказ. Проверки — до замка и данных."""
++    import pytest
++    T_ = _m13()
++    w = tmp_path / "sb" / "best.pt"
++    w.parent.mkdir()
++    w.write_bytes(b"")
++    done = tmp_path / "done"                                                 # готовый прогон: main выходит после проверок
++    done.mkdir()
++    (done / "metrics.json").write_text("{}")
++    full = {"steps_run": 13800, "steps": 13800, "limit_train": 0, "epochs": 300, "stop_epoch": None, "input": ["u01b"]}
++    args = ["--set", "alluz", "--fold", "x", "--seed", "48", "--init", str(w), "--plan-only"]
++
++    def run(ema, out=done, extra=("--input", "u01b")):
++        return T_.main(args + list(extra) + ["--out", str(out)] + (["--ema"] if ema else []))
++    for ema_w, ema, ok in ((True, True, True), (None, False, True), (None, True, False), (True, False, False), (False, True, False)):
++        (w.parent / "metrics.json").write_text(json.dumps({**full, **({} if ema_w is None else {"ema": ema_w})}))
++        if ok:
++            assert run(ema) is None
++        else:
++            with pytest.raises(AssertionError, match="№ 3"):
++                run(ema, tmp_path / "o")
++    for extra in (("--arch", "sohn", "--recipe", "a1"), ("--input", "u01b", "--save-from-epoch", "200")):
++        with pytest.raises(AssertionError, match="№ 3"):
++            run(True, tmp_path / "o", extra)
++    assert not (tmp_path / "o").exists() and not list(tmp_path.glob("*.lock*"))
++
++
++# ---------------------------------------------------------------- Э2 турнира: рычаг 0059 № 4 «длинный хвост» (поправка 4, 22.11)
++def test_e2_long_tail_sampling():
++    """(б) № 4, выборка — вариант (II) (к1 0142, к3 0043): 50 000 выборок потока (затравка 48) — частоты классов внутри набора равны
++    (|z| < 4 от биномиальной), доля набора в S+B — как без № 4, т. е. доля записей train (|z| < 4 у обоих потоков); n и число классов —
++    по записям train (записи вне train — 100 записей хвостового класса и класс без записей train — не в счёт); без № 4 хвостовой класс
++    в потоке в десятки раз реже; не S+B — один набор. (в) Шагов, пакетов и позиций (затравок аугментаций) — столько же, что без № 4.
++    (а) Без p поток = Stream master бит в бит."""
++    import math
++    from collections import Counter
++    import pytest
++    T_, base = _m13(), _sohn_at(MASTER_E2, "scripts/m13_train.py")
++    cnt = {"slovo": [1, 2, 3, 5, 8, 12, 20, 30, 50, 80, 120, 200], "bukva": [10, 15, 20, 30, 50]}   # хвост 1…200 / 10…50
++    gl = [f"{d}:c{k}" for d, ns in cnt.items() for k, n in enumerate(ns) for _ in range(n)]
++    N = len(gl)
++    gl += ["slovo:c0"] * 100 + ["slovo:x"] * 5                                  # вне train (как val)
++    names = sorted(set(gl))
++    labels = np.array([names.index(g) for g in gl])
++    train = [int(i) for i in np.random.default_rng(1).permutation(N)]
++    assert list(T_.Stream(train, 7, 48, 64, 300)) == list(base.Stream(train, 7, 48, 64, 300))
++    p = T_.balanced_p(train, labels, gl, "sb")
++    tot = np.bincount(labels[train], weights=p, minlength=len(names))
++    for d, ns in cnt.items():                                                   # точно: класс — доля набора / число его классов
++        assert np.allclose(tot[[names.index(f"{d}:c{k}") for k in range(len(ns))]], sum(ns) / N / len(ns), rtol=1e-12, atol=0)
++    one = np.bincount(labels[train], weights=T_.balanced_p(train, labels, gl, "alluz"), minlength=len(names))
++    assert np.allclose(one[tot > 0], 1 / 17, rtol=1e-12, atol=0)                # не S+B — один набор: 17 классов поровну
++    with pytest.raises(AssertionError):                                         # S+B без префикса набора — отказ, не молча
++        T_.balanced_p([0, 1], np.array([0, 1]), ["a", "b"], "sb")
++    S = 50_000
++    st, plain = T_.Stream(train, 100, 48, 500, 32768, p), T_.Stream(train, 100, 48, 500, 32768)
++    draw, d0 = list(st), list(plain)
++    assert len(st) == len(draw) == len(d0) == 100 and all(len(b) == 500 for b in draw)
++    assert [q for b in draw for _, q in b] == [q for b in d0 for _, q in b] == list(range(S))
++    c, c0 = Counter(gl[i] for b in draw for i, _ in b), Counter(gl[i] for b in d0 for i, _ in b)
++    for d, ns in cnt.items():
++        share = sum(ns) / N
++        for cc in (c, c0):
++            got = sum(v for g, v in cc.items() if g.startswith(d))
++            assert abs(got - S * share) < 4 * math.sqrt(S * share * (1 - share)), (d, got, S * share)
++        e = S * share / len(ns)
++        z = [(c[f"{d}:c{k}"] - e) / math.sqrt(e * (1 - e / S)) for k in range(len(ns))]
++        assert max(map(abs, z)) < 4, (d, z)
++    assert c0["slovo:c0"] * 20 < c["slovo:c0"] and "slovo:x" not in c
++
++
++def test_e2_long_tail_cos_head_awp():
++    """(г) № 4, косинусная голова: s = 16 со старта и обучается; без отступа и смещения — classifier.bias не обучается (нет в RAdam и
++    AWP) и не меняется (0,5 до и после); |логит| ≤ s; 3 шага sohn.train_step (2 с AWP) на ЦП без падения — на входе Sohn и поверх
++    № 2 (токены частей, U04 + U01b). Регрессия А4 (levers_code.out): в master шаг AWP с cos_head падал; без AWP — веса как в master
++    бит в бит."""
++    import pytest
++    for kw in ({}, {"part_tokens": True, "tokens": ("u04", "u01b")}):
++        tok = kw.get("tokens", ())
++        feat = (lambda x: _feat2(x, tok)) if kw else (lambda x: sohn.preprocess(x[:, :118]))
++        parts = []
++        for p in range(2):
++            xx, mm = sohn.collate([feat(_rec122(T=T, seed=p * 10 + T)) for T in (20, 30)])
++            parts.append((xx, mm, torch.tensor([p, p + 1])))
++        torch.manual_seed(0)
++        m = sohn.SohnNet(7, channels=sohn.input_channels(tok), cos_head=True, **kw).train()
++        assert float(m.cos_scale.detach()) == 16.0 and not m.classifier.bias.requires_grad and m.classifier.weight.requires_grad
++        with torch.no_grad():
++            m.classifier.bias.fill_(0.5)                     # не 0: затухание весов RAdam сдвинуло бы его, будь он в оптимизаторе
++        opt = sohn.RAdamLookahead(m.parameters())
++        assert all(q is not m.classifier.bias for q in opt.params)
++        w0 = m.classifier.weight.detach().clone()
++        for s in range(3):
++            assert np.isfinite(sohn.train_step(m, opt, parts, 1e-3, 1e-4, awp_on=s > 0))
++        assert torch.equal(m.classifier.bias, torch.full((7,), 0.5)) and float(m.cos_scale.detach()) != 16.0
++        assert not torch.equal(w0, m.classifier.weight)
++        with torch.no_grad():
++            y = m.eval()(*parts[0][:2])
++        assert y.abs().max() <= float(m.cos_scale.detach()) + 1e-4
++    old = _sohn_at(MASTER_E2)
++    x, mk = sohn.collate([sohn.preprocess(_rec122(T=T, seed=T)[:, :118]) for T in (20, 30)])
++    parts = [(x, mk, torch.tensor([0, 1]))] * 2
++    nets = []
++    for mod in (old, sohn):
++        torch.manual_seed(0)
++        mm = mod.SohnNet(7, cos_head=True).train()
++        opt = mod.RAdamLookahead(mm.parameters())
++        for step in range(2):
++            torch.manual_seed(100 + step)
++            mod.train_step(mm, opt, parts, 1e-3, 1e-4, awp_on=False)
++        nets.append((mm, opt))
++    so, sn = nets[0][0].state_dict(), nets[1][0].state_dict()
++    assert list(so) == list(sn) and all(torch.equal(so[k], sn[k]) for k in so)
++    with pytest.raises(RuntimeError, match="not have been used in the graph"):
++        old.train_step(*nets[0], parts, 1e-3, 1e-4, awp_on=True)
++
++
++def test_e2_long_tail_m13_loop(tmp_path, monkeypatch):
++    """№ 4 в цикле m13_train (S+B, синтетика, 3 шага, 2 с AWP): --balanced — поток Stream по balanced_p(train, …, "sb") (n — по
++    записям train, наборы — по префиксу глоссы: в train у класса доля набора / число его классов), сеть с косинусной головой; без
++    флага — прежний поток. (в) Шагов, шагов на эпоху, записей обучения и позиций — столько же, что без флага. (г) Шаги AWP с
++    косинусной головой не падают; classifier.bias в best.pt и last.pt — 0, как создан; s обучается. metrics.json: balanced,
++    flags.cos_head."""
++    T_ = _m13()
++    seen = []
++
++    class Spy(T_.Stream):
++        def __init__(self, *a):
++            super().__init__(*a)
++            seen.append(self)
++    monkeypatch.setattr(T_, "Stream", Spy)
++    gl = lambda i: f"bukva:b{i % 3}" if i % 4 == 0 else f"slovo:s{int(i % 8 == 1)}"   # в train: s0 — 40 записей, s1 — 8; b0 6, b1 и b2 5
++    a = _tiny_run(T_, monkeypatch, tmp_path / "plain", "--set", "sb", gloss=gl)
++    b = _tiny_run(T_, monkeypatch, tmp_path / "bal", "--set", "sb", "--balanced", gloss=gl)
++    ma, mb = (json.loads((d / "metrics.json").read_text()) for d in (a, b))
++    keys = ("steps", "steps_run", "steps_per_epoch", "n_train", "awp_start_step")
++    assert [ma[k] for k in keys] == [mb[k] for k in keys] == [4, 3, 1, 64, 1]
++    assert (ma["balanced"], mb["balanced"], ma["flags"]["cos_head"], mb["flags"]["cos_head"]) == (False, True, False, True)
++    glosses = [gl(i) for i in range(96)]
++    names = sorted(set(glosses))
++    labels = np.array([names.index(g) for g in glosses])
++    sa, sb = seen
++    assert sa.p is None and np.array_equal(sb.p, T_.balanced_p(list(range(64)), labels, glosses, "sb"))
++    tot = np.bincount(labels[:64], weights=sb.p)
++    assert np.allclose(tot[[names.index(f"bukva:b{k}") for k in range(3)]], 16 / 64 / 3) and \
++        np.allclose(tot[[names.index("slovo:s0"), names.index("slovo:s1")]], 48 / 64 / 2)
++    assert [[q for _, q in d] for d in sb] == [[q for _, q in d] for d in sa] == [list(range(k * 64, k * 64 + 64)) for k in range(3)]
++    for f in ("best.pt", "last.pt"):
++        sd = torch.load(b / f)["model"]
++        assert torch.equal(sd["classifier.bias"], torch.zeros(len(names))) and float(sd["cos_scale"]) != 16.0, f
++    assert "cos_scale" not in torch.load(a / "last.pt")["model"]
++
++
++def test_e2_long_tail_m13_flag_and_init(tmp_path):
++    """(д) --init: № 4 у весов (metrics.json, ключ balanced; нет ключа — нет № 4) = у прогона (поправка 4, 22.10 п. 1а); --balanced с
++    U33 (обе клетки) — отказ. Проверки — до замка и данных."""
++    import pytest
++    T_ = _m13()
++    w = tmp_path / "sb" / "best.pt"
++    w.parent.mkdir()
++    w.write_bytes(b"")
++    done = tmp_path / "done"                                                 # готовый прогон: main выходит после проверок
++    done.mkdir()
++    (done / "metrics.json").write_text("{}")
++    full = {"steps_run": 13800, "steps": 13800, "limit_train": 0, "epochs": 300, "stop_epoch": None, "input": ["u01b"]}
++    args = ["--set", "alluz", "--fold", "x", "--seed", "48", "--init", str(w), "--plan-only"]
++
++    def run(bal, out=done, extra=("--input", "u01b")):
++        return T_.main(args + list(extra) + ["--out", str(out)] + (["--balanced"] if bal else []))
++    for bal_w, bal, ok in ((True, True, True), (None, False, True), (None, True, False), (True, False, False), (False, True, False)):
++        (w.parent / "metrics.json").write_text(json.dumps({**full, **({} if bal_w is None else {"balanced": bal_w})}))
++        if ok:
++            assert run(bal) is None
++        else:
++            with pytest.raises(AssertionError, match="№ 4"):
++                run(bal, tmp_path / "o")
++    for extra in (("--arch", "sohn", "--recipe", "a1"), ("--arch", "a1", "--recipe", "sohn")):
++        with pytest.raises(AssertionError, match="№ 4"):
++            run(True, tmp_path / "o", extra)
++    assert not (tmp_path / "o").exists() and not list(tmp_path.glob("*.lock*"))
++
++
++# ---------------------------------------------------------------- Э2 турнира: правки по проверке кода рычагов № 2–4
++def test_e2_init_levers_need_full_pretraining(tmp_path):
++    """--init у прогона с рычагом без входа (Э1 UzSohn, если № 2–4 примут): веса без metrics.json (предобучение оборвано или идёт —
++    best.pt пишется по ходу) и урезанное предобучение — стоп, как у входа и отбора (22.10 п. 1а); без рычагов (M13) — как было.
++    Проверки — до замка и данных."""
++    import pytest
++    T_ = _m13()
++    done = tmp_path / "done"                                                 # готовый прогон: main выходит после проверок
++    done.mkdir()
++    (done / "metrics.json").write_text("{}")
++
++    def weights(name, m=None):
++        w = tmp_path / name / "best.pt"
++        w.parent.mkdir()
++        w.write_bytes(b"")
++        if m is not None:
++            (w.parent / "metrics.json").write_text(json.dumps(m))
++        return w
++    run = lambda w, lev, out=done: T_.main(["--set", "uzsl", "--fold", "x", "--seed", "42", "--init", str(w), "--plan-only",
++                                            "--out", str(out), *lev])
++    w0 = weights("cut_off")
++    assert run(w0, []) is None
++    full = {"steps_run": 13800, "steps": 13800, "limit_train": 0, "epochs": 300, "stop_epoch": None}
++    for k, (lev, key) in enumerate(((["--variant", "9"], {"flags": {"part_tokens": True}}), (["--ema"], {"ema": True}),
++                                    (["--balanced"], {"balanced": True}))):
++        with pytest.raises(AssertionError, match="нет metrics.json"):
++            run(w0, lev, tmp_path / "o")
++        assert run(weights(f"full{k}", {**full, **key}), lev) is None
++        with pytest.raises(AssertionError, match="урезанное предобучение"):
++            run(weights(f"cut{k}", {**full, **key, "steps_run": 100}), lev, tmp_path / "o")
++    assert not (tmp_path / "o").exists() and not list(tmp_path.glob("*.lock*"))
++
++
++def test_e2_long_tail_init_resets_scale(tmp_path, monkeypatch):
++    """№ 4 с --init (вне Э2, вариант (II): предобучение с № 4 → дообучение с № 4): s косинусной головы на старте дообучения — 16
++    (22.11 «s = 16 со старта»: масштаб — часть головы, а голова новая), остальное — из весов; у прежнего флага идеи 7 (--variant 7)
++    s — из весов, как в master."""
++    T_ = _m13()
++    pre = _tiny_run(T_, monkeypatch, tmp_path / "pre", "--balanced")
++    w = torch.load(pre / "best.pt")["model"]
++    assert float(w["cos_scale"]) != 16.0
++    m0 = json.loads((pre / "metrics.json").read_text())
++    (pre / "metrics.json").write_text(json.dumps({**m0, "steps_run": 13800, "steps": 13800, "epochs": 300}))   # бюджет — как полный
++    old = tmp_path / "old" / "best.pt"                                       # без metrics.json: у идеи 7 проверки --init нет
++    old.parent.mkdir()
++    old.write_bytes((pre / "best.pt").read_bytes())
++    st, step0 = [], sohn.train_step
++
++    def step(model, *a, **k):
++        st.append({n: t.detach().clone() for n, t in model.state_dict().items()})
++        return step0(model, *a, **k)
++    monkeypatch.setattr(sohn, "train_step", step)
++    _tiny_run(T_, monkeypatch, tmp_path / "ft", "--balanced", "--init", str(pre / "best.pt"))
++    _tiny_run(T_, monkeypatch, tmp_path / "v7", "--variant", "7", "--init", str(old))
++    ft, v7 = st[0], st[3]                                                    # до первого шага каждого прогона (3 шага)
++    assert float(ft["cos_scale"]) == 16.0 and float(v7["cos_scale"]) == float(w["cos_scale"])
++    assert all(torch.equal(s[k], w[k]) for s in (ft, v7) for k in w if not k.startswith(("classifier.", "cos_scale")))
++
++
++def test_e2_input_on_slovo_bukva(tmp_path, monkeypatch):
++    """Э2 (поправка 4, 22.10 п. 1; № 2 поверх входа (а′)): --input идёт на --set slovo|bukva (фолд, с нуля) — records с позой и H/W
++    (inp=True); у корпуса uzsl вход — отказ (позы и H/W корпуса нет, 22.8). Только план (до обучения)."""
++    import pytest
++    T_ = _m13()
++    seen = []
++
++    class Recs(list):   # плану нужна только длина записей
++        pass
++
++    def records(set_, fold, pose=False, inp=False):
++        seen.append((set_, fold, inp))
++        g = [f"g{i % 4}" for i in range(96)]
++        return Recs(range(96)), g, [{"sample_id": f"s{i}", "gloss": x} for i, x in enumerate(g)], \
++            (list(range(64)), list(range(64, 80)), list(range(80, 96)))
++    monkeypatch.setattr(T_, "records", records)
++    monkeypatch.setitem(sohn.CFG, "batch_size", 64)
++    for s in ("slovo", "bukva"):
++        p = T_.main(["--set", s, "--fold", "fold1", "--seed", "48", "--input", "u01a,u04,u01b", "--variant", "9", "--plan-only",
++                     "--out", str(tmp_path / s / "seed48")])
++        assert (p["n_train"], p["steps"], seen[-1]) == (64, 300, (s, "fold1", True))
++    with pytest.raises(AssertionError, match="--input"):
++        T_.main(["--set", "uzsl", "--fold", "fold1", "--seed", "48", "--input", "u01b", "--plan-only", "--out", str(tmp_path / "u")])
++
++
++def test_e2_part_tokens_ms_per_record():
++    """uzsohn_sel.ms_per_record (цена записи, 22.10 пп. 2, 5) строит сеть прогона с № 2: tokens в SohnNet, маска частей в конце входа
++    (как AugSet); без № 2 вход прежний."""
++    _m13()
++    import uzsohn_sel
++    n = torch.get_num_threads()
++    try:
++        for tok in ((), ("u01b",), ("u01a", "u04", "u01b")):
++            assert uzsohn_sel.ms_per_record({"part_tokens": True}, 33, 16, n=1, tokens=tok) > 0
++    finally:
++        torch.set_num_threads(n)
++
++
++# Тесты рецензента (проверка кода № 2–4, Workflow wf_fdda4e1c-bed): закрывают 8 мутаций, которые прежние тесты пропускали.
++def test_x_part_tokens_mpk_formula_and_init():
++    """№ 2 = механизм токенов model.py: Linear → GELU (точный) → Linear, part_emb и fuse_q ~ randn·0,02, оценка / √192;
++    часть есть в кадре, если есть хоть одна её точка."""
++    import torch.nn.functional as F
++    tok = ("u04", "u01b")
++    torch.manual_seed(0)
++    pt = sohn.PartTokens(tok, 192)
++    assert all([type(l) for l in s] == [torch.nn.Linear, torch.nn.GELU, torch.nn.Linear] and s[1].approximate == "none"
++               for s in pt.mlp)
++    assert abs(float(pt.part_emb.std()) - 0.02) < 0.004 and abs(float(pt.fuse_q.std()) - 0.02) < 0.005
++    x = _rec122(T=12, seed=3)
++    x[4, sohn.LH_LOC[1:]] = np.nan                                     # у кисти Л осталась одна точка
++    assert sohn.part_mask(x, tok)[4, 0] == 1
++    xt = torch.from_numpy(_feat2(x, tok))[None]
++    cols = sohn.part_cols(tok)
++    with torch.no_grad():
++        t = torch.stack([s[2](F.gelu(s[0](xt[..., c]))) + pt.part_emb[i] for i, (s, c) in enumerate(zip(pt.mlp, cols))], 2)
++        a = torch.softmax((pt.fuse_k(t) @ pt.fuse_q / 192 ** 0.5).masked_fill(xt[..., -3:] <= 0, -1e4), 2)
++        assert torch.allclose(pt(xt), (a[..., None] * t).sum(2), atol=1e-6)
++
++
++def _tiny_run_inp(mod, monkeypatch, out, *extra):
++    """_tiny_run с позой и H/W в записях (вход preprocess_u, --set sb)."""
++    def records(set_, fold, pose=False, inp=False):
++        rng = np.random.default_rng(0)
++        off = np.concatenate([[0], np.cumsum(rng.integers(8, 40, 96))])
++        xy = rng.uniform(0.2, 0.8, (off[-1], sohn.NUM_NODES_POSE, 2)).astype(np.float32)
++        clips = [{"sample_id": f"s{i}", "signer_id": f"p{i % 6}", "gloss": f"bukva:g{i % 4}"} for i in range(96)]
++        r = mod.Recs(xy[:, :118].copy(), np.zeros((off[-1], 4), bool), off, xy[:, 118:].copy() if (pose or inp) else None,
++                     np.full(96, 0.5625, np.float32) if inp else None)
++        return r, [c["gloss"] for c in clips], clips, (list(range(64)), list(range(64, 80)), [])
++    monkeypatch.setattr(mod, "records", records)
++    for k, v in (("batch_size", 64), ("awp_start_epoch", 1), ("dropout_start_epoch", 2)):
++        monkeypatch.setitem(sohn.CFG, k, v)
++    monkeypatch.setenv("WEEKEND_GATE_NOW", "2026-11-10 10:00")
++    mod.main(["--set", "sb", "--seed", "1", "--epochs", "4", "--max-steps", "3", "--workers", "1", "--out", str(out), *extra])
++    return out
++
++
++def test_x_part_tokens_m13_loop(tmp_path, monkeypatch):
++    """№ 2 через m13_train.main: --variant 9 без входа и с --input u01b (сеть с tokens, маска в AugSet)."""
++    T_ = _m13()
++    for d in (_tiny_run(T_, monkeypatch, tmp_path / "plain", "--variant", "9"),
++              _tiny_run_inp(T_, monkeypatch, tmp_path / "u01b", "--input", "u01b", "--variant", "9")):
++        m = json.loads((d / "metrics.json").read_text())
++        sd = torch.load(d / "last.pt")["model"]
++        assert m["flags"]["part_tokens"] and m["variant"] == [9] and "stem.weight" not in sd and "tok.part_emb" in sd, d
++
++
++def test_x_ema_every_step_not_every_epoch(tmp_path, monkeypatch):
++    """№ 3: EMA обновляется на КАЖДОМ шаге — при 2 шагах на эпоху (пакет 32 = 8 × 4) n_averaged = числу шагов."""
++    T_ = _m13()
++    made = []
++
++    class Spy(torch.optim.swa_utils.AveragedModel):
++        def __init__(self, *a, **k):
++            super().__init__(*a, **k)
++            made.append(self)
++    monkeypatch.setattr(torch.optim.swa_utils, "AveragedModel", Spy)
++    monkeypatch.setitem(sohn.CFG, "batch_size", 32)
++    for k, v in (("awp_start_epoch", 1), ("dropout_start_epoch", 2)):
++        monkeypatch.setitem(sohn.CFG, k, v)
++    def records(set_, fold, pose=False, inp=False):
++        rng = np.random.default_rng(0)
++        off = np.concatenate([[0], np.cumsum(rng.integers(8, 40, 96))])
++        xy = rng.uniform(0.2, 0.8, (off[-1], sohn.NUM_NODES, 2)).astype(np.float32)
++        clips = [{"sample_id": f"s{i}", "signer_id": f"p{i % 6}", "gloss": f"g{i % 4}"} for i in range(96)]
++        return (T_.Recs(xy, np.zeros((off[-1], 4), bool), off), [c["gloss"] for c in clips], clips,
++                (list(range(64)), list(range(64, 80)), list(range(80, 96))))
++    monkeypatch.setattr(T_, "records", records)
++    monkeypatch.setenv("WEEKEND_GATE_NOW", "2026-11-10 10:00")
++    T_.main(["--set", "bukva", "--fold", "fold1", "--seed", "1", "--epochs", "4", "--max-steps", "5", "--workers", "1",
++             "--out", str(tmp_path / "ema"), "--ema"])
++    m = json.loads((tmp_path / "ema" / "metrics.json").read_text())
++    (ema,) = made
++    assert m["steps_per_epoch"] == 2 and m["steps_run"] == 5 and int(ema.n_averaged) == 5

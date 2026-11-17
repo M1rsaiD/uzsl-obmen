@@ -1,0 +1,11 @@
+n3_decay_by_run_steps KILLED ['test_e2_ema_m13_loop'] ['FAILED tests/test_sohn.py::test_e2_ema_m13_loop - assert ([3] == [4]', '1 failed in 5.53s']
+n3_no_warmup KILLED ['test_e2_ema_decay_by_steps_and_warmup'] ['FAILED tests/test_sohn.py::test_e2_ema_decay_by_steps_and_warmup - AssertionE...', '1 failed in 0.73s']
+n3_threshold_gt KILLED ['test_e2_ema_decay_by_steps_and_warmup'] ['FAILED tests/test_sohn.py::test_e2_ema_decay_by_steps_and_warmup - AssertionE...', '1 failed in 0.76s']
+n3_best_raw KILLED ['test_e2_ema_m13_loop'] ['FAILED tests/test_sohn.py::test_e2_ema_m13_loop - assert False', '1 failed in 5.08s']
+n4_n_all_records KILLED ['test_e2_long_tail_sampling'] ['FAILED tests/test_sohn.py::test_e2_long_tail_sampling - assert False', '1 failed in 0.70s']
+n4_equal_set_share KILLED ['test_e2_long_tail_sampling'] ['FAILED tests/test_sohn.py::test_e2_long_tail_sampling - assert False', '1 failed in 0.67s']
+n4_uniform_choice KILLED ['test_e2_long_tail_sampling'] ["FAILED tests/test_sohn.py::test_e2_long_tail_sampling - AssertionError: ('slo...", '1 failed in 0.72s']
+n4_bias_trainable KILLED ['test_e2_long_tail_cos_head_awp'] ['FAILED tests/test_sohn.py::test_e2_long_tail_cos_head_awp - assert (16.0 == 1...', '1 failed in 0.66s']
+n4_no_cos_head KILLED ['test_e2_long_tail_m13_loop'] ['FAILED tests/test_sohn.py::test_e2_long_tail_m13_loop - assert (False, True, ...', '1 failed in 3.39s']
+n4_init_check_off KILLED ['test_e2_long_tail_m13_flag_and_init'] ["FAILED tests/test_sohn.py::test_e2_long_tail_m13_flag_and_init - KeyError: 'x'", '1 failed in 0.99s']
+done
