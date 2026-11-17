@@ -1,0 +1,304 @@
+{
+ "check": {
+  "macro_single": 29.79,
+  "macro_ens3": 30.84,
+  "boot": {
+   "n_signers": 10,
+   "diff": 1.05,
+   "ci": [
+    0.07,
+    2.05
+   ],
+   "level": 0.99,
+   "plus": "7/10",
+   "worse": "2/10"
+  },
+  "sd": 1.305,
+  "t9_ci": [
+   -0.29,
+   2.39
+  ],
+  "per_signer": {
+   "S01": 1.95,
+   "S02": 1.23,
+   "S03": 0.0,
+   "S04": -0.74,
+   "S05": 0.87,
+   "S07": 1.92,
+   "S08": 1.23,
+   "S09": 1.3,
+   "S11": 3.5,
+   "S12": -0.78
+  },
+  "n_test": {
+   "S01": 479,
+   "S02": 1190,
+   "S03": 690,
+   "S04": 136,
+   "S05": 267,
+   "S07": 849,
+   "S08": 81,
+   "S09": 77,
+   "S11": 143,
+   "S12": 172
+  },
+  "matches_T9_json": true
+ },
+ "seed_noise": {
+  "per_signer": {
+   "S01": {
+    "n": 479.0,
+    "sigma_rec": 0.758,
+    "share_unstable": 0.119,
+    "pairs_s2_over_rec": 1.13,
+    "seed_sd_single": 0.733
+   },
+   "S02": {
+    "n": 1190.0,
+    "sigma_rec": 0.429,
+    "share_unstable": 0.105,
+    "pairs_s2_over_rec": 0.286,
+    "seed_sd_single": 0.379
+   },
+   "S03": {
+    "n": 690.0,
+    "sigma_rec": 0.551,
+    "share_unstable": 0.11,
+    "pairs_s2_over_rec": 0.262,
+    "seed_sd_single": 0.383
+   },
+   "S04": {
+    "n": 136.0,
+    "sigma_rec": 1.368,
+    "share_unstable": 0.118,
+    "pairs_s2_over_rec": 0.661,
+    "seed_sd_single": 1.945
+   },
+   "S05": {
+    "n": 267.0,
+    "sigma_rec": 1.067,
+    "share_unstable": 0.116,
+    "pairs_s2_over_rec": 0.171,
+    "seed_sd_single": 0.432
+   },
+   "S07": {
+    "n": 849.0,
+    "sigma_rec": 0.547,
+    "share_unstable": 0.126,
+    "pairs_s2_over_rec": 0.694,
+    "seed_sd_single": 0.296
+   },
+   "S08": {
+    "n": 81.0,
+    "sigma_rec": 1.598,
+    "share_unstable": 0.111,
+    "pairs_s2_over_rec": 0.321,
+    "seed_sd_single": 3.266
+   },
+   "S09": {
+    "n": 77.0,
+    "sigma_rec": 2.259,
+    "share_unstable": 0.117,
+    "pairs_s2_over_rec": 0.033,
+    "seed_sd_single": 4.683
+   },
+   "S11": {
+    "n": 143.0,
+    "sigma_rec": 1.352,
+    "share_unstable": 0.182,
+    "pairs_s2_over_rec": 0.605,
+    "seed_sd_single": 2.521
+   },
+   "S12": {
+    "n": 172.0,
+    "sigma_rec": 1.132,
+    "share_unstable": 0.11,
+    "pairs_s2_over_rec": 0.735,
+    "seed_sd_single": 0.671
+   }
+  },
+  "mean_sigma_e2": 1.514,
+  "sd2_total": 1.704,
+  "tau2": 0.19,
+  "f_seed_share": 0.888,
+  "pairs_ratio_mean": 0.49
+ },
+ "A_fresh_signers": {
+  "sigma_80ci": [
+   1.022,
+   1.918
+  ],
+  "power": {
+   "d=0.5 s=1.02": {
+    "t9_analytic": 0.098,
+    "both_normal": 0.099,
+    "t9_only_normal": 0.099,
+    "both_obs_shape": 0.086
+   },
+   "d=0.5 s=1.31": {
+    "t9_analytic": 0.058,
+    "both_normal": 0.058,
+    "t9_only_normal": 0.058,
+    "both_obs_shape": 0.055
+   },
+   "d=0.5 s=1.92": {
+    "t9_analytic": 0.029,
+    "both_normal": 0.03,
+    "t9_only_normal": 0.03,
+    "both_obs_shape": 0.031
+   },
+   "d=1.05 s=1.02": {
+    "t9_analytic": 0.532,
+    "both_normal": 0.526,
+    "t9_only_normal": 0.526,
+    "both_obs_shape": 0.509
+   },
+   "d=1.05 s=1.31": {
+    "t9_analytic": 0.314,
+    "both_normal": 0.313,
+    "t9_only_normal": 0.313,
+    "both_obs_shape": 0.276
+   },
+   "d=1.05 s=1.92": {
+    "t9_analytic": 0.126,
+    "both_normal": 0.129,
+    "t9_only_normal": 0.129,
+    "both_obs_shape": 0.119
+   },
+   "d=2.0 s=1.02": {
+    "t9_analytic": 0.991,
+    "both_normal": 0.991,
+    "t9_only_normal": 0.991,
+    "both_obs_shape": 0.999
+   },
+   "d=2.0 s=1.31": {
+    "t9_analytic": 0.909,
+    "both_normal": 0.906,
+    "t9_only_normal": 0.906,
+    "both_obs_shape": 0.934
+   },
+   "d=2.0 s=1.92": {
+    "t9_analytic": 0.547,
+    "both_normal": 0.545,
+    "t9_only_normal": 0.545,
+    "both_obs_shape": 0.511
+   }
+  },
+  "delta_for_80pct_at_sd": 1.74
+ },
+ "B_same_signers": {
+  "format": "(новая одна: P(оба), объединение (старая+новая)/2: P(оба), среднее новой разности)",
+  "rows": {
+   "оценка (σ_e,k по записям, τ² по моментам)": {
+    "mu=0.0": [
+     0.019,
+     0.105,
+     0.23
+    ],
+    "mu=0.5": [
+     0.106,
+     0.293,
+     0.62
+    ],
+    "mu=1.05": [
+     0.359,
+     0.593,
+     1.06
+    ],
+    "mu=2.0": [
+     0.839,
+     0.937,
+     1.81
+    ],
+    "прогноз (μ ~ апостериорное)": [
+     0.386,
+     0.603,
+     1.09
+    ],
+    "post_mu": [
+     1.09,
+     0.3
+    ],
+    "P(mu>=2 | старые), %": 0.12
+   },
+   "τ² = 0 (весь разброс — шум затравок)": {
+    "mu=0.0": [
+     0.006,
+     0.075,
+     0.0
+    ],
+    "mu=0.5": [
+     0.057,
+     0.299,
+     0.5
+    ],
+    "mu=1.05": [
+     0.318,
+     0.667,
+     1.05
+    ],
+    "mu=2.0": [
+     0.91,
+     0.982,
+     2.0
+    ],
+    "прогноз (μ ~ апостериорное)": [
+     0.353,
+     0.638,
+     1.05
+    ],
+    "post_mu": [
+     1.05,
+     0.41
+    ],
+    "P(mu>=2 | старые), %": 1.07
+   },
+   "половина — шум затравок": {
+    "mu=0.0": [
+     0.045,
+     0.078,
+     0.53
+    ],
+    "mu=0.5": [
+     0.121,
+     0.173,
+     0.77
+    ],
+    "mu=1.05": [
+     0.297,
+     0.352,
+     1.05
+    ],
+    "mu=2.0": [
+     0.681,
+     0.705,
+     1.52
+    ],
+    "прогноз (μ ~ апостериорное)": [
+     0.308,
+     0.363,
+     1.05
+    ],
+    "post_mu": [
+     1.05,
+     0.41
+    ],
+    "P(mu>=2 | старые), %": 1.07
+   }
+  }
+ },
+ "C_type1_naive_pooling_pct": {
+  "оценка": {
+   "stage1": 0.335,
+   "total_two_stage_pct": 0.623
+  },
+  "τ² = 0": {
+   "stage1": 0.486,
+   "total_two_stage_pct": 0.934
+  }
+ },
+ "D_new_ens_vs_old_single": {
+  "sd": 2.158,
+  "power_t9_at_1.05": 0.097
+ }
+}
