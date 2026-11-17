@@ -1,0 +1,94 @@
+# Б7: где ставятся пометки 22.8 и 22.7 (ветка turnir-e2-tools 0b22f9b, scripts/turnir_eval.py и tests/test_turnir_e2.py; nl -ba)
+## turnir_eval.py 545–553 (строки UzSohn в сводке: source)
+   545	
+   546	    def add(ds, model, kind, members, recipe, cond, c, signer, n_seeds, source, parts):
+   547	        t, lo, hi = acc_ci(c, signer, level_main, ds, B=B_MAIN)
+   548	        g = [cost.get(ds, {}).get(p, {}) for p in parts]  # turnir_cost.json: {набор: {модель: {gflops, latency_ms, params_m}}}
+   549	        sm = lambda k: round(sum(x[k] for x in g), 4) if g and all(k in x for x in g) else "нет данных"  # noqa: E731
+   550	        if st == "Э2" and "UzSohn" in model:  # подпись по П21 «Название» (ключ UzSohn — внутренний); пометка 22.8 «в таблицах»
+   551	            model, source = model.replace("UzSohn", uz), f"{source}; общий рецепт UzSohn не обучался (поправка 4, 22.8)"
+   552	        rows.append([ds, model, kind, members, recipe, cond, round(t, 3), round(lo, 3), round(hi, 3),
+   553	                     round(100 * level_main, 2), sm("gflops"), sm("latency_ms"), sm("params_m"), n_seeds, source])
+## turnir_eval.py 626–634 (столбец вывода пар: «отбор не вложенный»)
+   626	        if not ma or not mb:
+   627	            out.append(f"| {ds} | {a} − {b} | ждёт | | | | |")
+   628	            continue
+   629	        ids, signer, gloss = align([ma, mb])
+   630	        ca, cb = correct_ens(ma, 1, ids, gloss), correct_ens(mb, 1, ids, gloss)
+   631	        one = (a in SOHN_LIKE) != (b in SOHN_LIKE)  # «порт − порт» (UzSohn − Sohn): сдвиг +2,71 сокращается (уточнение П18, 22.7)
+   632	        mark = "; отбор не вложенный (22.7)" if nn and ds == P and "UzSohn" in (a, b) else ""
+   633	        sel = [("", np.ones(len(ids), bool))]
+   634	        if keep:
+## turnir_eval.py 685–695 (not_nested)
+   685	def not_nested() -> bool:
+   686	    """22.7: решение хоть одного шага Э2 без группы теста Slovo j ≠ общему (uzsohn_sel.py e2 → runs/UZSOHN/decide_e2_<шаг>.json)."""
+   687	    ds = [json.loads(p.read_text(encoding="utf-8")) for p in (RUNS / "UZSOHN").glob("decide_e2_*.json")]
+   688	    return any(x["accepted"] != d["accepted"] for d in ds for x in d["without_group"].values())
+   689	
+   690	
+   691	def e2_outside() -> set:
+   692	    """22.7 (Б) поправки 4: исполнители теста Slovo, чей код не встречается ни в одной валидации протокола П (slovo_p5 и
+   693	    bukva_p5) — по коду; коды записей — опись кэша M13 (clips). Список сверяется с sha256, записанным до теста (коды по
+   694	    возрастанию, «\\n», UTF-8, без завершающего «\\n»)."""
+   695	    sig, sp = {}, {}
+## turnir_eval.py 744–750 (хвост pairs.md)
+   744	    out = []
+   745	    if st == "Э2":
+   746	        keep = e2_outside()
+   747	        out += ["", f"{uz}: общий рецепт UzSohn не обучался (поправка 4, 22.8 — отступление от правила 3).", "",
+   748	                "## Slovo: исполнители вне валидаций Э2 (поправка 4, 22.7 (Б); справочно, вне m = 8)", "",
+   749	                f"Исполнители теста Slovo, чьих кодов нет ни в одной валидации протокола П (slovo_p5, bukva_p5): {len(keep)}; sha256 "
+   750	                f"списка {E2_OUT_SHA} — как в поправке 4. Над строкой «вне валидаций» — полная строка.", ""]
+## tests/test_turnir_e2.py 244–295
+   244	def test_not_nested_mark(stand):
+   245	    """22.7: решение хоть одного шага Э2 без группы теста Slovo j ≠ общему (runs/UZSOHN/decide_e2_*.json) → у пар UzSohn − X на
+   246	    Slovo (главные и справочная) пометка «отбор не вложенный»; на корпусе — нет; все решения совпали — нет (рецензия Э2: V1)."""
+   247	    base = stand(UZ)
+   248	    run_stand(te)
+   249	    d = base / "OM/runs/UZSOHN"
+   250	    d.mkdir()
+   251	    wg = {str(j): {"accepted": True} for j in range(1, 6)}
+   252	    (d / "decide_e2_U01b.json").write_text(json.dumps({"accepted": True, "without_group": wg}))
+   253	    rows = lambda: te.pairs_table(te.MAIN_PAIRS, True) + te.pairs_table(te.REF_PAIRS, False)  # noqa: E731
+   254	    assert not any("не вложенный" in r for r in rows())
+   255	    (d / "decide_e2_r4.json").write_text(json.dumps({"accepted": True, "without_group": wg | {"3": {"accepted": False}}}))
+   256	    mark = [r for r in rows() if "; отбор не вложенный (22.7) |" in r]
+   257	    assert sorted(r.split(" | ")[1] for r in mark) == sorted(f"{UZ_NAME} − {b}" for b in ("A1", "SL-GCN", "наша реализация Sohn"))
+   258	    assert all(r.startswith("| Slovo | ") for r in mark)
+   259	
+   260	
+   261	def test_both_rule_needs_t_too():
+   262	    """П25, «оба»: перцентильный 99 % ДИ > 0, а t-ДИ (n = 10, t₉) захватывает 0 → «не установлено»."""
+   263	    z = np.array([-1.5, -1, -0.5, -0.2, 0, 0, 0.2, 0.5, 1, 1.5])
+   264	    d = 1 + z / z.std(ddof=1)  # Δ = 1 п. п., sd = 1: Δ/(sd/√10) = 3,16 < t(0,995; 9) = 3,25; при ddof = 0 было бы 3,33
+   265	    r = te.both(0.5 + d / 200, 0.5 - d / 200, np.array(SIG), "UzSL")
+   266	    assert r["lo"] > 0 > r["t_lo"] and r["verdict"] == "не установлено", r
+   267	
+   268	
+   269	def test_uzsohn_accepted_rows_and_outside_print(stand, monkeypatch):
+   270	    """22.8, П21: подпись «UzSohn (Э2: <рычаги>)» в парах и сводке; «UzSohn − Sohn» без +2,71; печать 22.7 (Б) — пары на исполнителях
+   271	    вне валидаций Э2, список сверен с sha256; разные рычаги у прогонов UzSohn — отказ."""
+   272	    base = stand(UZ)
+   273	    run_stand(te)
+   274	    assert te.e2_state() == ("Э2", UZ_NAME)
+   275	    main, ref = te.pairs_table(te.MAIN_PAIRS, True), te.pairs_table(te.REF_PAIRS, False)
+   276	    for ds in ("Slovo", "UzSL"):
+   277	        for b in ("A1", "SL-GCN"):
+   278	            i = next(i for i, r in enumerate(main) if r.startswith(f"| {ds} | {UZ_NAME} − {b} | "))
+   279	            assert main[i + 1].startswith(f"| {ds} | ↳ устойчивость: +2.71 к точности {UZ_NAME} |")
+   280	        i = next(i for i, r in enumerate(ref) if r.startswith(f"| {ds} | {UZ_NAME} − наша реализация Sohn | "))
+   281	        assert i + 1 == len(ref) or "↳" not in ref[i + 1]
+   282	    rows = list(csv.DictReader(open(base / "OM/runs/TURNIR/turnir_summary.csv", encoding="utf-8")))
+   283	    assert {r["model"] for r in rows if r["kind"] == "single" and "UzSohn" in r["model"]} == {UZ_NAME}
+   284	    assert not any(r["model"] == "UzSohn" for r in rows) and any(r["model"] == UZ_NAME for r in rows if r["kind"] == "ens_homo")
+   285	    note = "; общий рецепт UzSohn не обучался (поправка 4, 22.8)"  # 22.8: пометка «в таблицах» — и в сводке
+   286	    assert {r["source"].endswith(note) for r in rows if "UzSohn" in r["model"]} == {True} and not any(note in r["source"]
+   287	                                                                                                       for r in rows if "UzSohn" not in r["model"])
+   288	    monkeypatch.setattr(te, "E2_OUT_SHA", hashlib.sha256("\n".join(sorted(OUTSIDE)).encode()).hexdigest())
+   289	    assert te.e2_outside() == OUTSIDE
+   290	    tail = te.e2_tail()
+   291	    assert tail[1] == f"{UZ_NAME}: общий рецепт UzSohn не обучался (поправка 4, 22.8 — отступление от правила 3)."
+   292	    ma, mb = (te.load_model(te.PRED / p) for p in ("Slovo/UzSohn/native/scratch", "Slovo/A1/native/scratch"))
+   293	    ids, signer, gloss = te.align([ma, mb])
+   294	    ca, cb, k = te.correct_ens(ma, 1, ids, gloss), te.correct_ens(mb, 1, ids, gloss), np.isin(signer, sorted(OUTSIDE))
+   295	    r = te.paired(ca[k], cb[k], signer[k], te.bonf(8), "Slovo", True, te.B_MAIN)

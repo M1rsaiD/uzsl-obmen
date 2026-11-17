@@ -1,0 +1,79 @@
+diff --git a/scripts/turnir_e2_chain.sh b/scripts/turnir_e2_chain.sh
+index 792c47e..2238feb 100644
+--- a/scripts/turnir_e2_chain.sh
++++ b/scripts/turnir_e2_chain.sh
+@@ -93,6 +93,17 @@ else
+   done
+ fi
+ grep -q ЗАКРЫТА runs/TURNIR/stoprule.md && { say "правило остановки: ветка UzSohn ЗАКРЫТА — Э2 не начинается, UzSohn ≡ Sohn; выход"; exit 0; }
++# Б10 (к1 0149, к3 0048): хеш Э2 сверен к1 и к3 до конца M13 (runs/TURNIR_E2_PREOK, 1-я строка — полный хеш; пишет к2) → перемотку
++# master и runs/TURNIR_E2_OK делает цепочка — на ночном пути нет человека. Не master, правки в дереве, не fast-forward — обычный путь
++PH=$(head -1 runs/TURNIR_E2_PREOK 2> /dev/null | grep -oE '^[0-9a-f]{40}')
++if [ -n "$PH" ] && [ ! -f runs/TURNIR_E2_OK ]; then
++  if [ "$(git symbolic-ref -q --short HEAD)" = master ] && [ -z "$(git status --porcelain --untracked-files=no)" ] \
++     && git merge-base --is-ancestor HEAD "$PH" && git merge --ff-only -q "$PH" && [ "$(git rev-parse HEAD)" = "$PH" ]; then
++    echo "$PH" > runs/TURNIR_E2_OK && say "master перемотан на сверенный заранее $PH (runs/TURNIR_E2_PREOK, Б10); runs/TURNIR_E2_OK записан цепочкой"
++  else
++    say "!!! перемотка на $PH (runs/TURNIR_E2_PREOK) не прошла: не master, правки в дереве или не fast-forward — обычный путь"
++  fi
++fi
+ say "правило остановки: ветка UzSohn продолжается; жду runs/TURNIR_E2_OK (не дольше 12 ч после UzSohn_M13.done)"
+ until [ -f runs/TURNIR_E2_OK ] || past 43200; do sleep 60; done
+ if [ ! -f runs/TURNIR_E2_OK ]; then
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index eddcda7..5c2ec4a 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -925,6 +925,52 @@ def test_e2_chain_ii_waits_for_ok_up_to_12h(tmp_path):
+     assert r.returncode == 0 and "через 12 ч" not in r.stdout and (om / "runs/UzSohn_E2.done").is_file(), r.stdout
+ 
+ 
++def _b10_case(tmp_path):
++    """Б10: master — коммит Э2 без рычагов; коммит рычагов сверх него (ветка lev) сверен заранее — его хеш в runs/TURNIR_E2_PREOK."""
++    om, env = _chain_case(tmp_path)
++    _git(om, "branch", "-M", "master")
++    _git(om, "checkout", "-q", "-b", "lev")
++    with open(om / "src/mpk/sohn.py", "a", encoding="utf-8") as f:
++        f.write("# рычаги\n")
++    _git(om, "commit", "-qam", "рычаги")
++    lev = _git(om, "rev-parse", "HEAD")
++    _git(om, "checkout", "-q", "master")
++    (om / "runs/TURNIR_E2_PREOK").write_text(lev + "\n")
++    (om / "runs/TURNIR_E2_OK").unlink()
++    return om, env, lev
++
++
++def test_e2_chain_b10_preok_fast_forward(tmp_path):
++    """Б10: после UzSohn_M13.done цепочка сама перематывает master на сверенный заранее коммит и пишет TURNIR_E2_OK — Э2 идёт
++    без человека; код Э2 = сверенному (проверка строк 117–121 проходит на перемотанном дереве)."""
++    om, env, lev = _b10_case(tmp_path)
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 0 and "master перемотан на сверенный заранее" in r.stdout, r.stdout
++    assert _git(om, "rev-parse", "HEAD") == lev and _git(om, "symbolic-ref", "--short", "HEAD") == "master"
++    assert (om / "runs/TURNIR_E2_OK").read_text().split()[0] == lev and (om / "runs/UzSohn_E2.done").is_file()
++
++
++@pytest.mark.parametrize("case", ["not_ff", "dirty", "not_master"])
++def test_e2_chain_b10_falls_back(tmp_path, case):
++    """Б10: master сдвинулся после сверки (не fast-forward), правка отслеживаемого файла или не ветка master → «!!!», HEAD не
++    трогается, обычный путь: ждём runs/TURNIR_E2_OK (приходит позже — Э2 идёт)."""
++    om, env, lev = _b10_case(tmp_path)
++    if case == "not_ff":
++        (om / "notes.txt").write_text("правка master после сверки\n")
++        _git(om, "add", "notes.txt")
++        _git(om, "commit", "-qm", "master сдвинулся")
++    elif case == "dirty":
++        with open(om / ".gitignore", "a", encoding="utf-8") as f:
++            f.write("# правка без коммита\n")
++    else:
++        _git(om, "checkout", "-q", "--detach")
++    head = _git(om, "rev-parse", "HEAD")
++    (tmp_path / "sleep_hook").write_text(f"[ -f runs/TURNIR_E2_OK ] || cp {tmp_path / 'ok'} runs/TURNIR_E2_OK\n")
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 0 and "!!! перемотка на " + lev in r.stdout and "перемотан" not in r.stdout, r.stdout
++    assert _git(om, "rev-parse", "HEAD") == head != lev and (om / "runs/UzSohn_E2.done").is_file()
++
++
+ @pytest.mark.parametrize("stale", [False, True])
+ def test_e2_chain_a_no_stoprule_2h(tmp_path, stale):
+     """(а): stoprule.md нет (или он старше UzSohn_M13.done) через 2 ч после маркера M13 → «!!!», выход, придержка снята (trap);
