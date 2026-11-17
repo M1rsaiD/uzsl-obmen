@@ -1,0 +1,1672 @@
+diff --git a/scripts/turnir_cost.py b/scripts/turnir_cost.py
+index 64fc2cb..150599f 100644
+--- a/scripts/turnir_cost.py
++++ b/scripts/turnir_cost.py
+@@ -5,7 +5,8 @@ cd osnovnaya_model && CUDA_VISIBLE_DEVICES= PYTHONPATH=src:../uzsign_e1/src pyth
+ кода → turnir_cost_force.json, не для текста). Способ — как Г2-4 / m13_cost.py: ЦП i9-14900KF, float32, batch 1, все
+ потоки torch, медиана 100 замеров после 10 прогревов; GFLOPs — torch.utils.flop_counter (mpk-модели — mpk.train.cost).
+ Окно при тесте: mpk.train-модели — их T (32; E1 — 64); Sohn — медиана длины записи набора (Slovo/Bukva 47, корпус 61 —
+-M13_sohn_prereg разд. 3). Модель — по config.yaml готового прогона ячейки (главный рецепт); веса случайные (на цену не влияют).
++M13_sohn_prereg разд. 3). Модель — по config.yaml готового прогона ячейки (главный рецепт; UzSohn — по его metrics.json,
++поправка 4, 22.10 п. 5); веса случайные (на цену не влияют).
+ Размер: ONNX (mpk-модели; export через torch.onnx во временный файл) — МБ = 10⁶ байт. Часы ГП на обучение — из журналов
+ (TURNIR_inventory: ч на прогон × прогонов) — отдельное поле gpu_h_train_per_run.
+ """
+@@ -19,6 +20,7 @@ import time
+ from pathlib import Path
+ 
+ os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
++import numpy as np  # noqa: E402
+ import torch  # noqa: E402
+ import yaml  # noqa: E402
+ from torch.utils.flop_counter import FlopCounterMode  # noqa: E402
+@@ -91,6 +93,31 @@ def sohn_cell(c: dict) -> dict:
+     return {"gflops": g, "latency_ms": ms, "params_m": sohn.keras_param_count(net)["trainable"] / 1e6, "T": T}
+ 
+ 
++def uzsohn_cell(c: dict) -> dict | None:
++    """UzSohn (поправка 4, 22.10 п. 5): сеть — по metrics.json прогона ячейки (input, channels, flags; № 3 — EMA весов — сеть не
++    меняет, № 4 — cos_head уже во flags). Вход — как uzsohn_sel.ms_per_record: preprocess_u(tokens), при № 2 — и маска
++    part_mask последними n_tok столбцами (PartTokens проверяет ширину). Прогонов нет — None («нет данных»)."""
++    from mpk import sohn
++    d = next((d for d in te.src_dirs(c) if (d / "metrics.json").is_file()), None)
++    if d is None:
++        return None
++    m = json.loads((d / "metrics.json").read_text())
++    tok = tuple(m["input"])
++    fl = {k: v for k, v in m["flags"].items() if v}  # только включённые: у SohnNet без № 2 нет аргументов part_tokens и tokens
++    assert set(fl) <= {"part_tokens", "cos_head"}, f"UzSohn: флаги вне Э2 {sorted(fl)} ({d})"
++    torch.manual_seed(0)
++    net = sohn.SohnNet(NCLS[c["ds"]], channels=m["channels"], **fl, **({"tokens": tok} if "part_tokens" in fl else {})).eval()
++    T = SOHN_T[c["ds"]]
++    x0 = np.random.default_rng(0).uniform(0.2, 0.8, (T, sohn.NUM_NODES_POSE if tok else sohn.NUM_NODES, 2)).astype(np.float32)
++    f = sohn.preprocess_u(x0, 0.5625, tok) if tok else sohn.preprocess(x0)
++    if "part_tokens" in fl:
++        f = np.concatenate([f, sohn.part_mask(x0, tok)], 1)
++    x, mk = torch.from_numpy(f)[None], torch.ones(1, T, dtype=torch.bool)
++    g, ms = bench(lambda: net(x, mk))
++    return {"gflops": g, "latency_ms": ms, "params_m": sohn.keras_param_count(net)["trainable"] / 1e6, "T": T,
++            "src": str(d.relative_to(ROOT.parent))}
++
++
+ def main() -> None:
+     out = {"load_avg_1min": idle_or_die(), "torch_threads": torch.get_num_threads(), "cpu": "i9-14900KF",
+            "commit": os.popen(f"git -C {ROOT} rev-parse --short HEAD").read().strip(), "force": FORCE,
+@@ -100,7 +127,7 @@ def main() -> None:
+         if c["recipe"] != rec or (c["ds"] != te.LO and c["cond"] != "scratch") or (c["ds"] == te.LO and c["cond"] != "transfer"):
+             continue
+         try:
+-            r = sohn_cell(c) if c["model"] == "Sohn" else mpk_cell(c)
++            r = sohn_cell(c) if c["model"] == "Sohn" else uzsohn_cell(c) if c["model"] == "UzSohn" else mpk_cell(c)
+         except Exception as e:
+             print("!!!", c["ds"], c["model"], type(e).__name__, e, flush=True)
+             r = None
+diff --git a/scripts/turnir_e2_chain.sh b/scripts/turnir_e2_chain.sh
+new file mode 100644
+index 0000000..792c47e
+--- /dev/null
++++ b/scripts/turnir_e2_chain.sh
+@@ -0,0 +1,238 @@
++#!/usr/bin/env bash
++# Турнир, Э2 — рычаги Sohn (поправка 4 к reports/TURNIR_prereg.md, П22: 22.1, 22.3–22.5, 22.8, 22.10 п. 3). Место Э2 (22.1) — (ii′)
++# при «да» автора (E2_MODE=ii), без «да» — (а) (E2_MODE=a); режим — только явно. Скрипт цепочки турнира не меняется (урок 17).
++# (ii′): ждёт runs/UzSohn_M13.done → turnir-e1 снят (иначе «!!!», выход) → правило остановки той же командой, что строка 51
++#   turnir_e1_chain.sh (вывод — в runs/TURNIR/stoprule.log; сюда — только «ЗАКРЫТА» / «продолжается»); «ЗАКРЫТА» или «!!!» — выход
++#   без Э2 → runs/TURNIR_E2_OK не дольше 12 ч после UzSohn_M13.done, иначе «!!!», выход (Э2 — после группы 2: к2 стартует юнит снова
++#   после runs/TURNIR_E1_g2.done). При любом выходе turnir-e1 пересоздаётся и продолжает с места: turnir_up — в trap EXIT и в
++#   ExecStopPost= юнита (SIGKILL цепочки); охрана is-active — от двойного подъёма; J = 1 + 1 — явно.
++# (а): по runs/TURNIR_E1_g1.done ставит придержку runs/TURNIR_HOLD_E2 («PID boot_id юнит»; соблюдает turnir_train.run_job) →
++#   UzSohn_M13.done → runs/TURNIR/stoprule.md новее него (считает turnir-e1, строка 51) не дольше 2 ч, иначе «!!!»; «ЗАКРЫТА» — выход
++#   → TURNIR_E2_OK не дольше 12 ч, иначе (б): придержка снимается, хеш ждётся дальше, затем придержка снова. Снимает её
++#   (переименованием в …snyat_<дата>) trap EXIT.
++# Дальше общее: 10 мин свободной ГП (П11) → код (scripts/uzsohn_code.txt, цепочка, предрег.) закоммичен и = хешу маркера (1-я строка
++# runs/TURNIR_E2_OK), текст цепочки = HEAD → CUDA → селфтест (ЦП) → проба памяти (22.10 п. 3) → контроль Sohn → 8 шагов 22.3 жадно
++# (затравка 48, --val-only, 10 ячеек Slovo и Bukva по $J; упавший прогон — ещё раз по одному, снова — «!!!», стоп; решение —
++# uzsohn_sel.py e2 → runs/UZSOHN/decide_e2_<шаг>.json) → runs/UzSohn_E2.done (принятые рычаги) → принято хоть что-то — UzSohn в Э1
++# (22.8: теги uzsohn_e1_*, затравки 42–46, ячейки M13) → runs/UzSohn_E2_E1.done. Готовое пропускается. Вывод прогонов Э1 UzSohn
++# (тест) — только в их журналы; журналы турнира и M13 цепочка не читает. Интерпретатор — PATH на каталог mise 3.14.7 (урок 30).
++# Править этот файл — только при остановленном юните: тело — функция main, после ожидания текст сверяется с HEAD.
++# (ii′), к2: (1) юнит Э2 (он ждёт); (2) затем снять turnir-e1 — только пока группа 1 готова, M13 нет и прогонов турнира нет;
++# затем systemctl --user is-active turnir-e1 (ждём inactive) и строка в OBMEN:
++#   cd ~/uzsign/osnovnaya_model && systemd-run --user --unit=turnir-e2 --collect -p WorkingDirectory=$PWD -p MemoryMax=40G \
++#     -p MemorySwapMax=0 -p OOMPolicy=continue -p ExecStopPost='-/usr/bin/bash scripts/turnir_e2_chain.sh turnir_up' \
++#     -E PATH="$PATH" -E HOME="$HOME" -E E2_MODE=ii bash -c "bash scripts/turnir_e2_chain.sh >> runs/turnir_e2_chain.log 2>&1"
++#   cd ~/uzsign/osnovnaya_model && systemctl --user is-active --quiet turnir-e2 && [ -f runs/TURNIR_E1_g1.done ] && \
++#     [ ! -f runs/UzSohn_M13.done ] && ! pgrep -f 'scripts/[t]urnir_train.py' > /dev/null && systemctl --user stop turnir-e1
++# (а) — до runs/TURNIR_E1_g1.done, turnir-e1 не снимается:
++#   cd ~/uzsign/osnovnaya_model && systemd-run --user --unit=turnir-e2 --collect -p WorkingDirectory=$PWD -p MemoryMax=40G \
++#     -p MemorySwapMax=0 -p OOMPolicy=continue -E PATH="$PATH" -E HOME="$HOME" -E E2_MODE=a \
++#     bash -c "bash scripts/turnir_e2_chain.sh >> runs/turnir_e2_chain.log 2>&1"
++# OOMPolicy=continue: по умолчанию (stop) OOM-киллер в cgroup юнита (MemoryMax) останавливает весь юнит — проба памяти не дошла бы
++# до «по 1 процессу» (22.10 п. 3), при (ii′) turnir-e1 ушёл бы в группу 3. systemd-oomd (app.slice) убивает юнит целиком и так:
++# проба без итога ($PR без J) при повторе юнита — по 1 процессу.
++# После перезагрузки (trap и ExecStopPost= не срабатывают; придержка (а) устаревает по boot_id) — проверка к2, затем юнит Э2 той же
++# командой (готовое пропускается; при (ii′) turnir-e1 не поднимать) или подъём turnir-e1:
++#   cd ~/uzsign/osnovnaya_model && bash scripts/turnir_e2_chain.sh turnir_up
++# Сухая проба (22.1): имя и команда подъёма — TURNIR_E1_UNIT и TURNIR_E1_CMD (по умолчанию turnir-e1 и цепочка турнира ниже).
++main() {   # всё тело — функция: bash разбирает файл целиком до запуска
++set -u
++cd "$(dirname "$0")/.."
++export PATH=$HOME/.local/share/mise/installs/python/3.14.7/bin:$PATH   # урок 30: каталог 3.14.7, не ссылка 3.14
++E1U=${TURNIR_E1_UNIT:-turnir-e1}
++E1C=${TURNIR_E1_CMD:-bash scripts/turnir_e1_chain.sh >> runs/turnir_e1_chain.log 2>&1}
++say() { echo "[$(date '+%F %T')] $*"; }
++turnir_up() {   # 22.1 (ii′): пересоздание — временный юнит после stop выгружен (start его не найдёт); is-active — от двойного подъёма
++  systemctl --user is-active --quiet "$E1U" || { systemd-run --user --unit="$E1U" --collect -p WorkingDirectory=$PWD -p MemoryMax=40G \
++    -p MemorySwapMax=0 -E PATH="$PATH" -E HOME="$HOME" -E TURNIR_JOBS=1 -E TURNIR_JOBS_SMALL=1 bash -c "$E1C" \
++    && say "юнит $E1U пересоздан (J = 1 + 1)" || say "!!! юнит $E1U не пересоздан — вручную: bash scripts/turnir_e2_chain.sh turnir_up"; }
++}
++[ "${1:-}" = turnir_up ] && { turnir_up 2>&1 | tee -a runs/turnir_e2_chain.log; exit 0; }   # ExecStopPost= юнита Э2 и вручную: только
++                                                                                         # подъём, без main; строка — и в журнал Э2
++H0=$(git hash-object scripts/turnir_e2_chain.sh)
++export PYTHONPATH=src:../uzsign_e1/src   # как turnir_e1_chain.sh: правило остановки — той же командой и в том же окружении
++keep() { [ -f "$1" ] && mv "$1" "$1.$(date +%Y%m%dT%H%M%S)"; return 0; }
++gpu_busy() { nvidia-smi --query-compute-apps=process_name --format=csv,noheader 2>/dev/null | grep -q python; }
++past() { [ "$(date +%s)" -ge $(($(stat -c %Y runs/UzSohn_M13.done) + $1)) ]; }   # прошло $1 с после UzSohn_M13.done
++e1_on() { systemctl --user is-active --quiet "$E1U" || pgrep -f '(bash|python) scripts/[t]urnir_(e1_chain.sh|train.py)' > /dev/null; }
++e1_off() { e1_on && { say "!!! юнит $E1U активен или идёт цепочка/прогон турнира (не снят) — Э2 не начинается: ГП и правило остановки — у турнира; выход"; exit 1; }; return 0; }
++HOLD=runs/TURNIR_HOLD_E2
++hold_on() { keep $HOLD; echo "$$ $(cat /proc/sys/kernel/random/boot_id) turnir-e2" > $HOLD && say "придержка поставлена ($HOLD)"; }
++hold_off() { [ -f $HOLD ] && mv $HOLD $HOLD.snyat_$(date +%Y%m%dT%H%M%S) && say "придержка снята ($HOLD → …snyat_<дата>)"; return 0; }
++case ${E2_MODE:-} in
++  ii) MODE=ii; trap turnir_up EXIT ;;
++  a) MODE=a; trap hold_off EXIT ;;
++  *) say "!!! E2_MODE=${E2_MODE:-}: нужно ii ((ii′), «да» автора) или a ((а), без «да»; 22.1) — стоп"; exit 1 ;;
++esac
++trap "exit 143" TERM INT
++SEED=48; SEEDS="42 43 44 45 46"; FOLDS5="fold1 fold2 fold3 fold4 fold5"   # отбор — 48 (22.5), UzSohn в Э1 — затравки M13 (22.8)
++CELLS="slovo/fold1 slovo/fold2 slovo/fold3 slovo/fold4 slovo/fold5 bukva/fold1 bukva/fold2 bukva/fold3 bukva/fold4 bukva/fold5"
++PR=runs/UZSOHN/e2_probe
++CG=${E2_CGROUP:-/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup)}   # cgroup юнита (MemoryMax=40G); E2_CGROUP — для теста
++mkdir -p runs/UzSohn/logs runs/UZSOHN
++say "=== Э2 турнира, режим ($([ $MODE = ii ] && echo "ii′" || echo а)): старт"
++python -c 'import numpy, torch, pytest' 2> /dev/null || { say "!!! $(command -v python) без numpy/torch/pytest (урок 30) — стоп"; exit 1; }
++[ -f runs/UzSohn_E2.done ] && { [ ! -s runs/UzSohn_E2.done ] || [ -f runs/UzSohn_E2_E1.done ]; } \
++  && { say "Э2 уже завершён (runs/UzSohn_E2.done; принято: [$(cat runs/UzSohn_E2.done)]) — выход"; exit 0; }
++
++if [ $MODE = ii ]; then
++  say "жду runs/UzSohn_M13.done"
++  until [ -f runs/UzSohn_M13.done ]; do sleep 120; done
++  e1_off
++  CUDA_VISIBLE_DEVICES= nice python scripts/turnir_eval.py stoprule >> runs/TURNIR/stoprule.log 2>&1 \
++    || { say "!!! правило остановки не посчитано (runs/TURNIR/stoprule.log) — Э2 не начинается; выход"; exit 1; }
++else
++  grep -q TURNIR_HOLD_E2 scripts/turnir_train.py || { say "!!! (а): придержки в turnir_train.run_job нет (22.10 п. 4) — стоп"; exit 1; }
++  say "жду runs/TURNIR_E1_g1.done (затем придержка), runs/UzSohn_M13.done и runs/TURNIR/stoprule.md"
++  until [ -f runs/TURNIR_E1_g1.done ]; do sleep 60; done
++  hold_on
++  until [ -f runs/UzSohn_M13.done ]; do sleep 120; done
++  until [ runs/TURNIR/stoprule.md -nt runs/UzSohn_M13.done ]; do   # его считает turnir-e1 (строка 51) сразу после M13
++    past 7200 && { say "!!! нет runs/TURNIR/stoprule.md через 2 ч после UzSohn_M13.done — Э2 не начинается; выход"; exit 1; }
++    sleep 60
++  done
++fi
++grep -q ЗАКРЫТА runs/TURNIR/stoprule.md && { say "правило остановки: ветка UzSohn ЗАКРЫТА — Э2 не начинается, UzSohn ≡ Sohn; выход"; exit 0; }
++say "правило остановки: ветка UzSohn продолжается; жду runs/TURNIR_E2_OK (не дольше 12 ч после UzSohn_M13.done)"
++until [ -f runs/TURNIR_E2_OK ] || past 43200; do sleep 60; done
++if [ ! -f runs/TURNIR_E2_OK ]; then
++  [ $MODE = ii ] && { say "!!! нет runs/TURNIR_E2_OK через 12 ч после UzSohn_M13.done — выход; группы 3 и 2 — турниру, Э2 — после группы 2 (юнит снова после runs/TURNIR_E1_g2.done)"; exit 1; }
++  hold_off
++  say "нет runs/TURNIR_E2_OK 12 ч — вариант (б): группа 3 идёт первой; жду хеш дальше, затем придержка снова"
++  until [ -f runs/TURNIR_E2_OK ]; do sleep 60; done
++  hold_on
++fi
++say "жду 10 мин подряд без python на ГП (П11: идущие прогоны турнира не обрываются)"
++while true; do
++  while gpu_busy; do sleep 60; done
++  ok=1; for i in $(seq 10); do sleep 60; gpu_busy && { ok=0; break; }; done
++  [ $ok = 1 ] && break
++done
++# окружение прогонов — как у M13 и этапа UzSohn (m13_chain_v4.sh:25): № 3 (--ema) импортирует mpk.train, а он — uzsign_e1
++export PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++# код — только закоммиченный и = хешу сверенного коммита (как uzsohn_stage2_chain.sh); v2: — код серии ALL-UZ, Э2 его не исполняет
++CODE=$(sed 's/#.*//' scripts/uzsohn_code.txt 2> /dev/null | grep -v '^ *v2:' | xargs)
++[ -n "$CODE" ] || { say "!!! нет списка кода (scripts/uzsohn_code.txt) — стоп"; exit 1; }
++CODE="$CODE scripts/turnir_e2_chain.sh reports/TURNIR_prereg.md"   # + файлы Э2: цепочка и предрег. с поправкой 4
++[ -z "$(git status --porcelain -- $CODE)" ] || { say "!!! незакоммиченный код или предрегистрация: $(git status --porcelain -- $CODE | tr '\n' ' ')— стоп"; exit 1; }
++OKH=$(head -1 runs/TURNIR_E2_OK | grep -oE '^[0-9a-f]{40}')
++[ -n "$OKH" ] || { say "!!! в 1-й строке runs/TURNIR_E2_OK нет полного хеша сверенного коммита — стоп"; exit 1; }
++git diff --quiet "$OKH" HEAD -- $CODE || { say "!!! код ($CODE) ≠ сверенному хешу $OKH (или хеш неверен) — стоп"; exit 1; }
++[ "$H0" = "$(git rev-parse HEAD:scripts/turnir_e2_chain.sh 2> /dev/null)" ] || { say "!!! scripts/turnir_e2_chain.sh изменена после старта юнита (исполняется копия со старта, $H0) — перезапустить юнит; стоп"; exit 1; }
++say "код: HEAD $(git rev-parse HEAD) = хеш маркера $OKH по коду Э2"
++python -c "import sys, torch; sys.exit(not torch.cuda.is_available())" || { say "!!! нет CUDA — прогоны молча пошли бы на ЦП; стоп"; exit 1; }
++say "селфтест кода (ЦП)"
++keep runs/UZSOHN/selftest_e2.log
++{ CUDA_VISIBLE_DEVICES= python -m pytest -q -p no:cacheprovider tests/test_sohn.py tests/test_turnir_e2.py && python scripts/uzsohn_sel.py selftest; } \
++  > runs/UZSOHN/selftest_e2.log 2>&1 || { say "!!! ОШИБКА селфтеста (runs/UZSOHN/selftest_e2.log)"; exit 1; }
++[ $MODE = ii ] && e1_off
++
++probe() {   # 22.10 п. 3 (урок 29): 2 процесса самого тяжёлого плеча на Slovo, затравка 99, выход вне runs/UzSohn, --val-only (тест не
++            # считается), 17 эпох (AWP и LateDropout — с 15-й); OOM (в cgroup или ГП) или пик > 36 ГиБ → по 1 процессу; итог — $PR/J
++  local f p r=0 oom pk g gpk=0
++  local -a P=()
++  [ -f $PR/J ] && return 0
++  if [ -d $PR ]; then   # проба без итога — оборвалась (юнит убит: systemd-oomd, перезагрузка): не повторять — по 1 процессу
++    echo 1 > $PR/J; say "!!! проба памяти оборвана ($PR без J) — по 1 процессу (часы 22.9 растут; пробу заново — каталог в сторону)"
++    return 0
++  fi
++  [ -r $CG/memory.peak ] && [ -r $CG/memory.events ] || { say "!!! нет $CG/memory.peak или memory.events — пробы памяти нет; стоп"; exit 1; }
++  mkdir -p $PR
++  oom=$(awk '$1 == "oom_kill" {print $2}' $CG/memory.events)
++  say "проба памяти: Slovo fold1 ∥ fold2, вход u01a,u04,u01b, № 2–4, 17 эпох"
++  for f in fold1 fold2; do
++    python scripts/m13_train.py --set slovo --fold $f --seed 99 --tag probe_e2 --out $PR/$f/seed99 --input u01a,u04,u01b --variant 9 --ema --balanced --val-only --stop-epoch 17 < /dev/null > $PR/$f.log 2>&1 &
++    P+=($!)
++  done
++  while [ -n "$(jobs -rp)" ]; do   # ГП — опрос раз в 5 с, как проба этапа 1; ОЗУ — memory.peak cgroup
++    g=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2> /dev/null | head -1)
++    [ "${g:-0}" -gt $gpk ] 2> /dev/null && gpk=$g
++    sleep 5
++  done
++  for p in "${P[@]}"; do wait $p || r=1; done
++  pk=$(cat $CG/memory.peak); oom=$(($(awk '$1 == "oom_kill" {print $2}' $CG/memory.events) - oom))
++  grep -qi 'out of memory' $PR/fold1.log $PR/fold2.log && oom=$((oom + 1))   # нехватка памяти ГП (torch) — тоже OOM (22.10 п. 3)
++  for f in fold1 fold2; do say "проба $f: $(tail -1 $PR/$f.log)"; done
++  say "проба: пик cgroup $(awk -v b=$pk 'BEGIN {printf "%.1f", b / 2^30}') ГиБ из 40, OOM $oom, ГП до $gpk МиБ"
++  if [ $oom -gt 0 ] || [ $pk -gt $((36 << 30)) ]; then echo 1 > $PR/J; say "проба: OOM или пик > 36 ГиБ → по 1 процессу (часы 22.9 растут)"
++  elif [ $r -ne 0 ]; then f=$PR.upala_$(date +%Y%m%dT%H%M%S); mv $PR $f; say "!!! проба упала без OOM (см. $f/fold1.log, fold2.log) — стоп"; exit 1
++  else echo 2 > $PR/J; fi
++}
++run() {   # рычаги тег набор фолд затравка [веса] → прогон m13_train (готовое — пропуск); 22.11: № 2 — --variant 9, № 3 — --ema, № 4 — --balanced
++  local tag=$2 f=$4 s=$5 t inp="" log=runs/UzSohn/logs/${2}_${4}_seed$5.log
++  local -a x=()
++  [ -f runs/UzSohn/$tag/$f/seed$s/metrics.json ] && return 0
++  for t in ${1//,/ }; do case $t in r2) x+=(--variant 9) ;; r3) x+=(--ema) ;; r4) x+=(--balanced) ;; *) inp=$inp,$t ;; esac; done
++  case $tag in uzsohn_e2_*) x+=(--val-only) ;; esac   # 22.8: отбор — только валидация (m13_train проверяет тег и сам)
++  [ -n "${6:-}" ] && x+=(--init "$6")
++  keep $log
++  if python scripts/m13_train.py --set $3 --fold $f --seed $s --tag $tag --input "${inp#,}" "${x[@]}" < /dev/null > $log 2>&1; then
++    case $tag in uzsohn_e2_*) say "$tag $f: $(tail -1 $log)" ;; *) say "$tag $f seed$s: готово" ;; esac   # Э1 — тест: только в журнал прогона
++  else say "!!! ОШИБКА $tag $f seed$s (см. $log)"; fi
++}
++batch() {   # рычаги; строки «тег набор фолд затравка [веса]» — по $J, разнесённый старт; не прошедшие — ещё раз по одному (одна попытка)
++  local L tag set f s init
++  L=$(cat)
++  while read -r tag set f s init; do
++    [ -f runs/UzSohn/$tag/$f/seed$s/metrics.json ] && continue
++    while [ "$(jobs -rp | wc -l)" -ge "$J" ]; do wait -n; done
++    run "$1" $tag $set $f $s $init &
++    sleep 180
++  done <<< "$L"
++  wait
++  while read -r tag set f s init; do run "$1" $tag $set $f $s $init; done <<< "$L"
++}
++need() {   # тег, сколько, затравки: готово ровно столько (считаются только свои затравки, как m13_chain_v4.sh)
++  local s c=0
++  for s in $3; do c=$((c + $(ls runs/UzSohn/$1/*/seed$s/metrics.json 2> /dev/null | wc -l))); done
++  [ $c -eq $2 ] || { say "!!! $1: готово $c из $2 — стоп (повтор юнита продолжит)"; exit 1; }
++}
++suf() { if [ -z "$1" ]; then echo v0; else echo "in_${1//,/-}"; fi; }   # суффикс тега Э2 (22.8): v0 — контроль, in_<рычаги через ->
++arm() {   # рычаги → 10 ячеек Э2 (22.4), затравка 48, --val-only
++  local s
++  s=$(suf "$1")
++  say "--- uzsohn_e2_*_$s (рычаги: ${1:-Sohn}; параллельно $J)"
++  batch "$1" <<< "$(for c in $CELLS; do echo uzsohn_e2_${c%/*}_$s ${c%/*} ${c#*/} $SEED; done)"
++  need uzsohn_e2_slovo_$s 5 $SEED
++  need uzsohn_e2_bukva_$s 5 $SEED
++}
++
++probe
++J=$(cat $PR/J)
++say "параллельность: $J"
++arm ""
++CUR=""
++for st in U02-1:u02s U02-2:u02c U01a:u01a U04:u04 U01b:u01b r2:r2 r3:r3 r4:r4; do   # 22.3: жадно, каждый — поверх текущей
++  name=${st%%:*}; cand=${CUR:+$CUR,}${st#*:}
++  if [ -f runs/UZSOHN/decide_e2_$name.json ]; then   # решение шага не перезаписывается (22.10 п. 2) — повтор юнита берёт его
++    python -c "import json, sys; sys.exit(0 if json.load(open(sys.argv[1]))['accepted'] else 10)" runs/UZSOHN/decide_e2_$name.json; rc=$?
++    say "$name: решение уже есть (runs/UZSOHN/decide_e2_$name.json)"
++  else
++    arm "$cand"
++    R=$(python scripts/uzsohn_sel.py e2 $(suf "$CUR") $(suf "$cand") $name); rc=$?
++    say "$name [$cand] поверх [${CUR:-Sohn}]: $R"
++  fi
++  if [ $rc -eq 0 ]; then CUR=$cand; say "$name ПРИНЯТ → текущая [$CUR]"
++  elif [ $rc -eq 10 ]; then say "$name не принят"
++  else say "!!! ОШИБКА отбора $name"; exit 1; fi
++done
++printf %s "$CUR" > runs/UzSohn_E2.done
++say "=== Э2 завершён: принято [${CUR:-ничего — UzSohn ≡ Sohn (M13)}] (runs/UZSOHN/decide_e2_*.json)"
++[ -n "$CUR" ] || exit 0
++say "=== UzSohn в Э1 (22.8): Sohn + [$CUR], затравки $SEEDS, ячейки M13; параллельно $J"
++LOSO=$(python -c "import json;print(' '.join(sorted(json.load(open('../uzsign_ai_v2/splits/uzsl_loso.json'))['folds'])))")
++nl=$(echo $LOSO | wc -w)
++batch "$CUR" <<< "$(for s in $SEEDS; do for f in $FOLDS5; do echo uzsohn_e1_bukva bukva $f $s; done; done)"
++need uzsohn_e1_bukva 25 "$SEEDS"
++batch "$CUR" <<< "$(for s in $SEEDS; do for f in $FOLDS5; do echo uzsohn_e1_slovo slovo $f $s; done; done)"
++need uzsohn_e1_slovo 25 "$SEEDS"
++batch "$CUR" <<< "$(for s in $SEEDS; do echo uzsohn_e1_sb sb all $s; done)"   # своё предобучение S+B (новый вход — свой stem)
++need uzsohn_e1_sb 5 "$SEEDS"
++batch "$CUR" <<< "$(for s in $SEEDS; do for f in $LOSO; do echo uzsohn_e1_uzsl_pre uzsl $f $s runs/UzSohn/uzsohn_e1_sb/all/seed$s/best.pt; done; done)"
++need uzsohn_e1_uzsl_pre $((nl * 5)) "$SEEDS"
++batch "$CUR" <<< "$(for s in $SEEDS; do for f in $LOSO; do echo uzsohn_e1_uzsl_scratch uzsl $f $s; done; done)"   # справочно
++need uzsohn_e1_uzsl_scratch $((nl * 5)) "$SEEDS"
++touch runs/UzSohn_E2_E1.done
++say "=== UzSohn в Э1 готов (runs/UzSohn_E2_E1.done); тест — после заморозки (П23)"
++}
++main "$@"; exit
+diff --git a/scripts/turnir_eval.py b/scripts/turnir_eval.py
+index c4e557d..46a9d1d 100644
+--- a/scripts/turnir_eval.py
++++ b/scripts/turnir_eval.py
+@@ -6,6 +6,7 @@ python scripts/turnir_eval.py inventory             # → reports/TURNIR_invento
+ CUDA_VISIBLE_DEVICES= python scripts/turnir_eval.py export [--only A1] [--dataset Slovo]   # вероятности готовых моделей (ЦП)
+ python scripts/turnir_eval.py check                 # сверка стенда с m11_tables.md / m8_tables.md / M12_slgcn_loso_tables.md
+ python scripts/turnir_eval.py summary               # → runs/TURNIR/turnir_summary.csv (FORMAT.md) + runs/TURNIR/pairs.md
++check и summary сводят тест — только после заморозки (runs/TURNIR_FREEZE; поправка 4, П23); export и stoprule — без ворот.
+ 
+ Формат предсказаний (один для всех моделей): runs/TURNIR/preds/<набор>/<модель>/<рецепт>/<условие>/<фолд>__seed<k>.npz
+   ids [N] (sample_id), probs [N, C] float16 (softmax), classes [C], signer [N], gloss [N] (истинная метка), role [N]
+@@ -26,6 +27,7 @@ import itertools
+ import json
+ import os
+ import pickle
++import subprocess
+ import sys
+ from collections import defaultdict
+ from pathlib import Path
+@@ -44,6 +46,9 @@ FOLDS = {"Slovo": [f"fold{k}" for k in range(1, 6)], "Bukva": [f"fold{k}" for k
+ BOOT = {"Slovo": (2000, 0), "Bukva": (2000, 0), "UzSL": (10000, 20261104)}  # справочные строки и сверка с прежними таблицами
+ SOHN_GAP = 2.71  # недобор порта Sohn на Э0 (asl-signs: наша средняя 5 фолдов − кривая ноутбука, −2,71 п. п.; 0078 п. 3)
+ SOHN_LIKE = ("Sohn", "UzSohn")
++LEVER = {"u02s": "U02-1", "u02c": "U02-2", "u01a": "U01a", "u04": "U04", "u01b": "U01b"}  # (а′) по токену входа (поправка 4, П21)
++E2_TOK = LEVER | {"r2": "№ 2", "r3": "№ 3", "r4": "№ 4"}  # токены runs/UzSohn_E2.done (turnir_e2_chain.sh) → подписи П21
++E2_OUT_SHA = "0041fcd901eca06cb60e7b8ef119ce55cd042f9dc393657700bb40228a995c30"  # 22.7 (Б): sha256 списка, записан до теста
+ B_MAIN = 20000  # главные пары и ДИ сводки: крайние квантили (1 − 0,01/m) — 20 000 повторов (0063, п. 6); затравка ГСЧ — та же
+ # главная строка архитектуры — её лучший рецепт по валидации (0063 п. 2): SL-GCN, ST-GCN — общий (Г2/Г3), остальные — родной
+ MAIN_RECIPE = {"SL-GCN": "shared", "ST-GCN": "shared"}
+@@ -120,6 +125,15 @@ for cond in ("transfer", "scratch"):
+     cell(LO, "Sohn", "shared", cond, "none", [], 0.05 if T else 0.35, "~ нет порта Sohn в mpk.train (вопрос)",
+          pre=0.4 if T else None)
+ 
++# UzSohn в Э1 — только если в Э2 что-то принято (поправка 4, 22.8); обучает цепочка Э2 (turnir_train их пропускает). Свои теги
++# uzsohn_e1_*: шаблоны Sohn выше их не читают, а отбор Э2 (uzsohn_e2_*) и проба памяти — вне всех шаблонов (tests/test_turnir_e2.py)
++for ds, low in (("Slovo", "slovo"), ("Bukva", "bukva")):
++    cell(ds, "UzSohn", "native", "scratch", "m13", [f"UzSohn/uzsohn_e1_{low}/fold*/seed*"], 0.43 if ds == P else 0.05,
++         "UzSohn в Э1 (поправка 4, 22.8); ч — как Sohn")
++for cond in ("transfer", "scratch"):
++    cell(LO, "UzSohn", "native", cond, "m13", [f"UzSohn/uzsohn_e1_uzsl_{'pre' if cond == 'transfer' else 'scratch'}/*/seed*"],
++         0.07, "UzSohn в Э1 (поправка 4, 22.8); ч — как Sohn", pre=0.5 if cond == "transfer" else None)
++
+ 
+ def cell_dir(c) -> Path:
+     return PRED / c["ds"] / c["model"] / c["recipe"] / c["cond"]
+@@ -224,8 +238,8 @@ def inventory() -> None:
+             pstat = "—"
+         n_runs = need * nfold[c["ds"]]
+         h = n_runs * c["h"] + (need * c["pre"] if c["pre"] else 0)
+-        if c["kind"] == "m13":
+-            h = 1 * nfold[c["ds"]] * c["h"] + (c["pre"] or 0)
++        if c["kind"] == "m13":  # UzSohn — в Э1 только при принятом рычаге (22.8), его часы — 22.9 поправки 4, не эта формула
++            h = 1 * nfold[c["ds"]] * c["h"] + (c["pre"] or 0) if c["model"] == "Sohn" else 0.0
+         hs = N_SEEDS * nfold[c["ds"]] * c["h"] + (N_SEEDS * c["pre"] if c["pre"] else 0)  # строго: все 5 з. заново
+         if c["kind"] == "m13":
+             hs = h
+@@ -233,7 +247,8 @@ def inventory() -> None:
+         tot[(stage, c["ds"], c["recipe"])] += h
+         tots[(stage, c["ds"], c["recipe"])] += hs
+         n_stale = n_stale if c["kind"] == "run" else 0
+-        verdict = ("есть" if need == 0 else f"дообучить {need} з." if have else f"обучить {need} з.") if c["kind"] != "m13" else "M13 идёт → +1 з."
++        verdict = ("есть" if need == 0 else f"дообучить {need} з." if have else f"обучить {need} з.") if c["kind"] != "m13" else \
++            "M13 идёт → +1 з." if c["model"] == "Sohn" else "по итогу Э2 (поправка 4, 22.8; часы — 22.9)"
+         reuse = "—"
+         if info and c["kind"] == "run":
+             ok_data = len(datas) == 1
+@@ -526,11 +541,14 @@ def cost_table() -> dict:
+ def summary(level_main: float) -> None:
+     cost = cost_table()
+     rows = []
++    st, uz = e2_state()
+ 
+     def add(ds, model, kind, members, recipe, cond, c, signer, n_seeds, source, parts):
+         t, lo, hi = acc_ci(c, signer, level_main, ds, B=B_MAIN)
+         g = [cost.get(ds, {}).get(p, {}) for p in parts]  # turnir_cost.json: {набор: {модель: {gflops, latency_ms, params_m}}}
+         sm = lambda k: round(sum(x[k] for x in g), 4) if g and all(k in x for x in g) else "нет данных"  # noqa: E731
++        if st == "Э2" and "UzSohn" in model:  # подпись по П21 «Название» (ключ UzSohn — внутренний); пометка 22.8 «в таблицах»
++            model, source = model.replace("UzSohn", uz), f"{source}; общий рецепт UzSohn не обучался (поправка 4, 22.8)"
+         rows.append([ds, model, kind, members, recipe, cond, round(t, 3), round(lo, 3), round(hi, 3),
+                      round(100 * level_main, 2), sm("gflops"), sm("latency_ms"), sm("params_m"), n_seeds, source])
+ 
+@@ -575,7 +593,10 @@ def summary(level_main: float) -> None:
+                         c, src = correct_mixed([M[n] for n in names], cb, ids, gloss), f"val-состав@{head}"
+                     if c is None:
+                         continue
+-                    parts = [p for p in comp.split("+") for _ in range(int(p.split("×")[1]) if "×" in p else 1)]
++                    # «*» в конце вложенного состава (различается между исполнителями) — не часть числа: int("3*") в master падает (с
++                    # UzSohn «толпа Sohn» на корпусе впервые не пуста). shortcut: «Имя*» без ×k — «нет данных», как в master (бит в
++                    # бит); считать и его — только с «за» к1/к3
++                    parts = [p for p in comp.split("+") for _ in range(int(p.split("×")[1].rstrip("*")) if "×" in p else 1)]
+                     parts = [p.split("×")[0] for p in parts]
+                     add(ds, comp, "ens_mixed", N, "native", cond, c, signer, min(len(M[n]) for n in names), src, parts)
+     OUT.mkdir(parents=True, exist_ok=True)
+@@ -586,13 +607,20 @@ def summary(level_main: float) -> None:
+     print("записано", OUT / "turnir_summary.csv", len(rows), "строк")
+ 
+ 
+-def pairs_table(pairs: list[tuple], main: bool, cond_corpus="transfer") -> list[str]:
++def pairs_table(pairs: list[tuple], main: bool, cond_corpus="transfer", m: int = 0, keep: set | None = None) -> list[str]:
+     """Пары (набор, модель_a, модель_b), одиночки; рецепт — MAIN_RECIPE (главная строка архитектуры). main — уровень
+-    1 − 0,01/m и 20 000 повторов; иначе — справочно, 95 %. Вывод — по macro; micro рядом (0063 п. 7)."""
+-    lvl, B = (bonf(len(pairs)), B_MAIN) if main else (0.95, None)
++    1 − 0,01/m (m — главных пар в семействе, по умолчанию len(pairs)) и 20 000 повторов; иначе — справочно, 95 %. Вывод — по
++    macro; micro рядом (0063 п. 7). Строки UzSohn — по итогу Э2 (e2_state). keep — печать 22.7 поправки 4: под каждой
++    строкой — та же пара только на исполнителях keep."""
++    lvl, B = (bonf(m or len(pairs)), B_MAIN) if main else (0.95, None)
++    st, uz = e2_state()
++    nn = st == "Э2" and not_nested()
+     out = [f"| набор | пара | Δ macro, п. п. | ДИ {100 * lvl:.4g} % | вывод | Δ micro [ДИ] | доля исп. с ухудшением |",
+            "|---|---|---|---|---|---|---|"]
+     for ds, a, b in pairs:
++        if "UzSohn" in (a, b) and st != "Э2":  # 22.8: UzSohn ≡ Sohn (M13) — без повтора чисел; итога Э2 нет — «ждёт», как было
++            out.append(f"| {ds} | {a} − {b} | {f'≡ наша реализация Sohn (M13): Э2 — {uz}' if st else 'ждёт'} | | | | |")
++            continue
+         cond = cond_corpus if ds == LO else "scratch"
+         ma, mb = (load_model(PRED / ds / x / MAIN_RECIPE.get(x, "native") / cond) for x in (a, b))
+         if not ma or not mb:
+@@ -600,20 +628,129 @@ def pairs_table(pairs: list[tuple], main: bool, cond_corpus="transfer") -> list[
+             continue
+         ids, signer, gloss = align([ma, mb])
+         ca, cb = correct_ens(ma, 1, ids, gloss), correct_ens(mb, 1, ids, gloss)
+-        r = paired(ca, cb, signer, lvl, ds, True, B)
+-        q = paired(ca, cb, signer, lvl, ds, False, B)
+-        out.append(f"| {ds} | {label(a)} − {label(b)} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | "
+-                   f"{sohn_verdict(a, b, r) if a in SOHN_LIKE or b in SOHN_LIKE else verdict(r['lo'], r['hi'])} | "
+-                   f"{q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |")
+-        if a in SOHN_LIKE or b in SOHN_LIKE:
+-            sh = shift_for(a, b)
+-            out.append(f"| {ds} | ↳ устойчивость: +{SOHN_GAP} к точности {label(a if a in SOHN_LIKE else b)} | {r['delta'] + sh:+.2f} | "
+-                       f"[{r['lo'] + sh:+.2f}; {r['hi'] + sh:+.2f}] | {verdict(r['lo'] + sh, r['hi'] + sh)} | | |")
++        one = (a in SOHN_LIKE) != (b in SOHN_LIKE)  # «порт − порт» (UzSohn − Sohn): сдвиг +2,71 сокращается (уточнение П18, 22.7)
++        mark = "; отбор не вложенный (22.7)" if nn and ds == P and "UzSohn" in (a, b) else ""
++        sel = [("", np.ones(len(ids), bool))]
++        if keep:
++            k = np.isin(signer, sorted(keep))
++            sel.append((f" — вне валидаций Э2 ({len(set(signer[k]))} исп.)", k))
++        for tag, k in sel:
++            r = paired(ca[k], cb[k], signer[k], lvl, ds, True, B)
++            q = paired(ca[k], cb[k], signer[k], lvl, ds, False, B)
++            out.append(f"| {ds} | {label(a, uz)} − {label(b, uz)}{tag} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | "
++                       f"{sohn_verdict(a, b, r) if one else verdict(r['lo'], r['hi'])}{mark} | "
++                       f"{q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |")
++            if one:
++                sh = shift_for(a, b)
++                out.append(f"| {ds} | ↳ устойчивость: +{SOHN_GAP} к точности {label(a if a in SOHN_LIKE else b, uz)} | {r['delta'] + sh:+.2f} | "
++                           f"[{r['lo'] + sh:+.2f}; {r['hi'] + sh:+.2f}] | {verdict(r['lo'] + sh, r['hi'] + sh)} | | |")
+     return out
+ 
+ 
+-def label(x: str) -> str:
+-    return {"Sohn": "наша реализация Sohn", "UzSohn": "UzSohn (на основе нашей реализации Sohn)"}.get(x, x)
++def label(x: str, uz: str = "") -> str:
++    """Подпись строки (поправка 4, П21 «Название»): UzSohn — «UzSohn (Э2: <рычаги>)» из e2_state; ключ UzSohn — внутренний."""
++    return {"Sohn": "наша реализация Sohn", "UzSohn": uz or x}.get(x, x)
++
++
++def levers(m: dict) -> str:
++    """Рычаги Э2 прогона по его metrics.json (m13_train): вход (а′), № 2 — part_tokens, № 3 — ema, № 4 — balanced (22.11)."""
++    on = [LEVER[t] for t in m.get("input") or []]
++    on += [n for n, k in (("№ 2", (m.get("flags") or {}).get("part_tokens")), ("№ 3", m.get("ema")), ("№ 4", m.get("balanced"))) if k]
++    return ", ".join(on)
++
++
++def e2_state() -> tuple[str, str]:
++    """Итог Э2 для строк UzSohn (поправка 4, 22.8) — по runs/UzSohn_E2.done (цепочка Э2 пишет туда принятые рычаги через «,»;
++    пусто — ничего не принято): ("≡", причина) — UzSohn ≡ Sohn (M13); ("Э2", «UzSohn (Э2: <рычаги>)») — принято, Э1 UzSohn
++    завершён (runs/UzSohn_E2_E1.done), у всех его прогонов (metrics.json) один набор H = принятым; ("", "") — итога ещё нет,
++    строки «ждёт». Принято, а Э1 UzSohn не завершён, или прогоны UzSohn в Э1 без итога Э2 — отказ, не ложная строка «≡ …»
++    (сводка — только после заморозки, П23)."""
++    sr = OUT / "stoprule.md"
++    if sr.is_file() and "ЗАКРЫТА" in sr.read_text(encoding="utf-8"):
++        return "≡", "ветка закрыта"
++    done = RUNS / "UzSohn_E2.done"
++    acc = done.read_text().strip() if done.is_file() else None
++    lev = {levers(json.loads((d / "metrics.json").read_text())) for c in C if c["model"] == "UzSohn" for d in src_dirs(c)
++           if (d / "metrics.json").is_file()}
++    if not acc and not lev:
++        return ("≡", "ничего не принято") if acc == "" else ("", "")
++    assert acc and lev and (RUNS / "UzSohn_E2_E1.done").is_file(), \
++        f"!!! UzSohn: принято в Э2 [{acc}], наборов рычагов у прогонов в Э1 — {len(lev)}: Э2 или Э1 UzSohn не завершён (П23)"
++    assert len(lev) == 1 and "" not in lev, f"UzSohn в Э1: рычаги прогонов {sorted(lev)} — не один набор H (поправка 4, 22.8)"
++    h = lev.pop()
++    assert set(h.split(", ")) == {E2_TOK[t] for t in acc.split(",")}, f"UzSohn в Э1: рычаги прогонов [{h}] ≠ принятым в Э2 [{acc}]"
++    return "Э2", f"UzSohn (Э2: {h})"
++
++
++def not_nested() -> bool:
++    """22.7: решение хоть одного шага Э2 без группы теста Slovo j ≠ общему (uzsohn_sel.py e2 → runs/UZSOHN/decide_e2_<шаг>.json)."""
++    ds = [json.loads(p.read_text(encoding="utf-8")) for p in (RUNS / "UZSOHN").glob("decide_e2_*.json")]
++    return any(x["accepted"] != d["accepted"] for d in ds for x in d["without_group"].values())
++
++
++def e2_outside() -> set:
++    """22.7 (Б) поправки 4: исполнители теста Slovo, чей код не встречается ни в одной валидации протокола П (slovo_p5 и
++    bukva_p5) — по коду; коды записей — опись кэша M13 (clips). Список сверяется с sha256, записанным до теста (коды по
++    возрастанию, «\\n», UTF-8, без завершающего «\\n»)."""
++    sig, sp = {}, {}
++    for d in ("slovo", "bukva"):
++        with np.load(ROOT / f"cache/M13/{d}.npz") as z:
++            sig[d] = {c["sample_id"]: c["signer_id"] for c in json.loads(str(z["clips"]))}
++        sp[d] = json.loads((ROOT / f"splits/{d}_p5.json").read_text())
++    val = {sig[d][i] for d in sig for f in sp[d]["folds"].values() for i in f["val"]}
++    out = sorted({sig["slovo"][i] for f in sp["slovo"]["folds"].values() for i in f["test"]} - val)
++    assert hashlib.sha256("\n".join(out).encode("utf-8")).hexdigest() == E2_OUT_SHA, "22.7 (Б): список ≠ записанному в поправке 4"
++    return set(out)
++
++
++E3_NAME = "Sohn×3 − Sohn (среднее softmax, N = 3 из C(5, 3); не U28)"
++
++
++def both(ca, cb, signer, ds, level=0.99) -> dict:
++    """Правило «оба» (поправка 4, П25; как uzsign_ai_v2/reports/T9_recheck_2026-11-11.md): перцентильный ДИ (paired: macro,
++    B_MAIN, затравка BOOT набора) и t-ДИ по исполнителям Δ ± t((1 + level)/2; n − 1) · sd/√n, sd с ddof = 1. «Установлено (+)» —
++    только если нижние границы обоих > 0, иначе «не установлено»."""
++    from scipy import stats
++    r = paired(ca, cb, signer, level, ds, True, B_MAIN)
++    na, den = per_signer(ca, signer)
++    nb, _ = per_signer(cb, signer)
++    d = 100 * (na - nb) / den
++    h = stats.t.ppf((1 + level) / 2, len(d) - 1) * d.std(ddof=1) / np.sqrt(len(d))
++    return r | dict(t_lo=d.mean() - h, t_hi=d.mean() + h,
++                    verdict="установлено (+)" if r["lo"] > 0 and d.mean() - h > 0 else "не установлено")
++
++
++def e3_row(ds: str, m: dict) -> str:
++    ids, signer, gloss = align([m])
++    r = both(correct_ens(m, 3, ids, gloss), correct_ens(m, 1, ids, gloss), signer, ds)
++    return (f"| {ds} | {E3_NAME} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | [{r['t_lo']:+.2f}; {r['t_hi']:+.2f}] | "
++            f"{r['verdict']} | {100 * r['worse_share']:.0f} % |")
++
++
++def e3_table() -> list[str]:
++    """Строка Э3 «Sohn×3 − Sohn» (поправка 4, П25): справочно, вне m = 8; Slovo (с нуля) и корпус (перенос), родной рецепт,
++    затравки M13 42–46, все C(5, 3); 99 %, «оба»; строки +2,71 нет — Sohn с обеих сторон (уточнение П18)."""
++    out = ["| набор | строка | Δ macro, п. п. | 99 % перцентильный | 99 % t | вывод («оба») | доля исп. с ухудшением |",
++           "|---|---|---|---|---|---|---|"]
++    for ds, cond in ((P, "scratch"), (LO, "transfer")):
++        m = {s: v for s, v in load_model(PRED / ds / "Sohn/native" / cond).items() if 42 <= s <= 46}
++        out.append(e3_row(ds, m) if len(m) == 5 else f"| {ds} | {E3_NAME} | ждёт | | | | |")
++    return out
++
++
++def e2_tail() -> list[str]:
++    """Хвост pairs.md (поправка 4): пометка 22.8 и печать 22.7 (Б) — только если UzSohn ≠ Sohn; строка Э3 (П25) — всегда."""
++    st, uz = e2_state()
++    out = []
++    if st == "Э2":
++        keep = e2_outside()
++        out += ["", f"{uz}: общий рецепт UzSohn не обучался (поправка 4, 22.8 — отступление от правила 3).", "",
++                "## Slovo: исполнители вне валидаций Э2 (поправка 4, 22.7 (Б); справочно, вне m = 8)", "",
++                f"Исполнители теста Slovo, чьих кодов нет ни в одной валидации протокола П (slovo_p5, bukva_p5): {len(keep)}; sha256 "
++                f"списка {E2_OUT_SHA} — как в поправке 4. Над строкой «вне валидаций» — полная строка.", ""]
++        out += pairs_table([(P, "UzSohn", x) for x in ("A1", "SL-GCN")], True, m=len(MAIN_PAIRS), keep=keep) + [""] + \
++            pairs_table([(P, "UzSohn", "Sohn")], False, keep=keep)
++    return out + ["", "## Э3, справочно (поправка 4, П25; 99 %, правило «оба»; вне m = 8)", ""] + e3_table()
+ 
+ 
+ def shift_for(a: str, b: str) -> float:
+@@ -640,7 +777,8 @@ MAIN_PAIRS = [(ds, a, b) for ds in ("Slovo", "UzSL") for a, b in
+ # справочно (95 %): прежние пары Э1, правило остановки UzSohn (Sohn − SL-GCN на корпусе — уже в главных), Bukva
+ REF_PAIRS = [(ds, a, b) for ds in ("Slovo", "UzSL", "Bukva") for a, b in
+              (("A1", "SL-GCN"), ("A1", "ST-GCN"), ("A1", "A2"), ("A1", "MPK_large"))] + \
+-            [("Bukva", a, b) for a, b in (("Sohn", "A1"), ("Sohn", "SL-GCN"), ("UzSohn", "A1"), ("UzSohn", "SL-GCN"))]
++            [("Bukva", a, b) for a, b in (("Sohn", "A1"), ("Sohn", "SL-GCN"), ("UzSohn", "A1"), ("UzSohn", "SL-GCN"))] + \
++            [(ds, "UzSohn", "Sohn") for ds in (P, LO)]  # поправка 4, 22.7: «UzSohn (Э2) − Sohn», без строки +2,71 (уточнение П18)
+ 
+ 
+ # ── Правило остановки ветки UzSohn (поправка 2 к TURNIR_prereg.md) ─────────────────────────────────────────────────────
+@@ -679,6 +817,22 @@ def stoprule() -> None:
+     print("\n".join(out))
+ 
+ 
++def frozen() -> bool:
++    """Ворота заморозки (поправка 4, П23): check и summary сводят тест Э1 — только если первая строка runs/TURNIR_FREEZE — полный
++    хеш коммита с поправкой «заморозка» (коммит меняет reports/TURNIR_prereg.md: хеш HEAD или другого коммита без поправки не
++    годится) и reports/TURNIR_prereg.md (с незакоммиченным) = в нём (как сверка маркеров цепочек UzSohn). Иначе — строка в журнал
++    и код 1: цепочка встаёт на строке 68 turnir_e1_chain.sh («!!! сверка стенда не пройдена»)."""
++    f = RUNS / "TURNIR_FREEZE"
++    h = f.read_text().split("\n")[0].strip() if f.is_file() else ""
++    diff = lambda *a: subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", *a, "--", "reports/TURNIR_prereg.md"],  # noqa: E731
++                                     capture_output=True).returncode
++    ok = len(h) == 40 and set(h) <= set("0123456789abcdef") and diff(f"{h}~1", h) == 1 and diff(h) == 0
++    if not ok:
++        print(f"!!! ворота заморозки (поправка 4, П23): нет {f} с полным хешем коммита заморозки в 1-й строке (или коммит не "
++              "меняет reports/TURNIR_prereg.md, или она ≠ ему) — тест не сводится", flush=True)
++    return ok
++
++
+ # ── Сверка с прежними таблицами ───────────────────────────────────────────────────────────────────────────────────────
+ def from_predcsv(dirs: list[Path]) -> dict:
+     """Та же модель из predictions.csv (без вероятностей) — проверка статистики стенда отдельно от выгрузки."""
+@@ -758,11 +912,12 @@ def check() -> None:
+ 
+ # ── Самопроверка на синтетике ─────────────────────────────────────────────────────────────────────────────────────────
+ def selftest() -> None:
++    import shutil
+     import tempfile
+-    global PRED
++    global PRED, RUNS
+     rng = np.random.default_rng(1)
+     tmp = Path(tempfile.mkdtemp())
+-    PRED = tmp / "preds"
++    PRED, RUNS = tmp / "preds", tmp / "runs"  # RUNS — для e2_state: селфтест прогонов не читает
+     K, n_sig, per = 12, 20, 15
+     classes = np.array([f"c{k}" for k in range(K)])
+     ids_all = np.array([f"r{i:04d}" for i in range(n_sig * per)])
+@@ -829,6 +984,33 @@ def selftest() -> None:
+         spec.loader.exec_module(mod)
+         mod.load(str(OUT / "turnir_summary.csv"))
+         print("формат принят загрузчиком pareto_turnir.load")
++    # поправка 4: «порт − порт» (UzSohn − Sohn) — без строки +2,71 и без sohn_verdict (уточнение П18, 22.7); UzSohn ≠ Sohn — по
++    # прогону uzsohn_e1_* (e2_state). Sohn = копия A1 (затравки 42–46), UzSohn = копия SL-GCN
++    run = RUNS / "UzSohn/uzsohn_e1_slovo/fold1/seed42"
++    run.mkdir(parents=True)
++    (run / "metrics.json").write_text(json.dumps({"input": ["u01b"], "flags": {"part_tokens": True}, "ema": False, "balanced": False}))
++    (RUNS / "UzSohn_E2.done").write_text("u01b,r2")
++    (RUNS / "UzSohn_E2_E1.done").touch()
++    assert e2_state() == ("Э2", "UzSohn (Э2: U01b, № 2)"), e2_state()
++    shutil.copytree(PRED / "Slovo/SL-GCN/shared/scratch", PRED / "Slovo/UzSohn/native/scratch")
++    (PRED / "Slovo/Sohn/native/scratch").mkdir(parents=True)
++    for f in (PRED / "Slovo/A1/native/scratch").glob("*.npz"):
++        fold, s = f.stem.split("__seed")
++        shutil.copy(f, PRED / f"Slovo/Sohn/native/scratch/{fold}__seed{42 + int(s)}.npz")
++    t = pairs_table([(P, "UzSohn", "Sohn"), (P, "UzSohn", "A1")], False)
++    r, q = (paired(correct_ens(Sg, 1, ids, gloss), c1, signer, .95, P, mac) for mac in (True, False))
++    assert len(t) == 5 and "↳" not in t[3] and t[4].startswith("| Slovo | ↳ устойчивость: +2.71 к точности UzSohn (Э2: U01b, № 2) |")
++    assert t[2] == (f"| Slovo | UzSohn (Э2: U01b, № 2) − наша реализация Sohn | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | "
++                    f"{verdict(r['lo'], r['hi'])} | {q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |"), t
++    # П25: строка Э3 «Sohn×3 − Sohn» — её случай и два случая к3 (0043 разд. 2): ветка решения проверена в обе стороны
++    sm = load_model(PRED / "Slovo/Sohn/native/scratch")
++    r3 = both(correct_ens(sm, 3, ids, gloss), correct_ens(sm, 1, ids, gloss), signer, P)
++    assert sorted(sm) == [42, 43, 44, 45, 46] and e3_table()[2] == e3_row(P, sm) and e3_table()[3].endswith("| ждёт | | | | |")
++    assert r3["delta"] > 0 and (r3["verdict"] == "установлено (+)") == (r3["lo"] > 0 and r3["t_lo"] > 0), r3
++    assert e3_row(P, sm).split(" | ")[2] == f"{r3['delta']:+.2f}"  # строка Э3 — ансамбль 3 затравок (П25), не иного N
++    assert e3_row(P, {s: sm[42] for s in sm}).split(" | ")[-2] == "не установлено"  # ансамбль ≡ одиночки: Δ = 0
++    z3 = both(np.full(len(ids), 0.6), np.full(len(ids), 0.5), signer, P)  # +10 п. п. у каждого исполнителя
++    assert z3["verdict"] == "установлено (+)" and z3["lo"] > 0 and z3["t_lo"] > 0, z3
+     print("\n".join(pairs_table([("Slovo", "A1", "ST-GCN")], True)))
+     print("самопроверка пройдена;", len(rows), "строк сводки (синтетика, не результаты)")
+ 
+@@ -850,6 +1032,8 @@ if __name__ == "__main__":
+         for c in C:
+             if (a.only is None or c["model"] == a.only) and (a.dataset is None or c["ds"] == a.dataset):
+                 export_cell(c, a.threads)
++    elif a.cmd in ("check", "summary") and not frozen():
++        sys.exit(1)
+     elif a.cmd == "check":
+         check()
+     elif a.cmd == "stoprule":
+@@ -860,6 +1044,6 @@ if __name__ == "__main__":
+                                                  f"Затравок в ячейках: см. turnir_summary.csv (n_seeds). Пока Э1 не завершён (нет runs/TURNIR_E1.done) — "
+                                                  f"**прогон стенда на готовых прогонах, не результат турнира**; корпус — предварительно до проверки меток.", ""] +
+                                                 pairs_table(MAIN_PAIRS, True) + ["", "## Справочно (95 %)", ""] +
+-                                                pairs_table(REF_PAIRS, False)) + "\n", encoding="utf-8")
++                                                pairs_table(REF_PAIRS, False) + e2_tail()) + "\n", encoding="utf-8")
+     else:
+         ap.print_help()
+diff --git a/scripts/turnir_train.py b/scripts/turnir_train.py
+index bb3215c..b025809 100644
+--- a/scripts/turnir_train.py
++++ b/scripts/turnir_train.py
+@@ -158,8 +158,8 @@ def plan(groups=(1,)) -> list[dict]:
+         if g == 2:
+             jobs += their_jobs(c, cell_out)
+             continue
+-        if c["model"] == "Sohn":  # поправка 3: все 5 затравок 42–46 обучает сама M13 (m13_chain_v3.sh) — в группе 1 Sohn нет
+-            continue
++        if c["model"] in te.SOHN_LIKE:  # поправка 3: все 5 затравок 42–46 обучает сама M13 (m13_chain_v3.sh) — в группе 1 Sohn нет;
++            continue                   # UzSohn в Э1 — цепочка Э2 (поправка 4, 22.8)
+         if c["model"] == "Sohn":  # (прежний путь, не используется) 5-я затравка своим кодом M13 (интерфейс m13_train.py: --set --fold --seed --tag --init --out)
+             pre = TR / "pretrain/Sohn/all" / f"seed{SOHN_SEED}"
+             if c["cond"] == "transfer":
+@@ -207,6 +207,25 @@ def plan(groups=(1,)) -> list[dict]:
+     return jobs
+ 
+ 
++HOLD = RUNS / "TURNIR_HOLD_E2"  # придержка Э2, вариант (а) поправки 4 (22.1, 22.10 п. 4): ставит и снимает scripts/turnir_e2_chain.sh
++
++
++def held() -> bool:
++    """Придержка Э2 в силе: в файле «PID boot_id юнит» этой загрузки и юнит активен. Иначе она устарела (перезагрузка; SIGKILL
++    цепочки — trap не сработал): строка в журнал, прогон идёт — как замок m13_train (PID и boot_id)."""
++    try:
++        _, boot, unit = HOLD.read_text().split()
++    except FileNotFoundError:
++        return False
++    except (OSError, ValueError):
++        boot = unit = ""
++    if boot == Path("/proc/sys/kernel/random/boot_id").read_text().strip() and \
++            subprocess.run(["systemctl", "--user", "is-active", "--quiet", unit]).returncode == 0:
++        return True
++    print(f"!!! {HOLD.name}: придержка устарела (другая загрузка или юнит неактивен) — не соблюдается", flush=True)
++    return False
++
++
+ def run_job(j: dict) -> str:
+     out = Path(j["out"])
+     if (out / "metrics.json").is_file():
+@@ -216,6 +235,8 @@ def run_job(j: dict) -> str:
+             if Path(j["after"] + ".failed").is_file():
+                 return f"!!! ОШИБКА {out.relative_to(RUNS)}: упало предобучение {j['after']}"
+             time.sleep(30)
++    while held():  # Э2 при (а): новый прогон ждёт придержку, идущие не обрываются (П11)
++        time.sleep(60)
+     subprocess.run(["bash", str(ROOT / "scripts/weekend_gate.sh")], check=True)  # перерыв Сб 00:00 – Пн 08:00 (0064)
+     fm = Path(str(out) + ".failed")
+     if fm.is_file():  # прежняя ошибка — в сторону (не удаляется), прогон пробуется заново
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+new file mode 100644
+index 0000000..eddcda7
+--- /dev/null
++++ b/tests/test_turnir_e2.py
+@@ -0,0 +1,951 @@
++"""Поправка 4 к предрег. турнира (22.7, 22.8, 22.10 п. 5, П23, П25): стенд turnir_eval (ячейки и строки UzSohn, печать 22.7 (Б),
++строка Э3, ворота заморозки), turnir_cost (UzSohn по metrics.json прогона) и turnir_train (UzSohn не планируется); цепочка Э2
++scripts/turnir_e2_chain.sh (22.1, 22.10 п. 3) — с подменёнными командами. Только ЦП и синтетика во временных каталогах (runs/** не
++читается); прежнее поведение — бит в бит со стендом master f6a5a72 (git show).
++CUDA_VISIBLE_DEVICES= PYTHONPATH=src:../uzsign_e1/src python -m pytest -q tests/test_turnir_e2.py"""
++import csv
++import hashlib
++import importlib.util
++import itertools
++import json
++import os
++import re
++import shutil
++import subprocess
++import sys
++import time
++import types
++from collections import Counter
++from pathlib import Path
++
++import numpy as np
++import pytest
++import torch
++
++OM = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(OM / "scripts"))
++import turnir_eval as te  # noqa: E402
++
++BASE = "f6a5a72"  # master до поправки 4: этот стенд зовёт идущая цепочка турнира (turnir_e1_chain.sh, строки 51, 67–69)
++K, REC = 6, 6
++CLS = np.array([f"c{k}" for k in range(K)])
++SIG = [f"S{k:02d}" for k in range(1, 11)]  # тест Slovo (по 2 на фолд) и исполнители LOSO корпуса
++FOLDS_P = [f"fold{k}" for k in range(1, 6)]
++OUTSIDE = {"S02", "S04", "S06", "S07", "S08", "S09", "S10"}  # вне валидаций: Slovo — S01, S03; Bukva — S05, S11, S12
++UZ = {"input": ["u01b"], "flags": {"part_tokens": True, "cos_head": True}, "ema": True, "balanced": True}
++UZ_NAME = "UzSohn (Э2: U01b, № 2, № 3, № 4)"
++
++
++def base_module(tmp_path, name):
++    """Скрипт master f6a5a72 (git show) — отдельным модулем, для сравнения бит в бит."""
++    p = tmp_path / f"{name}_base.py"
++    p.write_bytes(subprocess.run(["git", "-C", str(OM), "show", f"{BASE}:scripts/{name}.py"], capture_output=True, check=True).stdout)
++    spec = importlib.util.spec_from_file_location(f"{name}_base", p)
++    mod = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(mod)
++    return mod
++
++
++def recs(prefix, signers, rng):
++    ids = np.array([f"{prefix}{s}_{i}" for s in signers for i in range(REC)])
++    return ids, np.repeat(signers, REC), CLS[rng.integers(0, K, len(ids))]
++
++
++def logits(gloss, skill, rng):
++    lg = rng.normal(0, 1, (len(gloss), K))
++    lg[np.arange(len(gloss)), np.searchsorted(CLS, gloss)] += skill
++    return lg
++
++
++def m13_run(d, ids, signer, gloss, lg, meta):
++    """Каталог m13_train: probs.npz + predictions.csv + metrics.json."""
++    d.mkdir(parents=True)
++    np.savez(d / "probs.npz", ids=ids, probs=te.softmax16(lg), classes=CLS)
++    with open(d / "predictions.csv", "w", newline="", encoding="utf-8") as f:
++        w = csv.writer(f)
++        w.writerow(["dataset", "sample_id", "signer_id", "gloss", "pred", "correct", "top5"])
++        w.writerows([["x", i, s, g, "", "", ""] for i, s, g in zip(ids, signer, gloss)])
++    (d / "metrics.json").write_text(json.dumps(meta or {}))
++
++
++def mpk_run(d, cache, exp, cond, fold, seed, parts):
++    """Прогон mpk.train: best.pt + metrics.json; вероятности — кэш M10 (как m10_cache)."""
++    d.mkdir(parents=True)
++    (d / "best.pt").write_bytes(b"")
++    (d / "metrics.json").write_text(json.dumps({"config": {"data": {"fold": fold}, "seed": seed, "experiment": exp, "condition": cond}}))
++    ids, signer, gloss, role, lg = (np.concatenate(x) for x in zip(*parts))
++    p = cache / exp / cond / f"{fold}_seed{seed}.npz"
++    p.parent.mkdir(parents=True, exist_ok=True)
++    np.savez(p, sample_id=ids, logits=lg, labels=CLS, signer=signer, gloss=gloss, role=role, top1_test=0.5)
++
++
++def build(base: Path, rng, uz=None) -> None:
++    """Синтетический турнир: Slovo (5 фолдов; валидация — S01 / S03) и корпус (LOSO S01…S10 + other); A1 и SL-GCN — прогоны
++    mpk.train, Sohn (и UzSohn в Э1 при uz) — каталоги M13; разбиения и опись кэша M13 — для печати 22.7."""
++    runs, v2 = base / "OM/runs", base / "uzsign_ai_v2/runs"
++    cache = runs / "M10/cache"
++    sk = {"A1": 1.5, "SL-GCN": 1.8, "Sohn": 1.6, "UzSohn": 2.0}
++    clips = {"slovo": [], "bukva": []}
++    split = {"slovo": {"folds": {}}, "bukva": {"folds": {"fold1": {"train": [], "val": [], "test": []}}}}
++    for k, fold in enumerate(FOLDS_P):
++        t, v = recs(f"t{k}", SIG[2 * k: 2 * k + 2], rng), recs(f"v{k}", ["S03" if k == 0 else "S01"], rng)
++        clips["slovo"] += [dict(sample_id=i, signer_id=s, gloss=g) for x in (t, v) for i, s, g in zip(*x)]
++        split["slovo"]["folds"][fold] = {"train": [], "val": list(v[0]), "test": list(t[0])}
++        for model, path in (("A1", "M7/slovo_a_ema"), ("SL-GCN", "M11G2/g2_slovo_slgcn_orig_mpkrec")):
++            for s in range(3):
++                mpk_run(runs / path / fold / f"seed{s}", cache, *path.split("/"), fold, s,
++                        [(*x, np.full(len(x[0]), r), logits(x[2], sk[model], rng)) for x, r in ((t, "test"), (v, "val"))])
++        for model, tag in (("Sohn", "slovo"),) + ((("UzSohn", "uzsohn_e1_slovo"),) if uz else ()):
++            for s in range(42, 47):
++                m13_run(runs / "UzSohn" / tag / fold / f"seed{s}", *t, logits(t[2], sk[model], rng), uz if model == "UzSohn" else None)
++    b = recs("b", ["S05", "S11", "S12", "S07"], rng)
++    clips["bukva"] = [dict(sample_id=i, signer_id=s, gloss=g) for i, s, g in zip(*b)]
++    split["bukva"]["folds"]["fold1"] |= {"val": list(b[0][:3 * REC]), "test": list(b[0][3 * REC:])}
++    # корпус: Sohn сильнее SL-GCN — ветка продолжается; A1 и SL-GCN — одни логиты во всех затравках: все составы «нашей толпы»
++    # равны, вложенный выбор един (без «*», на котором стенд master падает — summary, разбор состава)
++    sk = {"Sohn": 2.5, "UzSohn": 2.8}
++    for f in SIG + ["other"]:
++        t = recs("u", [f], rng)
++        lg = logits(t[2], 0.8, rng)
++        for path in (v2 / "loso", v2 / "M12_slgcn_loso"):
++            for s in range(3):
++                mpk_run(path / f / f"seed{s}", cache, "V2", path.name, f, s, [(*t, np.full(len(t[0]), "test"), lg)])
++        for model, tag in (("Sohn", "uzsl_pre"),) + ((("UzSohn", "uzsohn_e1_uzsl_pre"),) if uz else ()):
++            for s in range(42, 47):
++                m13_run(runs / "UzSohn" / tag / f / f"seed{s}", *t, logits(t[2], sk[model], rng), uz if model == "UzSohn" else None)
++    if uz:  # итог Э2, как пишет turnir_e2_chain.sh: принятые рычаги (токены прогонов UzSohn) и маркер Э1 UzSohn
++        tok = list(uz["input"]) + [r for r, k in (("r2", uz["flags"].get("part_tokens")), ("r3", uz["ema"]), ("r4", uz["balanced"])) if k]
++        (runs / "UzSohn_E2.done").write_text(",".join(tok))
++        (runs / "UzSohn_E2_E1.done").touch()
++    for d in ("slovo", "bukva"):
++        for sub in ("splits", "cache/M13", "reports"):
++            (base / "OM" / sub).mkdir(parents=True, exist_ok=True)
++        (base / f"OM/splits/{d}_p5.json").write_text(json.dumps(split[d]))
++        np.savez(base / f"OM/cache/M13/{d}.npz", clips=np.array(json.dumps(clips[d])))
++
++
++def point(set_, base: Path) -> None:
++    root = base / "OM"
++    for k, v in dict(ROOT=root, UZ=base / "uzsign_ai_v2", RUNS=root / "runs", OUT=root / "runs/TURNIR", PRED=root / "runs/TURNIR/preds",
++                     M10C=[root / "runs/M10/cache", base / "uzsign_ai_v2/runs/M10/cache"]).items():
++        set_(k, v)
++
++
++def run_stand(mod):
++    """Что зовёт цепочка после M13 и в конце Э1 (кроме check — его тело не менялось): export, stoprule, summary, пары."""
++    for c in mod.C:
++        mod.export_cell(c, 1)
++    mod.stoprule()
++    mod.summary(0.99)
++    return mod.pairs_table(mod.MAIN_PAIRS, True), mod.pairs_table(mod.REF_PAIRS, False)
++
++
++def snapshot(out: Path) -> dict:
++    snap = {}
++    for p in sorted(out.rglob("*")):
++        if p.suffix == ".npz":
++            with np.load(p) as z:
++                snap[p.relative_to(out)] = {k: z[k] for k in z.files}
++        elif p.is_file():
++            snap[p.relative_to(out)] = p.read_bytes()
++    return snap
++
++
++@pytest.fixture
++def stand(tmp_path, monkeypatch):
++    def make(uz=None):
++        base = (tmp_path / "base").resolve()
++        build(base, np.random.default_rng(0), uz)
++        point(lambda k, v: monkeypatch.setattr(te, k, v), base)
++        return base
++    return make
++
++
++def test_stand_bit_exact_vs_master(tmp_path, stand, capsys):
++    """Ячейки, выгрузка (npz и metrics.json), stoprule, сводка, пары и печать — как у master f6a5a72; новое — только строки UzSohn."""
++    old = base_module(tmp_path, "turnir_eval")
++    base = stand()
++    point(lambda k, v: setattr(old, k, v), base)
++    assert [c for c in te.C if c["model"] != "UzSohn"] == old.C
++    assert [(c["ds"], c["cond"], c["kind"], c["src"][0]) for c in te.C if c["model"] == "UzSohn"] == [
++        ("Slovo", "scratch", "m13", "UzSohn/uzsohn_e1_slovo/fold*/seed*"), ("Bukva", "scratch", "m13", "UzSohn/uzsohn_e1_bukva/fold*/seed*"),
++        ("UzSL", "transfer", "m13", "UzSohn/uzsohn_e1_uzsl_pre/*/seed*"), ("UzSL", "scratch", "m13", "UzSohn/uzsohn_e1_uzsl_scratch/*/seed*")]
++    out = base / "OM/runs/TURNIR"
++    capsys.readouterr()
++    om, orf = run_stand(old)
++    o_print, s_old = capsys.readouterr().out, snapshot(out)
++    shutil.rmtree(out)
++    nm, nrf = run_stand(te)
++    n_print, s_new = capsys.readouterr().out, snapshot(out)
++    assert s_old.keys() == s_new.keys() and len(s_old) > 60
++    for k, v in s_old.items():
++        if isinstance(v, dict):
++            assert v.keys() == s_new[k].keys() and all(np.array_equal(v[a], s_new[k][a]) and v[a].dtype == s_new[k][a].dtype for a in v), k
++        else:
++            assert v == s_new[k], k
++    assert o_print == n_print and "ветка UzSohn продолжается" in (out / "stoprule.md").read_text(encoding="utf-8")
++    assert nm == om and any("наша реализация Sohn − A1" in r for r in nm)
++    assert nrf[:len(orf)] == orf and nrf[len(orf):] == [f"| {ds} | UzSohn − Sohn | ждёт | | | | |" for ds in ("Slovo", "UzSL")]
++    inv = base / "OM/reports/TURNIR_inventory.md"  # инвентаризация: суммы «Э1 итого» — как в master; новые — только 4 строки UzSohn
++    old.inventory()
++    o_inv = inv.read_text(encoding="utf-8").splitlines()
++    te.inventory()
++    n_inv = inv.read_text(encoding="utf-8").splitlines()
++    assert [x for x in n_inv if "| UzSohn |" not in x] == o_inv
++    assert [x.split(" | ")[10:12] for x in n_inv if "| UzSohn |" in x] == [["0.0", "0.0"]] * 4
++
++
++def test_uzsohn_equiv_sohn_rows(stand):
++    """22.8: ничего не принято / ветка закрыта → строки UzSohn − X «≡ …» без чисел; печати 22.7 нет; строка Э3 (П25) — есть."""
++    base = stand()
++    run_stand(te)
++    assert te.e2_state() == ("", "")
++    (base / "OM/runs/UzSohn_E2.done").touch()
++    eq = "≡ наша реализация Sohn (M13): Э2 — ничего не принято"
++    main = te.pairs_table(te.MAIN_PAIRS, True)
++    assert [r for r in main if "UzSohn" in r] == [f"| {ds} | UzSohn − {b} | {eq} | | | | |" for ds in ("Slovo", "UzSL") for b in ("A1", "SL-GCN")]
++    assert "ДИ 99.88 %" in main[0]  # m = 8 не меняется (П6)
++    tail = te.e2_tail()
++    assert not any("вне валидаций" in r for r in tail) and tail[1].startswith("## Э3")
++    sm = te.load_model(te.PRED / "Slovo/Sohn/native/scratch")
++    assert tail[-2] == te.e3_row("Slovo", sm) and tail[-1].startswith("| UzSL | Sohn×3 − Sohn") and "ждёт" not in tail[-1]
++    (base / "OM/runs/TURNIR/stoprule.md").write_text("**верхняя граница < 0: ветка UzSohn ЗАКРЫТА**", encoding="utf-8")
++    assert te.e2_state() == ("≡", "ветка закрыта") and "Э2 — ветка закрыта" in te.pairs_table(te.MAIN_PAIRS, True)[-1]
++    p = te.PRED / "Slovo/Sohn/native/scratch"
++    shutil.copy(p / "fold1__seed42.npz", p / "fold1__seed48.npz")  # чужая затравка в ячейке: строка Э3 — только 42–46
++    assert te.e3_table()[2] == te.e3_row("Slovo", sm)
++
++
++def test_e2_state_by_done_file(stand):
++    """22.8 по runs/UzSohn_E2.done (цепочка пишет туда принятые рычаги): принято, а прогонов UzSohn в Э1 нет, Э1 не завершён (нет
++    UzSohn_E2_E1.done) или итога Э2 нет при прогонах; рычаги прогонов ≠ принятым — отказ, не ложная строка «≡ … ничего не принято»
++    в главных парах (рецензия Э2: V2, F2)."""
++    base = stand(UZ)
++    runs = base / "OM/runs"
++    assert te.e2_state() == ("Э2", UZ_NAME)
++    for acc, e1, msg in (("u01b,r3", True, "≠ принятым"), ("u01b,r2,r3,r4", False, "не завершён"), (None, True, "не завершён")):
++        (runs / "UzSohn_E2.done").unlink(missing_ok=True)
++        if acc:
++            (runs / "UzSohn_E2.done").write_text(acc)
++        (runs / "UzSohn_E2_E1.done").unlink(missing_ok=True)
++        if e1:
++            (runs / "UzSohn_E2_E1.done").touch()
++        with pytest.raises(AssertionError, match=msg):
++            te.e2_state()
++    for d in runs.glob("UzSohn/uzsohn_e1_*"):
++        shutil.rmtree(d)
++    (runs / "UzSohn_E2.done").write_text("u01b,r3")  # принято, прогонов UzSohn в Э1 нет
++    with pytest.raises(AssertionError, match="не завершён"):
++        te.e2_state()
++    (runs / "UzSohn_E2.done").write_text("")
++    assert te.e2_state() == ("≡", "ничего не принято")
++
++
++def test_not_nested_mark(stand):
++    """22.7: решение хоть одного шага Э2 без группы теста Slovo j ≠ общему (runs/UZSOHN/decide_e2_*.json) → у пар UzSohn − X на
++    Slovo (главные и справочная) пометка «отбор не вложенный»; на корпусе — нет; все решения совпали — нет (рецензия Э2: V1)."""
++    base = stand(UZ)
++    run_stand(te)
++    d = base / "OM/runs/UZSOHN"
++    d.mkdir()
++    wg = {str(j): {"accepted": True} for j in range(1, 6)}
++    (d / "decide_e2_U01b.json").write_text(json.dumps({"accepted": True, "without_group": wg}))
++    rows = lambda: te.pairs_table(te.MAIN_PAIRS, True) + te.pairs_table(te.REF_PAIRS, False)  # noqa: E731
++    assert not any("не вложенный" in r for r in rows())
++    (d / "decide_e2_r4.json").write_text(json.dumps({"accepted": True, "without_group": wg | {"3": {"accepted": False}}}))
++    mark = [r for r in rows() if "; отбор не вложенный (22.7) |" in r]
++    assert sorted(r.split(" | ")[1] for r in mark) == sorted(f"{UZ_NAME} − {b}" for b in ("A1", "SL-GCN", "наша реализация Sohn"))
++    assert all(r.startswith("| Slovo | ") for r in mark)
++
++
++def test_both_rule_needs_t_too():
++    """П25, «оба»: перцентильный 99 % ДИ > 0, а t-ДИ (n = 10, t₉) захватывает 0 → «не установлено»."""
++    z = np.array([-1.5, -1, -0.5, -0.2, 0, 0, 0.2, 0.5, 1, 1.5])
++    d = 1 + z / z.std(ddof=1)  # Δ = 1 п. п., sd = 1: Δ/(sd/√10) = 3,16 < t(0,995; 9) = 3,25; при ddof = 0 было бы 3,33
++    r = te.both(0.5 + d / 200, 0.5 - d / 200, np.array(SIG), "UzSL")
++    assert r["lo"] > 0 > r["t_lo"] and r["verdict"] == "не установлено", r
++
++
++def test_uzsohn_accepted_rows_and_outside_print(stand, monkeypatch):
++    """22.8, П21: подпись «UzSohn (Э2: <рычаги>)» в парах и сводке; «UzSohn − Sohn» без +2,71; печать 22.7 (Б) — пары на исполнителях
++    вне валидаций Э2, список сверен с sha256; разные рычаги у прогонов UzSohn — отказ."""
++    base = stand(UZ)
++    run_stand(te)
++    assert te.e2_state() == ("Э2", UZ_NAME)
++    main, ref = te.pairs_table(te.MAIN_PAIRS, True), te.pairs_table(te.REF_PAIRS, False)
++    for ds in ("Slovo", "UzSL"):
++        for b in ("A1", "SL-GCN"):
++            i = next(i for i, r in enumerate(main) if r.startswith(f"| {ds} | {UZ_NAME} − {b} | "))
++            assert main[i + 1].startswith(f"| {ds} | ↳ устойчивость: +2.71 к точности {UZ_NAME} |")
++        i = next(i for i, r in enumerate(ref) if r.startswith(f"| {ds} | {UZ_NAME} − наша реализация Sohn | "))
++        assert i + 1 == len(ref) or "↳" not in ref[i + 1]
++    rows = list(csv.DictReader(open(base / "OM/runs/TURNIR/turnir_summary.csv", encoding="utf-8")))
++    assert {r["model"] for r in rows if r["kind"] == "single" and "UzSohn" in r["model"]} == {UZ_NAME}
++    assert not any(r["model"] == "UzSohn" for r in rows) and any(r["model"] == UZ_NAME for r in rows if r["kind"] == "ens_homo")
++    note = "; общий рецепт UzSohn не обучался (поправка 4, 22.8)"  # 22.8: пометка «в таблицах» — и в сводке
++    assert {r["source"].endswith(note) for r in rows if "UzSohn" in r["model"]} == {True} and not any(note in r["source"]
++                                                                                                       for r in rows if "UzSohn" not in r["model"])
++    monkeypatch.setattr(te, "E2_OUT_SHA", hashlib.sha256("\n".join(sorted(OUTSIDE)).encode()).hexdigest())
++    assert te.e2_outside() == OUTSIDE
++    tail = te.e2_tail()
++    assert tail[1] == f"{UZ_NAME}: общий рецепт UzSohn не обучался (поправка 4, 22.8 — отступление от правила 3)."
++    ma, mb = (te.load_model(te.PRED / p) for p in ("Slovo/UzSohn/native/scratch", "Slovo/A1/native/scratch"))
++    ids, signer, gloss = te.align([ma, mb])
++    ca, cb, k = te.correct_ens(ma, 1, ids, gloss), te.correct_ens(mb, 1, ids, gloss), np.isin(signer, sorted(OUTSIDE))
++    r = te.paired(ca[k], cb[k], signer[k], te.bonf(8), "Slovo", True, te.B_MAIN)
++    i = tail.index(next(x for x in tail if x.startswith(f"| Slovo | {UZ_NAME} − A1 — вне валидаций Э2 (7 исп.) |")))
++    assert tail[i].split(" | ")[2:4] == [f"{r['delta']:+.2f}", f"[{r['lo']:+.2f}; {r['hi']:+.2f}]"] and "ДИ 99.88 %" in tail[i - 4]
++    assert tail[i - 2] == next(x for x in main if x.startswith(f"| Slovo | {UZ_NAME} − A1 |"))  # полная строка — рядом
++    assert tail[i + 1].startswith(f"| Slovo | ↳ устойчивость: +2.71 к точности {UZ_NAME} |")
++    j = tail.index(next(x for x in tail if x.startswith(f"| Slovo | {UZ_NAME} − наша реализация Sohn — вне валидаций Э2 (7 исп.) |")))
++    assert "ДИ 95 %" in tail[j - 3] and not tail[j + 1].startswith("| Slovo | ↳")
++    te.inventory()  # цепочка зовёт её после summary (строка 69)
++    assert "по итогу Э2 (поправка 4, 22.8; часы — 22.9)" in (base / "OM/reports/TURNIR_inventory.md").read_text(encoding="utf-8")
++    monkeypatch.setattr(te, "E2_OUT_SHA", "0" * 64)
++    with pytest.raises(AssertionError, match="22.7"):
++        te.e2_outside()
++    (base / "OM/runs/UzSohn/uzsohn_e1_slovo/fold1/seed42/metrics.json").write_text(json.dumps(UZ | {"ema": False}))
++    with pytest.raises(AssertionError, match="не один набор"):
++        te.e2_state()
++
++
++@pytest.mark.parametrize("comp, cost", [("Sohn×2+UzSohn×3*", ("8", "80", "13")), ("Sohn×4+UzSohn*", ("нет данных",) * 3)])
++def test_summary_nested_star_composition(stand, monkeypatch, comp, cost):
++    """Вложенный состав корпуса, разный у исполнителей («…×3*»): сводка не падает, цена — по частям без «*» (с UzSohn «толпа Sohn»
++    на корпусе впервые не пуста; стенд master падал на int("3*")); «Имя*» без ×k — «нет данных», как в master (бит в бит)."""
++    base = stand(UZ)
++    for c in te.C:
++        te.export_cell(c, 1)
++    monkeypatch.setattr(te, "correct_mixed_nested", lambda models, names, N, ids, gloss, signer: (
++        (np.ones(len(ids)), comp) if names == ["Sohn", "UzSohn"] and N == 5 else (None, None)))
++    monkeypatch.setattr(te, "cost_table", lambda: {"UzSL": {"Sohn": dict(gflops=1, latency_ms=10, params_m=2),
++                                                            "UzSohn": dict(gflops=2, latency_ms=20, params_m=3)}})
++    te.summary(0.99)
++    rows = list(csv.DictReader(open(base / "OM/runs/TURNIR/turnir_summary.csv", encoding="utf-8")))
++    r = next(r for r in rows if r["kind"] == "ens_mixed" and r["dataset"] == "UzSL")
++    assert r["model"] == comp.replace("UzSohn", UZ_NAME) and (r["gflops"], r["latency_ms"], r["params_m"]) == cost
++
++
++@pytest.mark.skipif(not all((OM / f"cache/M13/{d}.npz").is_file() for d in ("slovo", "bukva")), reason="нет кэша M13")
++def test_e2_outside_registered_list():
++    """22.7 (Б) на настоящих разбиениях и описи кэша M13: 116 из 188, sha256 = записанному в поправке 4 (assert внутри)."""
++    assert len(te.e2_outside()) == 116
++
++
++def test_sources_skip_e2_selection_and_probe(tmp_path, monkeypatch):
++    """22.8, 22.10 п. 2: ни один шаблон стенда не читает отбор Э2 (uzsohn_e2_*) и пробу памяти; uzsohn_e1_* — только UzSohn;
++    каталог с --val-only (лишь *_val) export_cell не выгружает."""
++    runs = tmp_path / "runs"
++    monkeypatch.setattr(te, "RUNS", runs)
++    monkeypatch.setattr(te, "PRED", tmp_path / "preds")
++    for p in ("UzSohn/uzsohn_e2_slovo_v0/fold1/seed48", "UzSohn/uzsohn_e2_bukva_in_u01b-r2-r3/fold2/seed48",
++              "UzSohn/uzsohn_e2_slovo_in_u02s/fold5/seed48", "UZSOHN/e2_probe/fold1/seed99", "UZSOHN/e2_probe/fold2/seed99"):
++        (runs / p).mkdir(parents=True)
++    assert not [d for c in te.C for d in te.src_dirs(c)]
++    for p in ("uzsohn_e1_slovo/fold1", "uzsohn_e1_bukva/fold1", "uzsohn_e1_uzsl_pre/S01", "uzsohn_e1_uzsl_scratch/S01"):
++        (runs / "UzSohn" / p / "seed42").mkdir(parents=True)
++    hit = sorted((c["ds"], c["model"], c["cond"]) for c in te.C for d in te.src_dirs(c))
++    assert hit == [("Bukva", "UzSohn", "scratch"), ("Slovo", "UzSohn", "scratch"), ("UzSL", "UzSohn", "scratch"), ("UzSL", "UzSohn", "transfer")]
++    d = runs / "UzSohn/uzsohn_e2_slovo_v0/fold1/seed48"
++    (d / "metrics.json").write_text(json.dumps({"score_on": "val"}))
++    np.savez(d / "probs_val.npz", ids=np.array(["a"]), probs=np.ones((1, 1), np.float16), classes=np.array(["c0"]))
++    (d / "predictions_val.csv").write_text("dataset,sample_id,signer_id,gloss,pred,correct,top5\nx,a,S01,c0,c0,1,c0\n")
++    te.export_cell(dict(ds="Slovo", model="UzSohn", recipe="native", cond="scratch", kind="m13",
++                        src=["UzSohn/uzsohn_e2_slovo_v0/fold*/seed*"]), 1)
++    assert not (tmp_path / "preds").exists()
++
++
++def _git(root, *a):
++    return subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a],
++                          capture_output=True, text=True, check=True).stdout.strip()
++
++
++def test_freeze_gate(tmp_path, monkeypatch, capsys):
++    """П23: маркер заморозки — полный хеш коммита в 1-й строке, предрегистрация в HEAD = в нём; иначе — отказ со строкой «!!!»."""
++    root = tmp_path / "OM"
++    (root / "reports").mkdir(parents=True)
++    _git(root, "init", "-q")
++    (root / "reports/TURNIR_prereg.md").write_text("предрег.\n", encoding="utf-8")
++    _git(root, "add", "reports/TURNIR_prereg.md")
++    _git(root, "commit", "-qm", "предрег.")
++    (root / "reports/TURNIR_prereg.md").write_text("предрег.\nпоправка «заморозка»\n", encoding="utf-8")
++    _git(root, "commit", "-qam", "заморозка")
++    h = _git(root, "rev-parse", "HEAD")
++    monkeypatch.setattr(te, "ROOT", root)
++    monkeypatch.setattr(te, "RUNS", root / "runs")
++    assert not te.frozen() and "!!! ворота заморозки" in capsys.readouterr().out
++    (root / "runs").mkdir()
++    for bad in ("", h[:12], "x" * 40, "0" * 40, h.upper()):
++        (root / "runs/TURNIR_FREEZE").write_text(bad + "\n")
++        assert not te.frozen(), bad
++    (root / "runs/TURNIR_FREEZE").write_text(h + "\nзаморозка — к2, после сверки\n")
++    assert te.frozen()
++    (root / "x.txt").write_text("x")
++    _git(root, "add", "x.txt")
++    _git(root, "commit", "-qm", "не поправка")
++    (root / "runs/TURNIR_FREEZE").write_text(_git(root, "rev-parse", "HEAD") + "\n")
++    assert not te.frozen()  # хеш коммита без правки предрег. (HEAD) — не коммит поправки (рецензия Э2: V3)
++    (root / "runs/TURNIR_FREEZE").write_text(h + "\n")
++    assert te.frozen()
++    (root / "reports/TURNIR_prereg.md").write_text("поправка «заморозка»\nпоправка после неё\n", encoding="utf-8")
++    assert not te.frozen()  # предрегистрация ≠ замороженной (незакоммиченная правка)
++    _git(root, "commit", "-qam", "после заморозки")
++    assert not te.frozen()
++
++
++def test_freeze_gate_commands(tmp_path):
++    """Ворота — в разборе команд: check и summary — код 1 и строка «!!!» в журнал; export и stoprule (П15) — без ворот."""
++    sc = tmp_path / "OM/scripts"
++    sc.mkdir(parents=True)
++    shutil.copy(OM / "scripts/turnir_eval.py", sc)  # копия: ROOT — пустое дерево во временном каталоге
++    env = {**os.environ, "CUDA_VISIBLE_DEVICES": ""}
++    run = lambda cmd: subprocess.run([sys.executable, str(sc / "turnir_eval.py"), cmd], capture_output=True, text=True, env=env)  # noqa: E731
++    for cmd in ("check", "summary"):
++        r = run(cmd)
++        assert r.returncode == 1 and r.stdout.startswith("!!! ворота заморозки (поправка 4, П23)"), (cmd, r.stdout, r.stderr)
++    r = run("export")
++    assert r.returncode == 0 and "ворота" not in r.stdout + r.stderr
++    r = run("stoprule")  # пустое дерево: падает на своём assert (M13 нет), не на воротах
++    assert "ворота" not in r.stdout + r.stderr and "M13: корпус с переносом готов 0 из 55" in r.stderr
++
++
++def test_plan_skips_uzsohn(tmp_path, monkeypatch):
++    """UzSohn в Э1 обучает цепочка Э2 (22.8): раннер турнира его не планирует (без правки — AttributeError на шаблоне S+B);
++    план прежних ячеек (группы 1, 3, 2) — бит в бит с master f6a5a72."""
++    import turnir_train as tt
++    old = base_module(tmp_path, "turnir_train")
++    cfg = {"model": {}, "train": {"steps": 3000}, "finetune": {}, "data": {}}
++    tpl = tmp_path / "tpl.yaml"
++    tpl.write_text(json.dumps(cfg))
++    monkeypatch.setattr(te, "RUNS", tmp_path / "runs")  # прогонов нет: план из шаблонов-заглушек, runs/** не читается
++    for mod in (tt, old):
++        monkeypatch.setattr(mod, "pre_tpl", lambda model: tpl)
++        monkeypatch.setattr(mod, "fold_tpl", lambda c, f: (cfg, "tpl"))
++        monkeypatch.setattr(mod, "stgcn_block", lambda: {})
++    new, full = tt.plan((1, 3, 2)), te.C
++    monkeypatch.setattr(te, "C", [c for c in full if c["model"] != "UzSohn"])  # старый план — на прежних ячейках (old.te — тот же te)
++    assert new == old.plan((1, 3, 2)) and len(new) > 100
++    monkeypatch.setattr(te, "C", [c for c in full if c["model"] == "UzSohn"])
++    assert len(te.C) == 4 and tt.plan((1, 3, 2)) == []
++
++
++def test_cost_dispatch_default_path(tmp_path, monkeypatch):
++    """Стоимость прежних ячеек — те же функции, что у master f6a5a72; UzSohn — uzsohn_cell (3 ячейки главного рецепта)."""
++    import turnir_cost as tc
++    old = base_module(tmp_path, "turnir_cost")
++    calls = {tc: [], old: []}
++    (tmp_path / "reports").mkdir()
++    for mod in (tc, old):
++        monkeypatch.setattr(mod, "idle_or_die", lambda: 0.0)
++        monkeypatch.setattr(mod, "ROOT", tmp_path)  # turnir_cost.json — во временный каталог
++        for f in ("sohn_cell", "mpk_cell", "uzsohn_cell"):
++            monkeypatch.setattr(mod, f, lambda c, f=f, mod=mod: calls[mod].append((f, c["ds"], c["model"])), raising=False)
++    tc.main()
++    monkeypatch.setattr(te, "C", [c for c in te.C if c["model"] != "UzSohn"])  # old.te — тот же te
++    old.main()
++    assert [x for x in calls[tc] if x[2] != "UzSohn"] == calls[old] and len(calls[old]) > 10
++    assert [x for x in calls[tc] if x[2] == "UzSohn"] == [("uzsohn_cell", ds, "UzSohn") for ds in ("Slovo", "Bukva", "UzSL")]
++
++
++def _cost_run(tmp_path, monkeypatch, meta):
++    import turnir_cost as tc
++    root = tmp_path.resolve() / "OM"
++    d = root / "runs/UzSohn/uzsohn_e1_slovo/fold1/seed42"
++    d.mkdir(parents=True)
++    (d / "metrics.json").write_text(json.dumps(meta))
++    monkeypatch.setattr(te, "RUNS", root / "runs")
++    monkeypatch.setattr(tc, "ROOT", root)
++    return tc, next(c for c in te.C if c["model"] == "UzSohn" and c["ds"] == "Slovo")
++
++
++def test_cost_uzsohn_input_contract(tmp_path, monkeypatch):
++    """22.10 п. 5: сеть — по metrics.json (channels, input, включённые flags); при № 2 — вход preprocess_u и маска part_mask
++    последними n_tok столбцами (как uzsohn_sel.ms_per_record). Проверка на подмене mpk.sohn (в этой ветке № 2 ещё нет)."""
++    seen = {}
++
++    class Net(torch.nn.Module):
++        def __init__(self, n_classes, channels, **kw):
++            super().__init__()
++            seen.update(n=n_classes, channels=channels, kw=kw)
++            self.w = torch.nn.Linear(1, 1)
++
++        def forward(self, x, m):
++            seen["x"], seen["m"] = x, m
++            return x.sum(-1)
++
++    fake = types.SimpleNamespace(SohnNet=Net, NUM_NODES=118, NUM_NODES_POSE=122, keras_param_count=lambda n: {"trainable": 7},
++                                 preprocess_u=lambda x, a, t: np.full((len(x), 792), 0.5, np.float32),
++                                 part_mask=lambda x, t: np.ones((len(x), 3), np.float32))
++    import mpk
++    monkeypatch.setitem(sys.modules, "mpk.sohn", fake)
++    monkeypatch.setattr(mpk, "sohn", fake, raising=False)
++    flags = {k: False for k in ("parts", "hand_gcn", "pose", "hand_cross", "ms_conv", "attn_pool", "aux_shape")}
++    tc, c = _cost_run(tmp_path, monkeypatch, {"input": ["u01b"], "channels": 792, "flags": flags | {"cos_head": True, "part_tokens": True},
++                                              "ema": True, "balanced": True})
++    monkeypatch.setattr(tc, "bench", lambda fn: (fn(), (0.5, 1.5))[1])
++    r = tc.uzsohn_cell(c)
++    assert seen["n"] == 1001 and seen["channels"] == 792 and seen["kw"] == {"cos_head": True, "part_tokens": True, "tokens": ("u01b",)}
++    assert seen["x"].shape == (1, 47, 795) and (seen["x"][0, :, 792:] == 1).all() and seen["m"].all()
++    assert r == {"gflops": 0.5, "latency_ms": 1.5, "params_m": 7e-6, "T": 47, "src": "OM/runs/UzSohn/uzsohn_e1_slovo/fold1/seed42"}
++    (tmp_path / "OM/runs/UzSohn/uzsohn_e1_slovo/fold1/seed42/metrics.json").write_text(
++        json.dumps({"input": ["u01b"], "channels": 792, "flags": flags | {"cos_head": True}}))  # без № 2 (и прогон до слияния)
++    tc.uzsohn_cell(c)
++    assert seen["kw"] == {"cos_head": True} and seen["x"].shape == (1, 47, 792)
++    (tmp_path / "OM/runs/UzSohn/uzsohn_e1_slovo/fold1/seed42/metrics.json").write_text(
++        json.dumps({"input": [], "channels": 708, "flags": flags | {"pose": True}}))
++    with pytest.raises(AssertionError, match="флаги вне Э2"):
++        tc.uzsohn_cell(c)
++
++
++@pytest.mark.parametrize("n2", [False, True])
++def test_cost_uzsohn_real_net(tmp_path, monkeypatch, n2):
++    """Настоящий SohnNet: U01b + № 4 (cos_head) — в любой ветке; с № 2 (PartTokens) — после слияния ветки рычагов."""
++    from mpk import sohn
++    if n2 and not hasattr(sohn, "PartTokens"):
++        pytest.skip("№ 2 (PartTokens) — в ветке turnir-e2-levers, не здесь")
++    flags = {"cos_head": True} | ({"part_tokens": True} if n2 else {})
++    tc, c = _cost_run(tmp_path, monkeypatch, {"input": ["u01b"], "channels": sohn.input_channels(("u01b",)), "flags": flags})
++    r = tc.uzsohn_cell(c)
++    torch.manual_seed(0)
++    kw = {"tokens": ("u01b",)} if n2 else {}
++    net = sohn.SohnNet(1001, channels=sohn.input_channels(("u01b",)), **flags, **kw)
++    assert r["gflops"] > 0 and r["latency_ms"] > 0 and r["T"] == 47
++    assert r["params_m"] == sohn.keras_param_count(net)["trainable"] / 1e6
++
++
++# ---------------------------------------------------------------- цепочка Э2 scripts/turnir_e2_chain.sh (22.1, 22.10 п. 3)
++CHAIN = OM / "scripts/turnir_e2_chain.sh"
++FAKE_PY = r'''
++"""Подмена python цепочки Э2: m13_train, uzsohn_sel и turnir_eval — заглушки (журнал вызовов $E2T/calls.log, с придержкой);
++-c с torch — «есть», прочий -c — настоящий python."""
++import argparse, json, os, sys
++from pathlib import Path
++T, a = Path(os.environ["E2T"]), sys.argv[1:]
++hold = Path("runs/TURNIR_HOLD_E2")
++with open(T / "calls.log", "a") as f:
++    f.write("PY " + " ".join(a) + (" HOLD=" + hold.read_text().strip() if hold.is_file() else "") + "\n")
++if a[0] == "-c":
++    if "torch" in a[1]:
++        sys.exit(0)
++    os.execv(sys.executable, [sys.executable, *a])
++if a[0] == "-m":
++    sys.exit(0)
++name = Path(a[0]).name
++if name == "turnir_eval.py":
++    mode = (T / "stoprule").read_text()
++    if mode == "fail":
++        sys.exit(1)
++    Path("runs/TURNIR/stoprule.md").write_text("ветка UzSohn ЗАКРЫТА" if mode == "closed" else "ветка UzSohn продолжается")
++    print("Δ = +1.00 (вывод правила)", os.environ.get("PYTHONPATH"), os.environ.get("OMP_NUM_THREADS"), os.environ["CUDA_VISIBLE_DEVICES"] == "")
++    sys.exit(0)
++if name == "uzsohn_sel.py":
++    if a[1] == "selftest":
++        sys.exit(0)
++    cur, cand, step = a[2:5]
++    p = Path(f"runs/UZSOHN/decide_e2_{step}.json")
++    if p.exists():
++        sys.exit("!!! решение уже есть")
++    ok = step in (T / "accept").read_text().split()
++    p.write_text(json.dumps({"step": step, "current": cur, "candidate": cand, "accepted": ok}))
++    print(json.dumps({"step": step, "accepted": ok}))
++    sys.exit(0 if ok else 10)
++assert name == "m13_train.py", a
++assert (os.environ["PYTHONPATH"], os.environ["OMP_NUM_THREADS"]) == ("src:../uzsign_e1/src:../uzsign_ai_v2/src", "1"), "окружение M13"
++ap = argparse.ArgumentParser()
++for k in ("--set", "--fold", "--seed", "--tag", "--out", "--input", "--variant", "--init", "--stop-epoch"):
++    ap.add_argument(k)
++for k in ("--val-only", "--ema", "--balanced"):
++    ap.add_argument(k, action="store_true")
++o = ap.parse_args(a[1:])
++fail = T / f"fail_{o.tag}_{o.fold}_{o.seed}"
++if fail.is_file() and int(fail.read_text()) > 0:
++    fail.write_text(str(int(fail.read_text()) - 1))
++    sys.exit(1)
++if o.out and (T / "oom").is_file():   # проба памяти: OOM в cgroup
++    ev = T / "cg/memory.events"
++    ev.write_text("oom 1\noom_kill %d\n" % (int(ev.read_text().split()[-1]) + 1))
++    sys.exit(137)
++if o.out and (T / "probe_rc").is_file():   # проба: падение без OOM в cgroup; текст — в журнал прогона (нехватка памяти ГП)
++    print((T / "probe_rc").read_text())
++    sys.exit(1)
++out = Path(o.out or f"runs/UzSohn/{o.tag}/{o.fold}/seed{o.seed}")
++out.mkdir(parents=True, exist_ok=True)
++(out / "metrics.json").write_text("{}")
++print(json.dumps({"tag": o.tag, "top1": 0.5, "score_on": "val", "steps_per_sec": 2.2}) if o.val_only else "ТЕСТ top1 0.42")
++'''
++STUBS = {  # systemctl/systemd-run — журнал и состояние юнита ($E2T/active_<юнит>); ГП без python; sleep — без ожидания (+ крючок)
++    "systemctl": 'echo "systemctl $*" >> "$E2T/calls.log"\n[ "$2" = is-active ] && { [ -f "$E2T/active_${@: -1}" ]; exit; }\nexit 0',
++    "systemd-run": 'echo "systemd-run $*" >> "$E2T/calls.log"\nfor x; do case $x in --unit=*) touch "$E2T/active_${x#--unit=}" ;; esac; done',
++    "pgrep": "exit 1",
++    "nvidia-smi": 'case "$*" in *query-gpu*) echo 1000 ;; esac\nexit 0',
++    "sleep": '[ -f "$E2T/sleep_hook" ] && bash "$E2T/sleep_hook"\nexit 0'}
++LEV = {"v0": ("", ""), "in_u02s": ("u02s", ""), "in_u02c": ("u02c", ""), "in_u01a": ("u01a", ""), "in_u04": ("u04", ""),
++       "in_u01b": ("u01b", ""), "in_u01b-r2": ("u01b", "--variant 9 "), "in_u01b-r3": ("u01b", "--ema "),
++       "in_u01b-r3-r4": ("u01b", "--ema --balanced ")}  # плечи при принятых U01b и № 3 (вход и флаги m13_train, 22.11)
++PROBE = ["--set slovo --fold {0} --seed 99 --tag probe_e2 --out runs/UZSOHN/e2_probe/{0}/seed99 --input u01a,u04,u01b --variant 9 "
++         "--ema --balanced --val-only --stop-epoch 17".format(f) for f in ("fold1", "fold2")]  # 22.10 п. 3, дословно
++
++
++def _chain_case(tmp_path, accept=""):
++    """Дерево OM во временном каталоге: git (цепочка, список кода, предрег.; runs/TURNIR_E2_OK = HEAD), runs/UzSohn_M13.done,
++    корпус LOSO из 2 фолдов; заглушки в PATH, cgroup (пик 20 ГиБ, OOM 0) — в $E2T/cg. Настоящие юниты и ГП не трогаются."""
++    T, om, stub = tmp_path, tmp_path / "OM", tmp_path / "stub"
++    for d in ("scripts", "src/mpk", "reports", "runs/TURNIR", "runs/UzSohn", "runs/UZSOHN", "../uzsign_ai_v2/splits", "../stub", "../cg"):
++        (om / d).mkdir(parents=True, exist_ok=True)
++    (T / "uzsign_ai_v2/splits/uzsl_loso.json").write_text(json.dumps({"folds": {"S02": {}, "S01": {}}}))
++    shutil.copy(CHAIN, om / "scripts")
++    (om / "scripts/uzsohn_code.txt").write_text("# код этапа\nsrc/mpk/sohn.py\nscripts/m13_train.py   # прогоны\nv2:scripts/alluz.py\n")
++    for p in ("src/mpk/sohn.py", "scripts/m13_train.py", "scripts/uzsohn_sel.py", "scripts/turnir_eval.py"):
++        (om / p).write_text("# заглушка\n")
++    (om / "scripts/turnir_train.py").write_text('HOLD = RUNS / "TURNIR_HOLD_E2"\n')
++    (om / "reports/TURNIR_prereg.md").write_text("поправка 4\n", encoding="utf-8")
++    (om / ".gitignore").write_text("runs/\n")
++    _git(om, "init", "-q")
++    _git(om, "add", ".")
++    _git(om, "commit", "-qm", "Э2")
++    (T / "ok").write_text(_git(om, "rev-parse", "HEAD") + "\n")
++    shutil.copy(T / "ok", om / "runs/TURNIR_E2_OK")
++    (om / "runs/UzSohn_M13.done").touch()
++    (T / "accept").write_text(accept)
++    (T / "stoprule").write_text("go")
++    (T / "cg/memory.peak").write_text(str(20 << 30))
++    (T / "cg/memory.events").write_text("oom 0\noom_kill 0\n")
++    (T / "calls.log").write_text("")
++    for n, body in {**STUBS, "python": FAKE_PY}.items():
++        (stub / n).write_text(("#!" + sys.executable if n == "python" else "#!/usr/bin/env bash") + "\n" + body + "\n")
++        (stub / n).chmod(0o755)
++    return om, {"PATH": f"{stub}:/usr/bin:/bin", "HOME": str(T), "E2T": str(T), "E2_CGROUP": str(T / "cg"), "LANG": "C.UTF-8",
++                "E2_MODE": "ii"}
++
++
++def _run_chain(om, env, *args, **extra):
++    r = subprocess.run(["bash", "scripts/turnir_e2_chain.sh", *args], cwd=om, env={**env, **extra}, capture_output=True, text=True,
++                       timeout=300)
++    calls = (om.parent / "calls.log").read_text().splitlines()
++    return r, calls, [c[len("PY scripts/m13_train.py "):] for c in calls if c.startswith("PY scripts/m13_train.py ")]
++
++
++def _ups(calls):
++    return [c for c in calls if c.startswith("systemd-run")]
++
++
++def test_e2_chain_static():
++    """bash -n; тело — функция main (вызов и exit — последней строкой, правка файла во время ожидания логику не подменит);
++    шапка — юнит turnir-e2 для (ii′) с ExecStopPost= и для (а), снятие turnir-e1 с проверкой (22.1), подъём после перезагрузки;
++    журналы турнира и M13, их таблицы и metrics.json цепочка не читает (тест до заморозки, 22.1) — только пишет «>>»."""
++    ch = CHAIN.read_text()
++    L = ch.rstrip("\n").split("\n")
++    assert subprocess.run(["bash", "-n", str(CHAIN)]).returncode == 0
++    assert L[-1] == 'main "$@"; exit' and L[-2] == "}" and sum(s.startswith("main() {") for s in L) == 1
++    assert ("-p MemorySwapMax=0 -p OOMPolicy=continue -p ExecStopPost='-/usr/bin/bash scripts/turnir_e2_chain.sh turnir_up' \\\n"
++            "#     -E PATH=\"$PATH\" -E HOME=\"$HOME\" -E E2_MODE=ii "
++            "bash -c \"bash scripts/turnir_e2_chain.sh >> runs/turnir_e2_chain.log 2>&1\"") in ch
++    assert ("-p MemorySwapMax=0 -p OOMPolicy=continue -E PATH=\"$PATH\" -E HOME=\"$HOME\" -E E2_MODE=a \\\n"
++            "#     bash -c \"bash scripts/turnir_e2_chain.sh >> runs/turnir_e2_chain.log 2>&1\"") in ch
++    assert ("systemctl --user is-active --quiet turnir-e2 && [ -f runs/TURNIR_E1_g1.done ] && \\\n#     [ ! -f runs/UzSohn_M13.done ] && "
++            "! pgrep -f 'scripts/[t]urnir_train.py' > /dev/null && systemctl --user stop turnir-e1") in ch
++    assert "cd ~/uzsign/osnovnaya_model && bash scripts/turnir_e2_chain.sh turnir_up" in ch
++    assert ch.index("[ \"${1:-}\" = turnir_up ] && { turnir_up 2>&1 | tee -a runs/turnir_e2_chain.log; exit 0; }") < \
++        ch.index("trap turnir_up EXIT") < ch.index("until ")
++    code = "\n".join(s for s in L if not s.lstrip().startswith("#"))
++    for name in ("turnir_e1_chain.log", "m13_chain.log", "stoprule.log", "export.log", "export_failed.tsv", "train_journal.csv",
++                 "pairs.md", "turnir_summary.csv", "tables.out", "m13_tables", "M13_report", "metrics.json"):
++        assert not re.search(r"\b(cat|tail|head|grep|awk|sed|cut|jq|less|open)\b[^|;&>\n]*" + re.escape(name), code), name
++        assert not re.search(r"<\s*\S*" + re.escape(name), code), name
++    assert code.count("tail -1") == 2 and "uzsohn_e2_*) say \"$tag $f: $(tail -1 $log)\"" in code  # вывод Э1 (тест) — не в журнал
++
++
++def test_e2_chain_ii_full(tmp_path):
++    """(ii′), нормальный путь: turnir-e1 снят → правило «продолжается» (вывод — в stoprule.log, не в журнал Э2) → код = хешу →
++    проба (команда 22.10 п. 3, 2 процесса) → контроль и 8 шагов 22.3 (затравка 48, --val-only, флаги рычагов, упавший прогон — ещё
++    раз по одному) → решения uzsohn_sel e2 по цепочке текущих → UzSohn в Э1 (22.8: uzsohn_e1_*, 42–46, без --val-only, вывод теста —
++    не в журнал; корпус с переносом — от своего S+B) → маркеры; при выходе turnir-e1 пересоздаётся один раз (J = 1 + 1); второй
++    подъём (ExecStopPost=) охрана is-active не пускает; повтор юнита после маркеров — выход без прогонов."""
++    om, env = _chain_case(tmp_path, accept="U01b r3")
++    (tmp_path / "fail_uzsohn_e2_bukva_v0_fold2_48").write_text("1")
++    r, calls, m13 = _run_chain(om, env)
++    out = r.stdout
++    assert r.returncode == 0, out + r.stderr
++    assert "правило остановки: ветка UzSohn продолжается" in out and "Δ" not in out
++    assert "Δ = +1.00 (вывод правила) src:../uzsign_e1/src None True" in (om / "runs/TURNIR/stoprule.log").read_text()  # строка 51
++    i_sr = calls.index("PY scripts/turnir_eval.py stoprule")
++    assert calls.index("systemctl --user is-active --quiet turnir-e1") < i_sr < calls.index("PY -m pytest -q -p no:cacheprovider tests/test_sohn.py tests/test_turnir_e2.py")
++    assert sorted(m13[:2]) == PROBE and "параллельность: 2" in out and (om / "runs/UZSOHN/e2_probe/J").read_text() == "2\n"
++    want = Counter(f"--set {s} --fold {f} --seed 48 --tag uzsohn_e2_{s}_{k} --input {i} {x}--val-only"
++                   for k, (i, x) in LEV.items() for s in ("slovo", "bukva") for f in FOLDS_P)
++    want["--set bukva --fold fold2 --seed 48 --tag uzsohn_e2_bukva_v0 --input  --val-only"] += 1  # упал → ещё раз, по одному
++    assert Counter(c for c in m13 if "uzsohn_e2_" in c) == want and "!!! ОШИБКА uzsohn_e2_bukva_v0 fold2 seed48" in out
++    sel = [c[len("PY scripts/uzsohn_sel.py "):] for c in calls if c.startswith("PY scripts/uzsohn_sel.py ")]
++    assert sel == ["selftest", "e2 v0 in_u02s U02-1", "e2 v0 in_u02c U02-2", "e2 v0 in_u01a U01a", "e2 v0 in_u04 U04",
++                   "e2 v0 in_u01b U01b", "e2 in_u01b in_u01b-r2 r2", "e2 in_u01b in_u01b-r3 r3", "e2 in_u01b-r3 in_u01b-r3-r4 r4"]
++    want1 = Counter()
++    for s in range(42, 47):
++        for d in ("bukva", "slovo"):
++            want1.update(f"--set {d} --fold {f} --seed {s} --tag uzsohn_e1_{d} --input u01b --ema" for f in FOLDS_P)
++        want1[f"--set sb --fold all --seed {s} --tag uzsohn_e1_sb --input u01b --ema"] += 1
++        for f in ("S01", "S02"):
++            want1[f"--set uzsl --fold {f} --seed {s} --tag uzsohn_e1_uzsl_pre --input u01b --ema --init "
++                  f"runs/UzSohn/uzsohn_e1_sb/all/seed{s}/best.pt"] += 1
++            want1[f"--set uzsl --fold {f} --seed {s} --tag uzsohn_e1_uzsl_scratch --input u01b --ema"] += 1
++    assert Counter(c for c in m13 if "uzsohn_e1_" in c) == want1 and len(m13) == 2 + 91 + 75
++    at = lambda t: [j for j, c in enumerate(m13) if f"--tag {t} " in c]  # noqa: E731
++    assert max(at("uzsohn_e1_sb")) < min(at("uzsohn_e1_uzsl_pre")) and max(at("uzsohn_e2_slovo_in_u01b-r3-r4")) < min(at("uzsohn_e1_bukva"))
++    assert "ТЕСТ" not in out and "uzsohn_e1_uzsl_pre S01 seed42: готово" in out
++    assert (om / "runs/UzSohn_E2.done").read_text() == "u01b,r3" and (om / "runs/UzSohn_E2_E1.done").is_file()
++    assert not any(" HOLD=" in c for c in calls) and not (om / "runs/TURNIR_HOLD_E2").exists()
++    up = _ups(calls)
++    assert len(up) == 1 and up[0].startswith(f"systemd-run --user --unit=turnir-e1 --collect -p WorkingDirectory={om} -p MemoryMax=40G "
++                                             "-p MemorySwapMax=0 -E PATH=") and "юнит turnir-e1 пересоздан" in out
++    assert up[0].endswith("-E TURNIR_JOBS=1 -E TURNIR_JOBS_SMALL=1 bash -c bash scripts/turnir_e1_chain.sh >> runs/turnir_e1_chain.log 2>&1")
++    r, calls, m13 = _run_chain(om, env, "turnir_up")  # ExecStopPost= после trap: turnir-e1 уже активен
++    assert r.returncode == 0 and len(_ups(calls)) == 1 and calls[-1] == "systemctl --user is-active --quiet turnir-e1"
++    n = len(m13)
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 0 and "Э2 уже завершён" in r.stdout and len(m13) == n and len(_ups(calls)) == 1
++
++
++@pytest.mark.parametrize("case, rc, says, n_m13, n_up", [
++    ("no_ok_12h", 1, "!!! нет runs/TURNIR_E2_OK через 12 ч после UzSohn_M13.done", 0, 1),
++    ("stoprule_fail", 1, "!!! правило остановки не посчитано", 0, 1),
++    ("closed", 0, "ветка UzSohn ЗАКРЫТА — Э2 не начинается", 0, 1),
++    ("hash", 1, "≠ сверенному хешу", 0, 1),
++    ("e1_active", 1, "!!! юнит turnir-e1 активен", 0, 0),
++    ("run_fails_twice", 1, "!!! uzsohn_e2_slovo_v0: готово 4 из 5", 2 + 11, 1)])
++def test_e2_chain_ii_stops(tmp_path, case, rc, says, n_m13, n_up):
++    """(ii′), выходы без Э2 или стоп: нет хеша 12 ч после M13 (время — mtime маркера M13), правило не посчитано («!!!»), ветка
++    закрыта, код ≠ хешу маркера, turnir-e1 не снят (правило не считается, ГП — турниру), прогон упал дважды; при каждом выходе,
++    кроме «turnir-e1 активен», turnir-e1 пересоздаётся ровно один раз."""
++    om, env = _chain_case(tmp_path)
++    if case == "no_ok_12h":
++        (om / "runs/TURNIR_E2_OK").unlink()
++        t = time.time() - 13 * 3600
++        os.utime(om / "runs/UzSohn_M13.done", (t, t))
++    elif case in ("stoprule_fail", "closed"):
++        (tmp_path / "stoprule").write_text("fail" if case == "stoprule_fail" else "closed")
++    elif case == "hash":
++        (om / "src/mpk/sohn.py").write_text("# правка после сверки\n")
++        _git(om, "commit", "-qam", "после сверки")
++    elif case == "e1_active":
++        (tmp_path / "active_turnir-e1").touch()
++    else:
++        (tmp_path / "fail_uzsohn_e2_slovo_v0_fold3_48").write_text("2")
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == rc and says in r.stdout, (r.stdout, r.stderr)
++    assert len(m13) == n_m13 and len(_ups(calls)) == n_up and not (om / "runs/UzSohn_E2.done").exists()
++    assert ("PY scripts/turnir_eval.py stoprule" in calls) == (case != "e1_active")
++    assert not any(c.startswith("PY scripts/uzsohn_sel.py e2") for c in calls)
++
++
++def test_e2_chain_mode_a(tmp_path):
++    """(а), E2_MODE=a: придержка runs/TURNIR_HOLD_E2 («PID boot_id turnir-e2» этой загрузки) — по маркеру группы 1, стоит во всех
++    прогонах; правило считает turnir-e1 (цепочка ждёт stoprule.md новее маркера M13); нет хеша 12 ч → (б): придержка снимается,
++    хеш ждётся дальше, затем придержка снова; при выходе снята переименованием; turnir-e1 не трогается; проба: OOM → по 1 процессу."""
++    om, env = _chain_case(tmp_path)
++    (om / "runs/TURNIR_E2_OK").unlink()
++    (om / "runs/TURNIR_E1_g1.done").touch()
++    t = time.time() - 13 * 3600
++    os.utime(om / "runs/UzSohn_M13.done", (t, t))
++    (om / "runs/TURNIR/stoprule.md").write_text("ветка UzSohn продолжается", encoding="utf-8")
++    (tmp_path / "sleep_hook").write_text(f"[ -f runs/TURNIR_E2_OK ] || cp {tmp_path / 'ok'} runs/TURNIR_E2_OK\n")  # хеш — позже 12 ч
++    (tmp_path / "oom").touch()
++    r, calls, m13 = _run_chain(om, env, E2_MODE="a")
++    out = r.stdout
++    assert r.returncode == 0, out + r.stderr
++    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
++    holds = {c.partition(" HOLD=")[2] for c in calls if c.startswith("PY scripts/m13_train.py ")}
++    assert len(holds) == 1 and holds.pop().split()[1:] == [boot, "turnir-e2"] and len(m13) == 2 + 90
++    assert out.count("придержка поставлена") == 2 and out.count("придержка снята") == 2 and "вариант (б)" in out
++    assert out.index("вариант (б)") < out.rindex("придержка поставлена") < out.index("проба памяти")
++    assert not (om / "runs/TURNIR_HOLD_E2").exists() and list((om / "runs").glob("TURNIR_HOLD_E2.snyat_*"))
++    assert "параллельность: 1" in out and (om / "runs/UZSOHN/e2_probe/J").read_text() == "1\n"
++    assert not any(c.startswith(("systemd-run", "systemctl")) for c in calls) and "PY scripts/turnir_eval.py stoprule" not in calls
++    assert (om / "runs/UzSohn_E2.done").read_text() == "" and not (om / "runs/UzSohn_E2_E1.done").exists()
++
++
++def test_run_job_hold(tmp_path, monkeypatch, capsys):
++    """22.10 п. 4 (только при (а)): run_job ждёт придержку Э2 перед weekend_gate; в силе — та же загрузка и юнит активен, иначе —
++    строка в журнал и прогон идёт; без файла — прежний путь (ни строки, ни systemctl)."""
++    import turnir_train as tt
++    stub = tmp_path / "stub"
++    stub.mkdir()
++    (stub / "systemctl").write_text(f'#!/usr/bin/env bash\necho "$*" >> {tmp_path}/sc.log\n[ -f {tmp_path}/active ]\n')
++    (stub / "systemctl").chmod(0o755)
++    monkeypatch.setenv("PATH", f"{stub}:{os.environ['PATH']}")
++    monkeypatch.setattr(tt, "HOLD", tmp_path / "TURNIR_HOLD_E2")
++    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
++    assert not tt.held() and capsys.readouterr().out == "" and not (tmp_path / "sc.log").exists()
++    tt.HOLD.write_text(f"123 {boot} turnir-e2\n")
++    assert not tt.held() and "придержка устарела" in capsys.readouterr().out  # юнит неактивен (SIGKILL цепочки)
++    (tmp_path / "active").touch()
++    assert tt.held() and capsys.readouterr().out == "" and (tmp_path / "sc.log").read_text().endswith("--user is-active --quiet turnir-e2\n")
++    for bad in ("123 другая-загрузка turnir-e2", "123", ""):  # перезагрузка; испорченный файл
++        tt.HOLD.write_text(bad)
++        assert not tt.held() and "придержка устарела" in capsys.readouterr().out, bad
++    seq, calls = iter([True, True, False]), []
++    monkeypatch.setattr(tt, "held", lambda: next(seq))
++    monkeypatch.setattr(tt.time, "sleep", calls.append)
++
++    class Gate(Exception):
++        pass
++
++    def gate(cmd, **kw):
++        calls.append(Path(cmd[1]).name)
++        raise Gate
++
++    monkeypatch.setattr(tt.subprocess, "run", gate)
++    with pytest.raises(Gate):
++        tt.run_job({"out": str(tmp_path / "cell/fold1/seed0")})
++    assert calls == [60, 60, "weekend_gate.sh"]
++
++
++
++# ---------------------------------------------------------------- рецензия Э2: строки и печать стенда, стоимость, цепочка
++def test_e3_row_is_three_of_five(stand):
++    """П25: «Sohn×3» — среднее softmax 3 затравок по всем C(5, 3), против одиночки; Δ — независимо от correct_ens (сочетания,
++    argmax, macro по исполнителям) — рецензия Э2: мутант T01 (N = 4)."""
++    stand()
++    for c in te.C:
++        if c["model"] == "Sohn" and c["ds"] == "Slovo":
++            te.export_cell(c, 1)
++    sm = te.load_model(te.PRED / "Slovo/Sohn/native/scratch")
++    ids, signer, gloss = te.align([sm])
++    seeds, cls = sorted(sm), sm[42]["classes"]
++    P = {s: sm[s]["probs"][np.searchsorted(sm[s]["ids"], ids)].astype(np.float32) for s in seeds}
++    c3 = np.mean([cls[sum(P[s] for s in cb).argmax(1)] == gloss for cb in itertools.combinations(seeds, 3)], 0)
++    c1 = np.mean([cls[P[s].argmax(1)] == gloss for s in seeds], 0)
++    d = 100 * np.mean([c3[signer == s].mean() - c1[signer == s].mean() for s in sorted(set(signer) - {"other"})])
++    assert te.e3_row("Slovo", sm).split(" | ")[2] == f"{d:+.2f}"
++
++
++def test_outside_print_both_main_pairs(stand, monkeypatch):
++    """22.7 (Б): обе главные пары П6 на Slovo (UzSohn − A1 и UzSohn − SL-GCN, рецепт SL-GCN — общий) на исполнителях вне
++    валидаций, 99,875 % — рецензия Э2: мутант T02 (SL-GCN выпал из печати)."""
++    stand(UZ)
++    run_stand(te)
++    monkeypatch.setattr(te, "E2_OUT_SHA", hashlib.sha256("\n".join(sorted(OUTSIDE)).encode()).hexdigest())
++    tail = te.e2_tail()
++    for b, rec in (("A1", "native"), ("SL-GCN", "shared")):
++        ma, mb = (te.load_model(te.PRED / f"Slovo/{x}/{r}/scratch") for x, r in (("UzSohn", "native"), (b, rec)))
++        ids, signer, gloss = te.align([ma, mb])
++        k = np.isin(signer, sorted(OUTSIDE))
++        r = te.paired(te.correct_ens(ma, 1, ids, gloss)[k], te.correct_ens(mb, 1, ids, gloss)[k], signer[k], te.bonf(8), "Slovo",
++                      True, te.B_MAIN)
++        row = next(x for x in tail if x.startswith(f"| Slovo | {UZ_NAME} − {b} — вне валидаций Э2 (7 исп.) |"))
++        assert row.split(" | ")[2:4] == [f"{r['delta']:+.2f}", f"[{r['lo']:+.2f}; {r['hi']:+.2f}]"], b
++
++
++def test_lever_names_match_steps():
++    """П21: подпись «UzSohn (Э2: …)» — имена шагов 22.3 (U02-1 = u02s, U02-2 = u02c, …); после слияния — одна таблица имён с
++    uzsohn_sel.E2_STEPS — рецензия Э2: мутант T07 (U02-1 ↔ U02-2)."""
++    m = {"input": ["u02s", "u02c", "u01a", "u04", "u01b"], "flags": {"part_tokens": True}, "ema": True, "balanced": True}
++    assert te.levers(m) == "U02-1, U02-2, U01a, U04, U01b, № 2, № 3, № 4"
++    import uzsohn_sel
++    if hasattr(uzsohn_sel, "E2_STEPS"):  # дерево после слияния веток
++        assert te.LEVER == {t: s for s, t in uzsohn_sel.E2_STEPS.items() if not t.startswith("r")}
++        assert te.E2_TOK == {t: s.replace("r", "№ ") if s.startswith("r") else s for s, t in uzsohn_sel.E2_STEPS.items()}
++
++
++@pytest.mark.parametrize("flags", [{"cos_head": True}, {}, {"part_tokens": True}])
++def test_cost_uzsohn_without_input_tokens(tmp_path, monkeypatch, flags):
++    """Входа (а′) нет — приняты только № 2–4: сеть на 118 точках и preprocess (708 столбцов; при № 2 — и маска частей), без отказа
++    — рецензия Э2: мутант T08 (всегда 122 точки); № 2 — после слияния ветки рычагов."""
++    from mpk import sohn
++    if "part_tokens" in flags and not hasattr(sohn, "PartTokens"):
++        pytest.skip("№ 2 (PartTokens) — в ветке turnir-e2-levers, не здесь")
++    fl = {k: False for k in ("parts", "hand_gcn", "pose", "hand_cross", "ms_conv", "attn_pool", "cos_head", "aux_shape")} | flags
++    tc, c = _cost_run(tmp_path, monkeypatch, {"input": [], "channels": 708, "flags": fl, "ema": True, "balanced": "cos_head" in flags})
++    r = tc.uzsohn_cell(c)
++    torch.manual_seed(0)
++    net = sohn.SohnNet(1001, channels=708, **flags, **({"tokens": ()} if "part_tokens" in flags else {}))
++    assert r["T"] == 47 and r["gflops"] > 0 and r["params_m"] == sohn.keras_param_count(net)["trainable"] / 1e6
++
++
++def test_e2_chain_mode_explicit_and_up_log(tmp_path):
++    """22.1: режим — только явно (ii — (ii′) при «да» автора, a — (а)): пусто или иное — «!!!» в самом начале, без подъёма turnir-e1
++    и без придержки (рецензия Э2: V4). Подъём аргументом turnir_up (ExecStopPost=, вручную) — строка и в журнал Э2 (F6)."""
++    om, env = _chain_case(tmp_path)
++    for mode in ("", "b"):
++        r, calls, _ = _run_chain(om, env, E2_MODE=mode)
++        assert r.returncode == 1 and f"!!! E2_MODE={mode}: нужно ii" in r.stdout and calls == [], r.stdout
++    r, calls, _ = _run_chain(om, env, "turnir_up")
++    assert r.returncode == 0 and len(_ups(calls)) == 1 and "юнит turnir-e1 пересоздан" in r.stdout
++    assert "юнит turnir-e1 пересоздан" in (om / "runs/turnir_e2_chain.log").read_text()
++
++
++@pytest.mark.parametrize("case", ["interrupted", "failed", "gpu_oom"])
++def test_e2_chain_probe_cases(tmp_path, case):
++    """22.10 п. 3: каталог пробы без итога J (оборвалась: юнит убит systemd-oomd, перезагрузка) — по 1 процессу без повтора пробы;
++    упала без OOM — «!!!», стоп, каталог в сторону, повтор юнита пробует заново; нехватка памяти ГП в журнале пробы — как OOM: по 1
++    процессу (рецензия Э2: F1, F3)."""
++    om, env = _chain_case(tmp_path)
++    if case == "interrupted":
++        (om / "runs/UZSOHN/e2_probe/fold1/seed99").mkdir(parents=True)
++    else:
++        (tmp_path / "probe_rc").write_text("" if case == "failed" else "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate")
++    r, calls, m13 = _run_chain(om, env)
++    probe = [c for c in m13 if "--tag probe_e2" in c]
++    if case == "failed":
++        assert r.returncode == 1 and "!!! проба упала без OOM" in r.stdout and len(probe) == 2 and len(_ups(calls)) == 1
++        assert not (om / "runs/UZSOHN/e2_probe").exists() and len(list((om / "runs/UZSOHN").glob("e2_probe.upala_*/fold1.log"))) == 1
++        (tmp_path / "probe_rc").unlink()
++        (tmp_path / "active_turnir-e1").unlink()
++        r, calls, m13 = _run_chain(om, env)
++        assert r.returncode == 0 and "параллельность: 2" in r.stdout and len([c for c in m13 if "--tag probe_e2" in c]) == 4
++    else:
++        assert r.returncode == 0 and "параллельность: 1" in r.stdout and (om / "runs/UZSOHN/e2_probe/J").read_text() == "1\n"
++        assert len(probe) == (0 if case == "interrupted" else 2) and ("!!! проба памяти оборвана" in r.stdout) == (case == "interrupted")
++
++
++def test_e2_chain_ii_e1_back_before_probe(tmp_path):
++    """(ii′): turnir-e1 снова активен после правила остановки (поднят вручную) → до пробы и прогонов «!!!», выход, второго подъёма нет
++    (охрана is-active) — рецензия Э2: мутант C01."""
++    om, env = _chain_case(tmp_path)
++    (tmp_path / "sleep_hook").write_text(f"[ -f runs/TURNIR/stoprule.md ] && touch {tmp_path}/active_turnir-e1\n")
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 1 and "!!! юнит turnir-e1 активен" in r.stdout and m13 == [] and _ups(calls) == []
++
++
++@pytest.mark.parametrize("gib, j", [(37, 1), (36, 2)])
++def test_e2_chain_probe_peak_threshold(tmp_path, gib, j):
++    """22.10 п. 3: проба без OOM, пик cgroup > 36 ГиБ → по 1 процессу; ровно 36 ГиБ → 2 — рецензия Э2: мутант C02."""
++    om, env = _chain_case(tmp_path)
++    (tmp_path / "cg/memory.peak").write_text(str(gib << 30))
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 0 and f"параллельность: {j}" in r.stdout and (om / "runs/UZSOHN/e2_probe/J").read_text() == f"{j}\n"
++
++
++def test_e2_chain_ii_waits_for_ok_up_to_12h(tmp_path):
++    """(ii′): хеш пришёл через 11 ч после UzSohn_M13.done (< 12 ч) → Э2 идёт, не выход — рецензия Э2: мутант C03."""
++    om, env = _chain_case(tmp_path)
++    (om / "runs/TURNIR_E2_OK").unlink()
++    t = time.time() - 11 * 3600
++    os.utime(om / "runs/UzSohn_M13.done", (t, t))
++    (tmp_path / "sleep_hook").write_text(f"[ -f runs/TURNIR_E2_OK ] || cp {tmp_path / 'ok'} runs/TURNIR_E2_OK\n")
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 0 and "через 12 ч" not in r.stdout and (om / "runs/UzSohn_E2.done").is_file(), r.stdout
++
++
++@pytest.mark.parametrize("stale", [False, True])
++def test_e2_chain_a_no_stoprule_2h(tmp_path, stale):
++    """(а): stoprule.md нет (или он старше UzSohn_M13.done) через 2 ч после маркера M13 → «!!!», выход, придержка снята (trap);
++    бесконечное ожидание — провал по таймауту — рецензия Э2: мутант C04."""
++    om, env = _chain_case(tmp_path)
++    (om / "runs/TURNIR_E1_g1.done").touch()
++    t = time.time() - 3 * 3600
++    os.utime(om / "runs/UzSohn_M13.done", (t, t))
++    if stale:
++        (om / "runs/TURNIR/stoprule.md").write_text("ветка UzSohn продолжается", encoding="utf-8")
++        os.utime(om / "runs/TURNIR/stoprule.md", (t - 3600, t - 3600))
++    r = subprocess.run(["bash", "scripts/turnir_e2_chain.sh"], cwd=om, env={**env, "E2_MODE": "a"}, capture_output=True, text=True,
++                       timeout=30)
++    assert r.returncode == 1 and "!!! нет runs/TURNIR/stoprule.md через 2 ч" in r.stdout, r.stdout
++    assert not (om / "runs/TURNIR_HOLD_E2").exists() and list((om / "runs").glob("TURNIR_HOLD_E2.snyat_*"))
++
++
++def test_e2_chain_dirty_code_stops(tmp_path):
++    """Незакоммиченная правка файла кода Э2 (HEAD = хешу маркера) — «!!!», стоп до пробы и прогонов — рецензия Э2: мутант C05."""
++    om, env = _chain_case(tmp_path)
++    with open(om / "scripts/m13_train.py", "a", encoding="utf-8") as f:
++        f.write("# правка без коммита\n")
++    r, calls, m13 = _run_chain(om, env)
++    assert r.returncode == 1 and "!!! незакоммиченный код" in r.stdout and m13 == []

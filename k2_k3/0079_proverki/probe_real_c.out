@@ -1,0 +1,9 @@
+Running as unit: k2-probe-e2c.service; invocation ID: 8e68fdaff2c943fe8b1d67091d5b915c
+[18:26:55] C1 e2c: active; процессов в юните: 3; e1: inactive
+[18:27:01] C2 после SIGKILL всем: e2c: inactive; e1: active; WorkingDirectory e1: /tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/probe_systemd/real
+[18:27:01] == журнал пробы:
+    [2026-11-17 18:26:47] === Э2 турнира, режим (ii′): старт
+    [2026-11-17 18:26:48] жду runs/UzSohn_M13.done
+    Running as unit: k2-probe-e1.service; invocation ID: 7273188991004318aebba8a01a97945b
+    [2026-11-17 18:26:55] юнит k2-probe-e1 пересоздан (J = 1 + 1)
+[18:27:02] уборка: 0 юнитов k2-probe-* осталось

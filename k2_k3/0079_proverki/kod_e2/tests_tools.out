@@ -1,0 +1,4 @@
+SKIPPED [1] tests/test_turnir_e2.py:505: № 2 (PartTokens) — в ветке turnir-e2-levers, не здесь
+SKIPPED [1] tests/test_turnir_e2.py:854: № 2 (PartTokens) — в ветке turnir-e2-levers, не здесь
+42 passed, 2 skipped in 27.68s
+самопроверка пройдена; 17 строк сводки (синтетика, не результаты)

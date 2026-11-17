@@ -1,0 +1,5 @@
+# src/mpk/sohn.py ветки turnir-e2-levers (d7b0d68), блоб 7a87d90639a0c0e282eca080fce83422b57cf3b4; строки 39–42
+    39	# [c19] CFG (8 ядер TPU: batch 64 × 8, lr 5e-4 × 8)
+    40	CFG = dict(max_len=384, replicas=8, lr=5e-4 * 8, weight_decay=0.1, lr_min=1e-6, epoch=300, warmup=0, batch_size=64 * 8,
+    41	           awp=True, awp_lambda=0.2, awp_start_epoch=15, dropout_start_epoch=15, decay_type="cosine", dim=192,
+    42	           label_smoothing=0.1, shuffle=32768, seeds=(42, 43, 44, 45, 46))  # 46 — пятая затравка турнира (0059 п. 5); ансамбль «как у автора» — 42–45

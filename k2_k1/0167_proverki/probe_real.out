@@ -1,0 +1,31 @@
+[18:25:53] == A. kill -9 главного процесса юнита Э2 (SIGKILL: trap не сработает — только ExecStopPost=)
+Running as unit: k2-probe-e2a.service; invocation ID: 3f6b6f2ea7f0438bac3977db94e2755e
+[18:26:01] A1 e2a: active; OOMPolicy/ManagedOOM: continue auto; e1 до: inactive
+[18:26:01] A2 MainPID=2694565: /usr/bin/bash -c bash scripts/turnir_e2_chain.sh >> runs/turnir_e2_chain.log 2>&1 
+[18:26:07] A3 e2a: inactive; e1: active
+    ActiveState=active
+    MemoryMax=42949672960
+    MemorySwapMax=0
+    Environment=PATH=/home/error_404/.local/share/mise/installs/python/3.14.7/bin:/home/error_404/.local/share/mise/command-wrappers/bin:/usr/share/omarchy/bin:/home/error_404/.local/share/../bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/error_404/.local/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/error_404/.local/share/mise/installs/python/3.14.7/bin:/home/error_404/.local/share/mise/installs/claude/latest:/home/error_404/.local/share/mise/installs/codex/latest/bin:/home/error_404/.local/share/mise/installs/gh/latest/gh_2.103.3_linux_amd64/bin:/home/error_404/.local/share/mise/installs/node/latest/bin:/home/error_404/.local/share/mise/shims HOME=/home/error_404 TURNIR_JOBS=1 TURNIR_JOBS_SMALL=1
+    WorkingDirectory=/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/probe_systemd/real
+[18:26:07] A4 процессы цепочки в каталоге пробы после kill: 0
+[18:26:08] == B. обычный stop юнита Э2 (SIGTERM → trap exit 143 → trap EXIT turnir_up; затем ExecStopPost= — охрана is-active)
+Running as unit: k2-probe-e2b.service; invocation ID: 1f297a87f32a41029b30123a8f687d46
+[18:26:20] B1 e2b: inactive; e1: active; экземпляров k2-probe-e1: 1
+    ActiveState=active
+    MemoryMax=42949672960
+    MemorySwapMax=0
+    Environment=PATH=/home/error_404/.local/share/mise/installs/python/3.14.7/bin:/home/error_404/.local/share/mise/command-wrappers/bin:/usr/share/omarchy/bin:/home/error_404/.local/share/../bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/error_404/.local/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/error_404/.local/share/mise/installs/python/3.14.7/bin:/home/error_404/.local/share/mise/installs/claude/latest:/home/error_404/.local/share/mise/installs/codex/latest/bin:/home/error_404/.local/share/mise/installs/gh/latest/gh_2.103.3_linux_amd64/bin:/home/error_404/.local/share/mise/installs/node/latest/bin:/home/error_404/.local/share/mise/shims HOME=/home/error_404 TURNIR_JOBS=1 TURNIR_JOBS_SMALL=1
+    WorkingDirectory=/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/probe_systemd/real
+[18:26:20] == журнал цепочки пробы (runs/turnir_e2_chain.log):
+    [2026-11-17 18:25:53] === Э2 турнира, режим (ii′): старт
+    [2026-11-17 18:25:54] жду runs/UzSohn_M13.done
+    Завершено         sleep 120
+    Running as unit: k2-probe-e1.service; invocation ID: f4b4ed8626f84c7cac4f8700f7e0c6c3
+    [2026-11-17 18:26:01] юнит k2-probe-e1 пересоздан (J = 1 + 1)
+    [2026-11-17 18:26:08] === Э2 турнира, режим (ii′): старт
+    [2026-11-17 18:26:09] жду runs/UzSohn_M13.done
+    Завершено         sleep 120
+    Running as unit: k2-probe-e1.service; invocation ID: 46f723d2a4634c9a9bb9cb9ef7b04f13
+    [2026-11-17 18:26:16] юнит k2-probe-e1 пересоздан (J = 1 + 1)
+[18:26:21] уборка: 0 юнитов k2-probe-* осталось

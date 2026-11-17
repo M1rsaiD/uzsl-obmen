@@ -1,0 +1,27 @@
+[18:01:55] == 1. второй systemd-run с занятым именем
+Running as unit: k2-probe-a.service; invocation ID: 80a712ce4fa344beae611e43b3f7155b
+[18:01:55] 1a rc=0
+Failed to start transient service unit: Unit k2-probe-a.service was already loaded or has a fragment file.
+[18:01:55] 1b то же имя: rc=1
+[18:01:55] == 2. is-active, пока юнит в activating
+Running as unit: k2-probe-b.service
+[18:01:55] 2a rc=0
+[18:01:56] 2b is-active=activating rc=3
+Failed to start transient service unit: Unit k2-probe-b.service was already loaded or has a fragment file.
+[18:01:56] 2c то же имя в activating: rc=1
+[18:01:56] == 3. ExecStopPost=- (ошибка не роняет юнит) против без «-»
+[18:01:57] 3 с «-»: inactive; без «-»: failed
+[18:01:57] == 4. kill -9 главного процесса → ExecStopPost → подъём второго юнита изнутри юнита
+Running as unit: k2-probe-f.service; invocation ID: d4e2a5d4583c4f7783a95713297d30b1
+[18:01:58] 4a f активен: active, MainPID=2506614
+[18:02:02] 4b f: inactive; g: active; g WorkingDirectory=/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/probe_systemd
+[18:02:02] 4c g Environment: TURNIR_JOBS=1 TURNIR_JOBS_SMALL=1
+[18:02:02] == 5. повторный вызов подъёма при живом g — второго экземпляра нет
+[18:02:02] 5 g: active; юнитов k2-probe-g: 1
+[18:02:02] == журнал пустышки:
+[18:01:58] up_stub: запущен; cwd=/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/probe_systemd; XDG_RUNTIME_DIR=/run/user/1000; DBUS=unix:path=/run/user/1000/bus
+Running as unit: k2-probe-g.service; invocation ID: fce46c58abf74c1592da1287cab03a90
+[18:01:58] up_stub: systemd-run rc=0
+[18:02:02] up_stub: запущен; cwd=/tmp/claude-1000/-home-error-404-uzsign/f3b24b76-183b-4505-805b-25c9b1ca2c12/scratchpad/probe_systemd; XDG_RUNTIME_DIR=/run/user/1000; DBUS=unix:path=/run/user/1000/bus
+[18:02:02] up_stub: k2-probe-g уже активен — не поднимаю
+[18:02:03] уборка: 0 юнитов k2-probe-* осталось

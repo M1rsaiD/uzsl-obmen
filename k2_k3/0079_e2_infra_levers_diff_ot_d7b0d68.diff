@@ -1,0 +1,868 @@
+diff --git a/scripts/m13_train.py b/scripts/m13_train.py
+index 8ac5f0f..5f83fec 100644
+--- a/scripts/m13_train.py
++++ b/scripts/m13_train.py
+@@ -15,16 +15,18 @@ last.pt, log.csv, metrics.json, probs.npz (ids, probs float16, classes). Ест
+ UzSohn (reports/UZSOHN_prereg.md): --variant 3,2,1 — идеи (3 поза + Н2-кисть, кэш cache/UZSOHN/<набор>_pose.npz; 2 граф
+ кисти; 1 вход по частям), по умолчанию — прежний Sohn; --inner-val (alluz, alluz_x10) — отбор: обучение на фолде без
+ внутреннего валидационного исполнителя V_k (и без его синтетики ×10), счёт — на V_k (тест S_k не читается).
+-UzSohn этап 1 (reports/UZSOHN_prereg.md): --input u02s,u02c,u01a,u04 — вход (sohn.preprocess_u; только --set sb и alluz, без
+---variant); --save-from-epoch 200 — веса ep200…ep290.pt для U30 (только диск); отбор и его предобучения — затравка 48
+-(UZSOHN_SEL_SEED).
++UzSohn этап 1 (reports/UZSOHN_prereg.md): --input u02s,u02c,u01a,u04 (этап 2 — и u01b) — вход (sohn.preprocess_u): этап 1 — --set
++sb и alluz; Э2 турнира — slovo, bukva (отбор), uzsl (UzSohn в Э1); из --variant с ним — только 9; --save-from-epoch 200 — веса
++ep200…ep290.pt для U30 (только диск); отбор и его предобучения — затравка 48 (UZSOHN_SEL_SEED).
+ U33 (../uzsign_ai_v2/reports/U33_prereg.md, только --set alluz LOSO с --init): --arch a1 --recipe sohn — A1 на конвейере и
+ рецепте Sohn; --arch sohn --recipe a1 — Sohn с рецептом дообучения A1; по умолчанию (sohn, sohn) — прежний Sohn. --max-steps —
+ проба; --plan-only — план прогона для селфтеста (uzsign_ai_v2/scripts/u33.py selftest).
+ Э2 турнира (поправка 4 к TURNIR_prereg, 22.11): --variant 9 — рычаг 0059 № 2 «токены частей» (sohn.PartTokens вместо stem; можно
+ с --input — части по столбцам входа); --ema — № 3 «EMA с прогревом» (sohn_ema; val, best.pt, last.pt и тест — по EMA-весам);
+ --balanced — № 4 «длинный хвост» (поток Stream по balanced_p: p ∝ 1/n_класса внутри набора, доли наборов S+B прежние; косинусная
+-голова cos_head без смещения).
++голова cos_head без смещения). --val-only — отбор Э2 (22.8, 22.10 п. 1): режим fold, счёт на валидации (te = va), тест не
++предсказывается; выходы оценки — *_val (predictions_val.csv, probs_val.npz, …), в metrics.json "score_on": "val"; тег uzsohn_e2_* —
++только с ним, uzsohn_e1_* — без него.
+ """
+ import argparse
+ import csv
+@@ -62,8 +64,10 @@ PARTS = 8                                  # их 8 ядер TPU: пакет 512
+ # взят лексикографически первый (выбор до прогона, угроза в предрегистрации).
+ ASL_FOLD0 = {"2044", "16069", "22343", "28656", "49445"}
+ POSE_NPZ = {"alluz": ROOT / "cache/UZSOHN/alluz_pose.npz", "alluz_x10": ROOT / "cache/UZSOHN/alluz_x10_pose.npz",  # uzsohn_pose.py
+-            "slovo": ROOT / "cache/UZSOHN/slovo_pose.npz", "bukva": ROOT / "cache/UZSOHN/bukva_pose.npz"}
+-ASPECT_NPZ = {"alluz": UZ / "uzsign_ai_v2/cache/uzsl_allz.npz", "slovo": ROOT / "cache/slovo.npz", "bukva": ROOT / "cache/bukva.npz"}  # H/W, кэши МПК
++            "slovo": ROOT / "cache/UZSOHN/slovo_pose.npz", "bukva": ROOT / "cache/UZSOHN/bukva_pose.npz",
++            "uzsl": ROOT / "cache/UZSOHN/uzsl_pose.npz"}   # корпус — UzSohn в Э1 (поправка 4 к TURNIR_prereg, 22.8, 22.10 п. 1)
++ASPECT_NPZ = {"alluz": UZ / "uzsign_ai_v2/cache/uzsl_allz.npz", "slovo": ROOT / "cache/slovo.npz", "bukva": ROOT / "cache/bukva.npz",
++              "uzsl": UZ / "uzsign_ai_v2/cache/uzsl.npz"}  # H/W, кэши МПК
+ CODES = UZ / "uzsign_ai_v2/data/signer_codes.local.json"   # только ПК
+ UZSOHN_SEL_SEED = 48   # UzSohn этап 1: отбор целиком (контроль sb/all/seed48, предобучения плеч, дообучение) — вне 42–47 подтверждения (к1 0123 п. 20)
+ IDEA = {1: "parts", 2: "hand_gcn", 3: "pose", 4: "hand_cross", 5: "ms_conv", 6: "attn_pool", 7: "cos_head", 8: "aux_shape",  # UZSOHN_prereg
+@@ -126,7 +130,10 @@ def aspect_of(set_: str, clips: list[dict]) -> np.ndarray:
+     """H/W записей из кэша МПК (те же sample_id в том же порядке, что cache/M13/<набор>.npz)."""
+     with np.load(ASPECT_NPZ[set_], allow_pickle=False) as z:
+         assert [c["sample_id"] for c in json.loads(str(z["clips"]))] == [c["sample_id"] for c in clips], set_
+-        return z["aspect"].astype(np.float32)
++        asp = z["aspect"].astype(np.float32)
++    bad = ~(np.isfinite(asp) & (asp > 0))   # к1 0147: запись без H/W — отказ, не замена и не выброс (поправка 4, 22.10 п. 1)
++    assert not bad.any(), f"{set_}: нет H/W у {int(bad.sum())} записей"
++    return asp
+ 
+ 
+ def records(set_: str, fold: str, pose: bool = False, inp: bool = False):
+@@ -598,7 +605,7 @@ def main(argv: list[str] | None = None) -> dict | None:
+     ap.add_argument("--stop-epoch", type=int, default=0, help="остановка после эпохи N при расписании на --epochs (Э0: 83)")
+     ap.add_argument("--variant", default="", help="UzSohn: идеи через запятую из 1…9 (пусто — Sohn; 8 — заготовка; 9 — № 2 Э2)")
+     ap.add_argument("--inner-val", action="store_true", help="UzSohn отбор: счёт на V_k, обучение без V_k")
+-    ap.add_argument("--input", default="", help="UzSohn этап 1: токены входа через запятую из u02s, u02c, u01a, u04 (пусто — Sohn)")
++    ap.add_argument("--input", default="", help="UzSohn: токены входа через запятую из sohn.INPUT_TOKENS (пусто — Sohn)")
+     ap.add_argument("--save-from-epoch", type=int, default=0, help="U30 (UZSOHN_prereg): веса ep<N>.pt каждые 10 эпох с N (0 — нет)")
+     ap.add_argument("--arch", default="sohn", choices=["sohn", "a1"], help="U33: a1 — модель A1 (85 точек) на конвейере Sohn")
+     ap.add_argument("--recipe", default="sohn", choices=["sohn", "a1"], help="U33: a1 — рецепт дообучения A1")
+@@ -607,13 +614,14 @@ def main(argv: list[str] | None = None) -> dict | None:
+     ap.add_argument("--ema", action="store_true", help="Э2 турнира № 3: EMA весов и буферов с прогревом M9.7 (поправка 4, 22.11)")
+     ap.add_argument("--balanced", action="store_true",
+                     help="Э2 турнира № 4: выборка p ∝ 1/n_класса внутри набора + косинусная голова (поправка 4, 22.11)")
++    ap.add_argument("--val-only", action="store_true", help="отбор Э2 турнира (поправка 4, 22.8): счёт на валидации, выходы *_val")
+     a = ap.parse_args(argv)
+     ideas = {int(v) for v in a.variant.split(",") if v}
+     tokens = tuple(t for t in sohn.INPUT_TOKENS if t in a.input.split(","))
+     assert set(a.input.split(",")) - {""} == set(tokens), a.input
+     assert not (tokens and ideas - {9}), "этап 1 (--input) и идеи 0107 (--variant) не смешиваются (с входом — только № 2 Э2, 9)"
+-    assert not tokens or a.set in ("sb", "alluz", "slovo", "bukva"), \
+-        "--input: этап 1 — предобучение sb и отбор alluz; Э2 турнира — slovo, bukva с нуля (поправка 4, 22.10 п. 1); у uzsl позы и H/W нет"
++    assert not tokens or a.set in ("sb", "alluz", "slovo", "bukva", "uzsl"), \
++        "--input: этап 1 — предобучение sb и отбор alluz; Э2 турнира — slovo, bukva с нуля; UzSohn в Э1 — и uzsl (поправка 4, 22.8, 22.10 п. 1)"
+     assert ideas <= set(IDEA), ideas
+     flags = {IDEA[k]: k in ideas for k in sorted(IDEA)}
+     flags["cos_head"] |= a.balanced   # № 4 — одна проба, два механизма: выборка и косинусная голова
+@@ -647,6 +655,11 @@ def main(argv: list[str] | None = None) -> dict | None:
+                 "с metrics.json — простой перезапуск упадёт снова; прогоны отбора от него не стартуют; UZSOHN_prereg разд. 4.4)"
+     cfg = sohn.CFG
+     tag = a.tag or a.set
++    mode = "all" if a.set in ("uzsl", "alluz", "alluz_x10") else "fold"
++    # 22.10 п. 1: отбор Э2 считается только на валидации, UzSohn в Э1 — на тесте; ошибка в команде — до замка и данных
++    assert not tag.startswith("uzsohn_e2_") or a.val_only, f"тег {tag}: отбор Э2 — только с --val-only"
++    assert not (a.val_only and tag.startswith("uzsohn_e1_")), f"тег {tag}: UzSohn в Э1 — без --val-only"
++    assert not a.val_only or mode == "fold", f"--val-only — только режим fold: у --set {a.set} валидация в обучении"
+     out = Path(a.out) if a.out else ROOT / "runs/UzSohn" / tag / a.fold / f"seed{a.seed}"
+     if (out / "metrics.json").is_file():
+         print(f"{out}: есть")
+@@ -693,12 +706,13 @@ def main(argv: list[str] | None = None) -> dict | None:
+     recs, glosses, clips, (tr, va, te) = records_a1(a.fold) if a.arch == "a1" else \
+         records(a.set, None if a.set == "sb" else a.fold, pose=flags["pose"], inp=bool(tokens))
+     recs.tokens, recs.part_tokens = tokens, flags["part_tokens"]
+-    mode = "all" if a.set in ("uzsl", "alluz", "alluz_x10") else "fold"
+     lab_idx = tr + va + te
+     names = sorted({glosses[i] for i in lab_idx})                    # как train.prepare_set / build_data Г3
+     lab = {g: k for k, g in enumerate(names)}
+     labels = np.full(len(recs), -1, np.int64)
+     labels[lab_idx] = [lab[glosses[i]] for i in lab_idx]
++    if a.val_only:   # 22.8: счёт — на валидации, тест не предсказывается; голова — классы фолда (names выше): обучение как без флага
++        te = va
+     train = tr + va if mode == "all" else tr
+     vk = None
+     if a.inner_val:   # голова — те же классы, что у фолда (names выше); тест S_k дальше не используется
+@@ -808,23 +822,23 @@ def main(argv: list[str] | None = None) -> dict | None:
+     log.close()
+     train_sec = time.time() - t1
+     torch.save({"model": model.state_dict(), "epoch": a.epochs, "names": names}, out / "last.pt")
+-    res = {}
++    res, sfx = {}, "_val" if a.val_only else ""   # 22.8: стенд берёт probs.npz и predictions.csv каталога за тест — у валидации свои имена
+     if te:
+         if a.arch == "a1":
+             z_last = predict_a1(model, recs, labels, te, dev, a1c["model"]["T"])
+         else:
+             z_last, _ = predict(model, recs, labels, te, dev, cfg["label_smoothing"])
+-        res["top1_last"] = write_preds(out / "predictions_last.csv", a.set, z_last, te, clips, labels, names)
++        res["top1_last"] = write_preds(out / f"predictions_last{sfx}.csv", a.set, z_last, te, clips, labels, names)
+         z_main = z_last
+         if mode == "fold":
+             model.load_state_dict(torch.load(out / "best.pt", map_location=dev)["model"])
+             z_main, _ = predict(model, recs, labels, te, dev, cfg["label_smoothing"])
+-            res["top1_best"] = write_preds(out / "predictions_best.csv", a.set, z_main, te, clips, labels, names)
+-        res["top1"] = write_preds(out / "predictions.csv", a.set, z_main, te, clips, labels, names)
++            res["top1_best"] = write_preds(out / f"predictions_best{sfx}.csv", a.set, z_main, te, clips, labels, names)
++        res["top1"] = write_preds(out / f"predictions{sfx}.csv", a.set, z_main, te, clips, labels, names)
+         # единый формат вероятностей для ансамблей Э3 (0059 п. 7): ids, probs float16 (softmax главной контрольной точки), classes
+         pz = torch.from_numpy(z_main).softmax(-1).numpy().astype(np.float16)
+-        np.savez(out / "probs.npz", ids=np.array([clips[i]["sample_id"] for i in te]), probs=pz, classes=np.array(names))
+-        np.savez(out / "logits.npz", logits=z_main.astype(np.float32), sample_ids=np.array([clips[i]["sample_id"] for i in te]),
++        np.savez(out / f"probs{sfx}.npz", ids=np.array([clips[i]["sample_id"] for i in te]), probs=pz, classes=np.array(names))
++        np.savez(out / f"logits{sfx}.npz", logits=z_main.astype(np.float32), sample_ids=np.array([clips[i]["sample_id"] for i in te]),
+                  labels=labels[te], last=z_last.astype(np.float32))
+     (out / "labels.json").write_text(json.dumps(names, ensure_ascii=False))
+     u02n = None   # вариант (в): доля ветки Sohn при обучении и на оценке (тест V_k или val S+B) — в печать (к1 0124 п. 3, к3 0032 п. 3)
+@@ -833,7 +847,7 @@ def main(argv: list[str] | None = None) -> dict | None:
+         u02n = {"train_examples": int(ds.u02[0]), "train_sohn_branch": int(ds.u02[1]), "eval_records": len(ev),
+                 "eval_sohn_branch": sum(not shoulders_seen(recs[i][0]) for i in ev)}
+     m = {"set": a.set, "tag": tag, "fold": a.fold, "seed": a.seed, "mode": mode, "select": "best_val_loss" if mode == "fold" else "last",
+-         "best_epoch": best_epoch, "best_val_loss": best if best_epoch else None, **res,
++         "best_epoch": best_epoch, "best_val_loss": best if best_epoch else None, **res, **({"score_on": "val"} if a.val_only else {}),
+          "n_train": len(train), "n_train_real": n_epoch, "n_val": len(va) if mode == "fold" else 0, "n_test": len(te), "n_classes": len(names), "stop_epoch": a.stop_epoch or None, "steps_run": run_steps,
+          "steps_per_epoch": spe, "epochs": a.epochs, "steps": total, "awp_start_step": awp0, "late_dropout_start_step": late,
+          "train_sec": train_sec, "steps_per_sec": run_steps / train_sec, "total_sec": time.time() - t0,
+@@ -850,7 +864,8 @@ def main(argv: list[str] | None = None) -> dict | None:
+               "max_steps": a.max_steps or None, "late_dropout_p": LATE_P if a.recipe == "sohn" else None,
+               "prereg": "uzsign_ai_v2/reports/U33_prereg.md"}
+     (out / "metrics.json").write_text(json.dumps(m, indent=1, ensure_ascii=False))
+-    print(json.dumps({k: m[k] for k in ("tag", "fold", "seed", "top1", "best_epoch", "steps", "steps_per_sec") if k in m}, ensure_ascii=False))
++    print(json.dumps({k: m[k] for k in ("tag", "fold", "seed", "top1", "score_on", "best_epoch", "steps", "steps_per_sec") if k in m},
++                     ensure_ascii=False))
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/scripts/uzsohn_code.txt b/scripts/uzsohn_code.txt
+index 4df8fe3..ba36db8 100644
+--- a/scripts/uzsohn_code.txt
++++ b/scripts/uzsohn_code.txt
+@@ -9,6 +9,7 @@ src/mpk/data.py
+ src/mpk/train.py   # № 3 Э2 турнира: ema_avg_fn (поправка 4, 22.10 п. 1а)
+ scripts/m13_train.py
+ scripts/m13_build.py
++scripts/uzsohn_pose.py   # поза корпуса — UzSohn в Э1 (поправка 4, 22.10 п. 1); кэш позы строит он
+ scripts/weekend_gate.sh
+ scripts/uzsohn_chain.sh
+ scripts/uzsohn_stage2_chain.sh   # этап 2 (U01b, UZSOHN_prereg_popravka2.md)
+diff --git a/scripts/uzsohn_pose.py b/scripts/uzsohn_pose.py
+index d96f555..b7532dc 100644
+--- a/scripts/uzsohn_pose.py
++++ b/scripts/uzsohn_pose.py
+@@ -1,8 +1,10 @@
+ """UzSohn идея 3 (reports/UZSOHN_prereg.md): поза (плечи 11, 12, локти 13, 14) для входа Sohn — кадр в кадр с кэшами Sohn.
+ 
+-cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src python scripts/uzsohn_pose.py [alluz] [alluz_x10] [slovo] [bukva]
++cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src python scripts/uzsohn_pose.py [alluz] [alluz_x10] [slovo] [bukva] [uzsl]
+ slovo, bukva (UzSohn этап 1, предобучение S+B с позой): кэш МПК cache/<набор>.npz, кадры [lo, hi) записи → m13_build.to30 →
+ cache/UZSOHN/<набор>_pose.npz; проверка кадров — запястья кистей МПК = запястья кэша Sohn (float16, |Δ| < 2e-3).
++uzsl (UzSohn в Э1 на корпусе, поправка 4 к TURNIR_prereg, 22.10 п. 1) — так же из кэша МПК ../uzsign_ai_v2/cache/uzsl.npz (из него
++собран cache/M13/uzsl.npz, m13_build.tasks_for) + зеркальность позы и кистей (elbow_check, к3 0047 разд. 2).
+ → cache/UZSOHN/alluz_pose.npz (кадры = cache/M13/alluz.npz, до filter_nans) и cache/UZSOHN/alluz_x10_pose.npz (кадры =
+ uzsign_ai_v2/datasets_local/UZSL_X10/uzsl_x10_sohn.npz). Персональные данные — только ПК.
+ Источник позы — кэш МПК ALL-UZ (85 точек; 0–3 = поза 11–14 из Э0; 0 = нет точки), кадр Sohn → кадр МПК по m13_build.to30
+@@ -145,10 +147,30 @@ def build_x10(poses_real: list, clips: list, A: dict, S: dict) -> None:
+          {"source": "uzsl_x10_sohn.npz", "x10_hash_check": f"{k - n} синтетических записей совпали побайтно"})
+ 
+ 
++def elbow_check(pose: np.ndarray, sx: np.ndarray, off: np.ndarray) -> dict:
++    """к3 0047 разд. 2 (б): поза и кисти отражены одинаково (иначе U01a поставит левый локоть к правой кисти). Кадры с обеими
++    кистями и локтем; у записи — медиана по кадрам, затем медиана по записям: ‖локоть − запястье своей кисти‖ < ‖… чужой‖."""
++    from mpk import sohn
++    wl, wr = sx[:, sohn.LH_LOC[0]], sx[:, sohn.RH_LOC[0]]
++    both = np.isfinite(wl[:, 0]) & np.isfinite(wr[:, 0])
++    rec = np.repeat(np.arange(len(off) - 1), np.diff(off))
++    out = {}
++    for side, el, w_own, w_other in (("L", pose[:, 2], wl, wr), ("R", pose[:, 3], wr, wl)):   # точки позы 2, 3 = MediaPipe 13, 14
++        m = both & np.isfinite(el[:, 0])
++        d = np.stack([np.linalg.norm(el - w_own, axis=1), np.linalg.norm(el - w_other, axis=1)], 1)[m]
++        per = [np.median(c, 0) for c in np.split(d, np.flatnonzero(np.diff(rec[m])) + 1)] if m.any() else []
++        assert per, f"локоть {side}: нет кадров с обеими кистями"
++        own, other = np.median(per, 0)
++        out[side] = {"records": len(per), "own": round(float(own), 4), "other": round(float(other), 4)}
++        assert own < other, f"зеркальность позы и кистей: локоть {side} ближе к чужой кисти ({own:.4f} ≥ {other:.4f})"
++    return out
++
++
+ def real_sb(name: str) -> None:
+     from mpk import data, sohn
+     import m13_build
+-    A = data.load(ROOT / f"cache/{name}.npz")
++    src = "../uzsign_ai_v2/cache/uzsl.npz" if name == "uzsl" else f"cache/{name}.npz"   # кэш МПК, из которого собран cache/M13
++    A = data.load(ROOT / src)
+     S = m13_build.load(name)
+     assert [c["sample_id"] for c in A["clips"]] == [c["sample_id"] for c in S["clips"]]
+     assert data.POSE_MP[:NP] == (11, 12, 13, 14) and (data.MPK_POINTS[6], data.MPK_POINTS[27]) == (33, 54)   # 6 — запястье Л, 27 — П
+@@ -165,15 +187,16 @@ def real_sb(name: str) -> None:
+                 worst = max(worst, float(np.abs(xy[m, mp] - sx[m, loc]).max()))
+         out.append(pose_of(xy, pr))
+     assert worst < 2e-3, f"{name}: кадры МПК ≠ кадрам Sohn (запястья, {worst})"
+-    save(name, out, S["offsets"], {"source": f"cache/{name}.npz (МПК, [lo, hi)) → cache/M13/{name}.npz", "wrist_check_max_abs": worst})
++    extra = {"elbow_check": elbow_check(np.concatenate(out), S["xy"], S["offsets"])} if name == "uzsl" else {}
++    save(name, out, S["offsets"], {"source": f"{src} (МПК, [lo, hi)) → cache/M13/{name}.npz", "wrist_check_max_abs": worst, **extra})
+ 
+ 
+ def main() -> None:
+     names = sys.argv[1:] or ["alluz", "alluz_x10"]
+-    for n in ("slovo", "bukva"):
++    for n in ("slovo", "bukva", "uzsl"):
+         if n in names:
+             real_sb(n)
+-    names = [n for n in names if n not in ("slovo", "bukva")]
++    names = [n for n in names if n not in ("slovo", "bukva", "uzsl")]
+     if not names:
+         return
+     poses, clips, A, S = real()
+diff --git a/scripts/uzsohn_sel.py b/scripts/uzsohn_sel.py
+index aa84e29..d47d0c6 100644
+--- a/scripts/uzsohn_sel.py
++++ b/scripts/uzsohn_sel.py
+@@ -10,8 +10,14 @@ cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src python
+                        шагов и ворот U04 без V_j = S_k (ворота U01a — только печать, q без V_j = S_k — справка), условие U01b,
+                        Δ_k S11/S12 у U01a, статистики U02 и доля ветки Sohn опоры U02, код прогонов, оценка ложного принятия)
+   report2 CUR CAND     этап 2 (U01b, UZSOHN_prereg_popravka2.md): CAND против контроля этапа 1 CUR → reports/UZSOHN_stage2.md
+-Счёт — только metrics.json прогонов runs/UzSohn/<тег>/<фолд>/seed48 (top1 на V_k); тест S_k не читается.
++  e2 CUR CAND STEP     Э2 турнира (поправка 4 к reports/TURNIR_prereg.md, 22.3–22.7, 22.10 п. 2): шаг STEP (U02-1 U02-2 U01a U04
++                       U01b r2 r3 r4) — CAND против текущей CUR (суффиксы тегов uzsohn_e2_<набор>_…: v0, in_<рычаги через ->)
++                       на 10 ячейках валидации Slovo и Bukva, правило judge по micro top-1 → runs/UZSOHN/decide_e2_<STEP>.json
++                       (не перезаписывается); код выхода 0 — принят, 10 — не принят
++Счёт — только metrics.json прогонов runs/UzSohn/<тег>/<фолд>/seed48 (top1 на V_k); тест S_k не читается. e2 — только выходы *_val
++прогонов --val-only (тест Slovo и Bukva они не считают) и log.csv M13 (валидация).
+ """
++import csv
+ import json
+ import subprocess
+ import sys
+@@ -259,6 +265,15 @@ def ms_per_record(flags: dict, n_classes: int, T: int, n: int = 30, tokens=()) -
+     return round(1000 * float(np.median(ts)), 2)
+ 
+ 
++def params_stem(m: dict) -> int:
++    """Параметры входа сети по metrics.json прогона: stem — первый Dense без смещения (к1 0122 п. 3); у № 2 Э2 stem снят, вместо
++    него — токены частей tok (поправка 4, 22.11; 0163 разд. 6)."""
++    if (m.get("flags") or {}).get("part_tokens"):
++        from mpk import sohn
++        return sum(p.numel() for p in sohn.PartTokens(tuple(m["input"]), m["cfg"]["dim"]).parameters())
++    return m.get("channels", 708) * m["cfg"]["dim"]
++
++
+ def u02_note(gj: dict) -> str:
+     """Строка итога к статистикам U02 (stats_u02.json; разд. 4.1): ворот нет — только печать (к1 0124 п. 2, к3 0032 п. 2)."""
+     wi, al = gj.get("pixel_iqr_over_median_within_signer_median"), gj.get("pixel_iqr_over_median_all_records")
+@@ -362,7 +377,7 @@ def report(tags: list[str]) -> None:
+             pres[str(pre.parent)] = pm
+         rows.append({"tag": tag, "variant": list(tok) or ["Sohn"], "macro_vk": round(float(np.mean(list(sc.values()))), 2),
+                      "decision": dd, "params": ms[0]["params_keras_count"]["total"],
+-                     "params_stem": ms[0].get("channels", 708) * ms[0]["cfg"]["dim"],   # первый Dense без смещения (к1 0122 п. 3)
++                     "params_stem": params_stem(ms[0]),
+                      "ms_cpu": ms_per_record(ms[0]["flags"] if ms[0].get("flags") else {}, ms[0]["n_classes"], T, tokens=tok),
+                      "gpu_h": round(sum(m["train_sec"] for m in ms) / 3600, 2),
+                      "pre_gpu_h": round(pm["train_sec"] / 3600, 2) if pm else None, "pre": str(pre.parent.relative_to(ROOT)) if pre else None, "steps": int(sum(m["steps"] for m in ms)),
+@@ -455,7 +470,7 @@ def report2(cur: str, cand: str) -> None:
+         ms_of[tag] = ms + [pm]
+         tok = tuple(ms[0].get("input") or ())
+         rows.append({"tag": tag, "variant": list(tok) or ["Sohn"], "macro_vk": round(float(np.mean(list(sc[tag].values()))), 2),
+-                     "params": ms[0]["params_keras_count"]["total"], "params_stem": ms[0].get("channels", 708) * ms[0]["cfg"]["dim"],
++                     "params": ms[0]["params_keras_count"]["total"], "params_stem": params_stem(ms[0]),
+                      "ms_cpu": ms_per_record({}, ms[0]["n_classes"], T, tokens=tok), "gpu_h": round(sum(m["train_sec"] for m in ms) / 3600, 2),
+                      "pre_gpu_h": round(pm["train_sec"] / 3600, 2), "examples_M": round(sum(m["steps"] for m in ms) * 512 / 1e6, 2),
+                      "gpu_mem_gb": max(m.get("gpu_max_mem_gb") or 0 for m in ms)})
+@@ -500,6 +515,121 @@ def report2(cur: str, cand: str) -> None:
+     print("\n".join(L))
+ 
+ 
++# ---------------------------------------------------------------- Э2 турнира (поправка 4 к reports/TURNIR_prereg.md, 22.3–22.10)
++# 22.3: шаг → его рычаг (вход (а′) или № 2–4: r2 — токены частей, r3 — EMA, r4 — длинный хвост); жадно, в этом порядке, поверх текущей
++E2_STEPS = {"U02-1": "u02s", "U02-2": "u02c", "U01a": "u01a", "U04": "u04", "U01b": "u01b", "r2": "r2", "r3": "r3", "r4": "r4"}
++E2_CELLS = [f"{s}/fold{k}" for s in ("slovo", "bukva") for k in range(1, 6)]   # 22.4: ячейка — (набор, фолд)
++
++
++def levers(m: dict) -> set[str]:
++    """Рычаги прогона по metrics.json m13_train: токены входа и № 2–4 (22.11)."""
++    return set(m["input"]) | {r for r, on in (("r2", m["flags"]["part_tokens"]), ("r3", m["ema"]), ("r4", m["balanced"])) if on}
++
++
++def e2_runs(suf: str) -> dict[str, tuple[dict, list]]:
++    """Ячейка → (metrics.json, [(sample_id, signer_id, верно)] из predictions_val.csv) прогонов runs/UzSohn/uzsohn_e2_<набор>_<suf>/
++    <фолд>/seed48. Счёт не на валидации или файл предсказаний без _val — «!!!», стоп: такой каталог стенд прочёл бы как тест (22.8)."""
++    out = {}
++    for c in E2_CELLS:
++        s, f = c.split("/")
++        d = RUNS / f"uzsohn_e2_{s}_{suf}" / f / f"seed{SEED}"
++        m = json.loads((d / "metrics.json").read_text())
++        bad = sorted(p.name for p in d.iterdir() if p.name.startswith(("predictions", "probs", "logits")) and not p.stem.endswith("_val"))
++        if m.get("score_on") != "val" or bad:
++            sys.exit(f"!!! {d}: score_on = {m.get('score_on')!r}, файлы без _val: {bad or '—'} — не прогон --val-only (22.8), стоп")
++        # 22.2, 22.5: с нуля (без --init), затравка 48, полный бюджет рецепта; из идей 0107 — только № 2 (9)
++        assert (m["set"], m["fold"], m["seed"], m["init"]) == (s, f, SEED, None) and full_budget(m) and set(m["variant"]) <= {9}, d
++        with open(d / "predictions_val.csv", newline="", encoding="utf-8") as fh:
++            r = [(x["sample_id"], x["signer_id"], int(x["correct"])) for x in csv.DictReader(fh)]
++        assert r and sum(x[2] for x in r) / len(r) == m["top1"], (d, "predictions_val.csv ≠ top1 (главная точка best.pt)")
++        out[c] = (m, r)
++    return out
++
++
++def e2_cells(R: dict, drop=(), macro: bool = False) -> dict[str, float]:
++    """Счёт ячеек, % (22.4): micro top-1 по записям валидации — решение; macro — среднее точностей исполнителей (signer_id) —
++    только печать; drop — коды исполнителей вне счёта (печать «без группы j», 22.7; ячейка без записей выпадает)."""
++    out = {}
++    for c, (_, r) in R.items():
++        by = {}
++        for _, s, ok in r:
++            if s not in drop:
++                by.setdefault(s, []).append(ok)
++        if by:
++            out[c] = 100 * float(np.mean([np.mean(v) for v in by.values()] if macro else [ok for v in by.values() for ok in v]))
++    return out
++
++
++def e2_row(a: dict, b: dict) -> dict:
++    """Правило 22.4 (judge: Δ̄ ≥ THR и Δ > 0 у ≥ 6 ячеек; условие 3 снято) на счёте ячеек текущей a и кандидата b → печать."""
++    d, diff, better, ok = judge(a, b)
++    mean = lambda x: round(float(np.mean(list(x.values()))), 3)
++    return {"current": mean(a), "candidate": mean(b), "diff": round(diff, 3), "better": f"{better}/{len(d)}", "accepted": ok,
++            "per_cell": {c: round(x, 2) for c, x in d.items()}}
++
++
++def m13_spread() -> dict:
++    """22.4, справочно (правило не меняет): val top-1 (micro) на лучшей эпохе (min val_loss, как best.pt) из log.csv M13
++    runs/UzSohn/<набор>/<фолд>/seed42–46, среднее 5 фолдов; пометка, если наибольшая разница двух затравок из 42–44 по среднему
++    наборов больше порога. Только log.csv: metrics.json M13 несёт тест (22.1, второй путь теста)."""
++    def best(p: Path) -> float:   # первая эпоха минимума — как ModelCheckpoint (vloss < best)
++        with open(p, newline="") as fh:
++            return float(min((x for x in csv.DictReader(fh) if x["val_loss"]), key=lambda x: float(x["val_loss"]))["val_top1"])
++    logs = lambda s, k: [RUNS / s / f"fold{i}" / f"seed{k}/log.csv" for i in range(1, 6)]
++    v = {s: {k: 100 * float(np.mean([best(p) for p in logs(s, k)])) for k in range(42, 47) if all(p.is_file() for p in logs(s, k))}
++         for s in ("slovo", "bukva")}
++    m = [(v["slovo"][k] + v["bukva"][k]) / 2 for k in (42, 43, 44) if k in v["slovo"] and k in v["bukva"]]
++    gap = max(m) - min(m) if len(m) == 3 else None
++    return {"val_top1": {s: {k: round(x, 3) for k, x in z.items()} for s, z in v.items()},
++            "range": {s: round(max(z.values()) - min(z.values()), 3) if z else None for s, z in v.items()},
++            "gap_42_44": None if gap is None else round(gap, 3),
++            "note": "порог ниже шума затравок M13" if gap is not None and gap > THR else None}
++
++
++def e2(cur: str, cand: str, step: str) -> None:
++    """Шаг отбора Э2 (22.3–22.5): CAND = текущая CUR + рычаг шага, 10 ячеек, затравка 48, свой контроль; решение — micro (22.4),
++    рядом — macro, счёт last.pt, «без группы j» (22.7), разброс M13, доля ветки Sohn у u02*, параметры входа (tok у № 2)."""
++    p = OUT / f"decide_e2_{step}.json"
++    if p.is_file():
++        sys.exit(f"!!! {p} уже есть — решение шага не перезаписывается (22.10 п. 2)")
++    steps = list(E2_STEPS)
++    i = steps.index(step)
++    q = json.loads((OUT / f"decide_e2_{steps[i - 1]}.json").read_text()) if i else {"accepted": False, "current": "v0"}
++    assert cur == q["candidate" if q["accepted"] else "current"], f"22.3: шаг {step} — поверх итога прошлого шага, а не {cur}"
++    A, B = e2_runs(cur), e2_runs(cand)
++    (lc,), (ln,) = ({frozenset(levers(m)) for m, _ in R.values()} for R in (A, B))   # у 10 ячеек тега — один набор рычагов
++    assert E2_STEPS[step] not in lc and ln == lc | {E2_STEPS[step]}, f"22.3: {cand} {sorted(ln)} ≠ {cur} {sorted(lc)} + {step}"
++    assert all(sorted(x[0] for x in A[c][1]) == sorted(x[0] for x in B[c][1]) for c in E2_CELLS), "записи валидации ≠ у текущей"
++    mic = e2_row(e2_cells(A), e2_cells(B))
++    ok = mic["accepted"]
++    groups = json.loads((ROOT / "splits/slovo_p5.json").read_text())["groups"]   # исполнитель → группа теста Slovo (фолд = группа + 1)
++    wg = {}
++    for j in range(1, 6):   # 22.7: коды группы теста Slovo j — вне валидации Slovo и Bukva во всех фолдах
++        drop = {s for s, g in groups.items() if g == j - 1}
++        wg[j] = e2_row(e2_cells(A, drop), e2_cells(B, drop))
++    bad = [j for j, x in wg.items() if x["accepted"] != ok]
++    last = lambda R: {c: 100 * m["top1_last"] for c, (m, _) in R.items()}
++    res = {"step": step, "current": cur, "candidate": cand, "levers_current": sorted(lc), "levers_candidate": sorted(ln),
++           "accepted": ok, "threshold": round(THR, 4), "delta": DELTA, "micro": mic,
++           # печать рядом, на решение не влияет (22.4, 22.7)
++           "macro_ref": e2_row(e2_cells(A, macro=True), e2_cells(B, macro=True)), "last_ref": e2_row(last(A), last(B)),
++           "without_group": wg,
++           "without_group_line": f"без группы j (22.7): решение совпало у {5 - len(bad)}/5 групп теста Slovo" + (
++               f"; не совпало у групп {', '.join(map(str, bad))} — у пар UzSohn − X на Slovo пометка «отбор не вложенный»" if bad else ""),
++           "m13_seed_spread": m13_spread(), "u02_sohn_branch": branch_note([m for m, _ in B.values()]),
++           # код 20 прогонов шага: цепочка сверяет его с хешем один раз, до пробы; правка за ≈ 32–36 ч Э2 — «ВНИМАНИЕ» (как этап 1)
++           "code": code_note([m for R in (A, B) for m, _ in R.values()]),
++           "params": {t: {"total": {s: R[f"{s}/fold1"][0]["params_keras_count"]["total"] for s in ("slovo", "bukva")},
++                          "params_stem": params_stem(R["slovo/fold1"][0])} for t, R in ((cur, A), (cand, B))}}
++    OUT.mkdir(parents=True, exist_ok=True)
++    with open(p, "x", encoding="utf-8") as fh:   # «x»: и между проверкой выше и записью файл не перезаписывается
++        json.dump(res, fh, ensure_ascii=False, indent=1)
++    print(json.dumps({"step": step, "accepted": ok, "diff": res["micro"]["diff"], "better": res["micro"]["better"],
++                      "diff_macro_ref": res["macro_ref"]["diff"], "without_group": f"{5 - len(bad)}/5",
++                      "m13": res["m13_seed_spread"]["note"], "code_ok": not res["code"].startswith("**")}, ensure_ascii=False))
++    sys.exit(0 if ok else 10)
++
++
+ if __name__ == "__main__":
+     c = sys.argv[1]
+     if c == "base":
+@@ -514,5 +644,7 @@ if __name__ == "__main__":
+         report(sys.argv[2:])
+     elif c == "report2":
+         report2(*sys.argv[2:4])
++    elif c == "e2":
++        e2(*sys.argv[2:5])
+     else:
+         sys.exit(f"неизвестная команда {c}")
+diff --git a/tests/test_sohn.py b/tests/test_sohn.py
+index 35337aa..b0006ca 100644
+--- a/tests/test_sohn.py
++++ b/tests/test_sohn.py
+@@ -1371,8 +1371,8 @@ def test_e2_long_tail_init_resets_scale(tmp_path, monkeypatch):
+ 
+ 
+ def test_e2_input_on_slovo_bukva(tmp_path, monkeypatch):
+-    """Э2 (поправка 4, 22.10 п. 1; № 2 поверх входа (а′)): --input идёт на --set slovo|bukva (фолд, с нуля) — records с позой и H/W
+-    (inp=True); у корпуса uzsl вход — отказ (позы и H/W корпуса нет, 22.8). Только план (до обучения)."""
++    """Э2 (поправка 4, 22.10 п. 1; № 2 поверх входа (а′)): --input идёт на --set slovo|bukva (фолд, с нуля) и на корпус uzsl (UzSohn
++    в Э1, 22.8; режим all — train + val) — records с позой и H/W (inp=True); у прочих наборов (alluz_x10) — отказ. Только план."""
+     import pytest
+     T_ = _m13()
+     seen = []
+@@ -1391,8 +1391,107 @@ def test_e2_input_on_slovo_bukva(tmp_path, monkeypatch):
+         p = T_.main(["--set", s, "--fold", "fold1", "--seed", "48", "--input", "u01a,u04,u01b", "--variant", "9", "--plan-only",
+                      "--out", str(tmp_path / s / "seed48")])
+         assert (p["n_train"], p["steps"], seen[-1]) == (64, 300, (s, "fold1", True))
++    p = T_.main(["--set", "uzsl", "--fold", "fold1", "--seed", "42", "--tag", "uzsohn_e1_test", "--input", "u01a,u04,u01b", "--variant",
++                 "9", "--plan-only", "--out", str(tmp_path / "uzsl" / "seed42")])
++    assert (p["n_train"], p["steps"], seen[-1]) == (80, 300, ("uzsl", "fold1", True))
+     with pytest.raises(AssertionError, match="--input"):
+-        T_.main(["--set", "uzsl", "--fold", "fold1", "--seed", "48", "--input", "u01b", "--plan-only", "--out", str(tmp_path / "u")])
++        T_.main(["--set", "alluz_x10", "--fold", "fold1", "--seed", "48", "--input", "u01b", "--plan-only", "--out", str(tmp_path / "u")])
++
++
++def test_e2_uzsl_records_loud(tmp_path, monkeypatch):
++    """Корпус с входом (поправка 4, 22.10 п. 1; к1 0147, к3 0047 разд. 2) на синтетике: records отдаёт все записи с позой и H/W;
++    нет файла позы, нет записи в позе, другая длина T позы у записи, нет записи в H/W, H/W NaN или 0 — громкий отказ, не сужение."""
++    import pytest
++    T_ = _m13()
++    off = np.array([0, 5, 12, 16])
++    rng = np.random.default_rng(0)
++    xy = rng.uniform(0.2, 0.8, (16, sohn.NUM_NODES, 2)).astype(np.float32)
++    clips = [{"sample_id": f"s{i}", "signer_id": "S01", "gloss": f"g{i}"} for i in range(3)]
++    monkeypatch.setattr(T_.m13_build, "load", lambda name: {"xy": xy.copy(), "absent": np.zeros((16, 4), bool), "offsets": off,
++                                                             "fps_src": np.full(3, 30.0, np.float32), "clips": clips})
++    pose = rng.uniform(0.2, 0.8, (16, 4, 2)).astype(np.float32)
++
++    def put(pose_off=off, asp=(0.5625, 0.5625, 1.0), ids=("s0", "s1", "s2")):
++        np.savez(tmp_path / "pose.npz", xy=pose[:pose_off[-1]], offsets=pose_off)
++        np.savez(tmp_path / "asp.npz", aspect=np.array(asp, np.float32),
++                 clips=np.array(json.dumps([{"sample_id": s} for s in ids])))
++    monkeypatch.setitem(T_.POSE_NPZ, "uzsl", tmp_path / "pose.npz")
++    monkeypatch.setitem(T_.ASPECT_NPZ, "uzsl", tmp_path / "asp.npz")
++    put()
++    recs, _, c, _ = T_.records("uzsl", None, inp=True)
++    assert len(recs) == 3 and c == clips and np.array_equal(recs.extra, pose) and np.allclose(recs.aspect, [0.5625, 0.5625, 1.0])
++    for kw, err, msg in ((dict(pose_off=off[:3]), AssertionError, "кадры позы"),                  # нет записи в позе
++                         (dict(pose_off=np.array([0, 5, 13, 16])), AssertionError, "кадры позы"),  # T позы ≠ T кэша (к3, (а))
++                         (dict(asp=(0.5625, 0.5625), ids=("s0", "s1")), AssertionError, "uzsl"),   # нет записи в H/W
++                         (dict(asp=(0.5625, np.nan, 1.0)), AssertionError, "нет H/W у 1"),
++                         (dict(asp=(0.5625, 0.0, 1.0)), AssertionError, "нет H/W у 1")):
++        put(**kw)
++        with pytest.raises(err, match=msg):
++            T_.records("uzsl", None, inp=True)
++    (tmp_path / "pose.npz").unlink()
++    with pytest.raises(FileNotFoundError):
++        T_.records("uzsl", None, inp=True)
++
++
++def test_e2_uzsl_elbow_check():
++    """к3 0047 разд. 2 (б): uzsohn_pose.elbow_check — локоть ближе к запястью своей кисти (медиана по записям, кадры с обеими
++    кистями и локтем); поза, отражённая относительно кистей (локти Л и П местами), — громкий отказ."""
++    import pytest
++    _m13()
++    import uzsohn_pose
++    rng = np.random.default_rng(0)
++    off = np.array([0, 30, 70])
++    sx = np.full((70, sohn.NUM_NODES, 2), np.nan, np.float32)
++    wl, wr = rng.uniform(0.6, 0.7, (70, 2)), rng.uniform(0.3, 0.4, (70, 2))
++    sx[:, sohn.LH_LOC[0]], sx[:, sohn.RH_LOC[0]] = wl, wr
++    sx[10:20, sohn.RH_LOC[0]] = np.nan                    # нет правой кисти: кадры не считаются (иначе медиана NaN)
++    pose = np.full((70, 4, 2), np.nan, np.float32)
++    pose[:, 2], pose[:, 3] = wl + 0.05, wr - 0.05
++    pose[40:45, 2] = np.nan                               # нет локтя Л
++    e = uzsohn_pose.elbow_check(pose, sx, off)
++    assert e["L"]["records"] == e["R"]["records"] == 2 and all(e[k]["own"] < e[k]["other"] for k in "LR")
++    with pytest.raises(AssertionError, match="зеркальность"):
++        uzsohn_pose.elbow_check(pose[:, [0, 1, 3, 2]], sx, off)
++
++
++def test_e2_uzsl_pose_cover_real():
++    """Покрытие корпуса на настоящих кэшах (только ПК; поправка 4, 22.10 п. 1; к1 0147, к3 0047 разд. 2): records (inp=True) отдаёт
++    все записи cache/M13/uzsl.npz с позой и H/W (отказы — в records: (а) T позы = T кэша uzsl у каждой записи, H/W есть); каждая
++    запись фолдов uzsl_loso (обучение, валидация и тест — в том числе вне теста ALL-UZ, П21) есть в кэше; (б) зеркальность; у каждой
++    записи поза найдена хоть в одном кадре (к1 0147: «не заменяется молча» — поза из одних NaN дала бы u01a нули). Пропуск — только
++    не на ПК (нет кэша M13 корпуса): на ПК без позы, H/W или разбиения — провал, селфтест цепочки Э2 не проходит."""
++    import pytest
++    T_ = _m13()
++    if not (T_.m13_build.OUT / "uzsl.npz").is_file():
++        pytest.skip("нет кэша корпуса (данные только на ПК)")
++    for q in (T_.POSE_NPZ["uzsl"], T_.ASPECT_NPZ["uzsl"], T_.SPLIT["uzsl"]):
++        assert q.is_file(), f"нет {q} (поза — scripts/uzsohn_pose.py uzsl): UzSohn в Э1 на корпусе не пойдёт"
++    import uzsohn_pose
++    recs, _, clips, _ = T_.records("uzsl", None, inp=True)
++    ids = {c["sample_id"] for c in clips}
++    assert len(recs) == len(clips) == len(ids) == len(recs.aspect) and recs.extra is not None
++    fin = np.isfinite(recs.extra[:, :, 0]).any(1).astype(int)
++    assert np.add.reduceat(fin, recs.off[:-1]).min() > 0, "запись корпуса без позы во всех кадрах"
++    for f in json.loads(T_.SPLIT["uzsl"].read_text())["folds"].values():
++        assert set(f["train"]) | set(f["val"]) | set(f["test"]) <= ids
++    e = uzsohn_pose.elbow_check(recs.extra, recs.xy, recs.off)
++    assert all(e[k]["own"] < e[k]["other"] for k in "LR")
++
++
++def test_e2_uzsohn_pose_rebuild_equals_cache(tmp_path, monkeypatch):
++    """uzsohn_pose.real_sb: пересборка = кэш побайтно (только ПК) — bukva (путь slovo/bukva после правки uzsl бит в бит прежний) и
++    uzsl (кэш позы корпуса собран этим кодом)."""
++    import pytest
++    _m13()
++    import uzsohn_pose as P
++    monkeypatch.setattr(P, "OUT", tmp_path)
++    for n in ("bukva", "uzsl"):
++        ref = P.ROOT / f"cache/UZSOHN/{n}_pose.npz"
++        if not (P.ROOT / f"cache/M13/{n}.npz").is_file():
++            pytest.skip(f"нет кэша M13 {n} (только ПК)")
++        assert ref.is_file(), f"нет {ref} (на ПК — провал, не пропуск)"
++        P.real_sb(n)
++        assert (tmp_path / f"{n}_pose.npz").read_bytes() == ref.read_bytes(), n
+ 
+ 
+ def test_e2_part_tokens_ms_per_record():
+@@ -1502,3 +1601,325 @@ def test_e2_long_tail_cos_head_dropout_after_norm():
+         ev = m.eval()(None, None)[0]
+         tr = m.train()(None, None).mean(0)
+     assert abs(float(ev[0]) - 16.0) < 1e-4 and abs(float(tr[0] / ev[0]) - 1) < 0.03, (ev, tr)
++
++
++# ---------------------------------------------------------------- Э2 турнира: --val-only (поправка 4, 22.8, 22.10 п. 1)
++OUT_TEST = {"predictions.csv", "predictions_best.csv", "predictions_last.csv", "probs.npz", "logits.npz"}   # выходы оценки режима fold
++OUT_RUN = {"best.pt", "last.pt", "log.csv", "metrics.json", "labels.json"}
++
++
++def test_e2_val_only_m13_loop(tmp_path, monkeypatch, capsys):
++    """--val-only на синтетике _tiny_run (валидация — записи 64…79, тест — 80…95). (а) Без флага main = main master бит в бит: набор
++    файлов, байты CSV и labels.json, массивы npz, веса, log.csv (без времени), значения metrics.json (без времени и ключей ветки: ema,
++    balanced, флаг part_tokens), последняя строка вывода (без шаг/с). (б) С флагом обучение то же (веса и log.csv = без флага); predict
++    — только на валидации (тест не предсказывается); выходы оценки — только *_val, по записям валидации; top1, top1_best, top1_last —
++    точность на валидации (= val_top1 лучшей и последней эпохи в log.csv); "score_on": "val" — в metrics.json и в последней строке
++    вывода (её печатает цепочка)."""
++    import csv
++    T_, base = _m13(), _sohn_at(MASTER_E2, "scripts/m13_train.py")
++    seen, line = [], {}
++    pred0 = T_.predict
++    monkeypatch.setattr(T_, "predict", lambda model, recs, labels, idx, *a: (seen.append(list(idx)), pred0(model, recs, labels, idx, *a))[1])
++    for name, mod, extra in (("master", base, ()), ("new", T_, ()), ("val", T_, ("--val-only",))):
++        seen.clear()
++        _tiny_run(mod, monkeypatch, tmp_path / name, *extra)
++        line[name] = json.loads(capsys.readouterr().out.splitlines()[-1])
++    a, b, c = (tmp_path / n for n in line)
++    files = lambda d: {p.name for p in d.iterdir()}
++    log = lambda d: [r[:-1] for r in csv.reader(open(d / "log.csv"))]       # без sec
++
++    def same(f, x, y):   # npz и .pt — по массивам (в zip — время записи)
++        if f.endswith(".npz"):
++            zx, zy = np.load(x / f), np.load(y / f)
++            return zx.files == zy.files and all(np.array_equal(zx[k], zy[k]) for k in zx.files)
++        if f.endswith(".pt"):
++            sx, sy = (torch.load(d / f)["model"] for d in (x, y))
++            return list(sx) == list(sy) and all(torch.equal(sx[k], sy[k]) for k in sx)
++        if f == "log.csv":
++            return log(x) == log(y)
++        return (x / f).read_bytes() == (y / f).read_bytes()
++    assert files(a) == files(b) == OUT_RUN | OUT_TEST
++    for f in files(a) - {"metrics.json"}:
++        assert same(f, a, b), f
++    ma, mb, mc = (json.loads((d / "metrics.json").read_text()) for d in (a, b, c))
++    t = {"train_sec", "steps_per_sec", "total_sec"}
++    assert {k: v for k, v in mb.items() if k not in t | {"ema", "balanced"}} == \
++        {k: v for k, v in ma.items() if k not in t} | {"flags": ma["flags"] | {"part_tokens": False}}
++    assert {k: v for k, v in line["new"].items() if k != "steps_per_sec"} == {k: v for k, v in line["master"].items() if k != "steps_per_sec"}
++    assert files(c) == OUT_RUN | {f.replace(".", "_val.") for f in OUT_TEST}
++    for f in ("best.pt", "last.pt", "labels.json", "log.csv"):
++        assert same(f, b, c), f
++    assert seen == [list(range(64, 80))] * 5                                # val × 3 эпохи, last и best — тест ни разу
++    with open(c / "predictions_val.csv", newline="", encoding="utf-8") as fh:
++        pr = list(csv.DictReader(fh))
++    z, p = np.load(c / "logits_val.npz"), np.load(c / "probs_val.npz")
++    assert [r["sample_id"] for r in pr] == list(z["sample_ids"]) == list(p["ids"]) == [f"s{i}" for i in range(64, 80)]
++    ep = {int(r[0]): float(r[4]) for r in log(c)[1:]}                      # эпоха → val_top1
++    assert mc["score_on"] == "val" and "score_on" not in mb
++    assert mc["top1"] == mc["top1_best"] == ep[mc["best_epoch"]] == float((z["logits"].argmax(1) == z["labels"]).mean()) \
++        == np.mean([int(r["correct"]) for r in pr])
++    assert mc["top1_last"] == ep[3] == float((z["last"].argmax(1) == z["labels"]).mean())
++    assert line["val"] == {k: mc[k] for k in ("tag", "fold", "seed", "top1", "score_on", "best_epoch", "steps", "steps_per_sec")}
++
++
++def test_e2_val_only_guards(tmp_path, monkeypatch):
++    """22.10 п. 1 (проверка ред. 3): тег uzsohn_e2_* — только с --val-only, uzsohn_e1_* — без него; --val-only вне режима fold
++    (корпус, ALL-UZ: валидация в обучении) — отказ. Отказ — до данных, замка и каталога прогона. План с флагом: оценка — записи
++    валидации; голова — классы фолда, как без флага (класс только теста — тоже)."""
++    import pytest
++    T_ = _m13()
++    seen = []
++
++    class Recs(list):   # плану нужна только длина записей
++        pass
++
++    def records(set_, fold, pose=False, inp=False):
++        seen.append(set_)
++        g = [f"g{i % 4}" for i in range(95)] + ["g_test"]
++        return Recs(range(96)), g, [{"sample_id": f"s{i}", "gloss": x} for i, x in enumerate(g)], \
++            (list(range(64)), list(range(64, 80)), list(range(80, 96)))
++    monkeypatch.setattr(T_, "records", records)
++    monkeypatch.setitem(sohn.CFG, "batch_size", 64)
++    run = lambda out, *x: T_.main(["--fold", "fold1", "--seed", "48", "--plan-only", "--out", str(tmp_path / out), *x])
++    for x, msg in ((("--set", "slovo", "--tag", "uzsohn_e2_slovo_v0"), "только с --val-only"),
++                   (("--set", "bukva", "--tag", "uzsohn_e2_bukva_in_u01b-r2"), "только с --val-only"),
++                   (("--set", "slovo", "--tag", "uzsohn_e1_slovo", "--val-only"), "без --val-only"),
++                   (("--set", "uzsl", "--val-only"), "режим fold"),
++                   (("--set", "alluz", "--tag", "uzsohn_e2_alluz_v0", "--val-only"), "режим fold")):
++        with pytest.raises(AssertionError, match=msg):
++            run("o", *x)
++    assert not seen and not (tmp_path / "o").exists() and not list(tmp_path.glob("*.lock*"))
++    p = run("e2", "--set", "slovo", "--tag", "uzsohn_e2_slovo_v0", "--val-only")
++    q = run("e1", "--set", "slovo", "--tag", "uzsohn_e1_slovo")
++    assert p["test_ids"] == [f"s{i}" for i in range(64, 80)] and q["test_ids"] == [f"s{i}" for i in range(80, 96)]
++    assert p["n_classes"] == q["n_classes"] == 5 and seen == ["slovo", "slovo"]
++
++
++# ---------------------------------------------------------------- Э2 турнира: отбор uzsohn_sel.py e2 (поправка 4, 22.3–22.7, 22.10 п. 2)
++def _e2_sel(tmp_path, monkeypatch):
++    """uzsohn_sel с RUNS, OUT, ROOT во временном каталоге; группы теста Slovo (splits/slovo_p5.json): a — 1, b — 2, c — 3."""
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++    import uzsohn_sel as S
++    for k, v in (("RUNS", tmp_path / "runs"), ("OUT", tmp_path / "out"), ("ROOT", tmp_path)):
++        monkeypatch.setattr(S, k, v)
++    (tmp_path / "splits").mkdir()
++    (tmp_path / "splits/slovo_p5.json").write_text(json.dumps({"groups": {"a": 0, "b": 1, "c": 2}}))
++    return S
++
++
++def _e2_put(S, suf, ok_a, ok_b, inp=(), extra=(), **over):
++    """10 ячеек прогона --val-only (выходы *_val, metrics.json — ключи m13_train): в каждой исполнитель a — 90 записей (ok_a
++    верных), b — 10 (ok_b); over — правка metrics.json, extra — лишние файлы в каталогах."""
++    import csv
++    for c in S.E2_CELLS:
++        s, f = c.split("/")
++        d = S.RUNS / f"uzsohn_e2_{s}_{suf}" / f / "seed48"
++        d.mkdir(parents=True)
++        r = [(f"{s}{i}", "a" if i < 90 else "b", int(i < ok_a or 90 <= i < 90 + ok_b)) for i in range(100)]
++        with open(d / "predictions_val.csv", "w", newline="", encoding="utf-8") as fh:
++            w = csv.writer(fh)
++            w.writerow(["dataset", "sample_id", "signer_id", "gloss", "pred", "correct", "top5"])
++            w.writerows([s, i, g, "x", "x" if ok else "y", ok, "x"] for i, g, ok in r)
++        top1 = sum(x[2] for x in r) / len(r)
++        u02 = {"train_examples": 600 * 512, "train_sohn_branch": 3072, "eval_records": 100, "eval_sohn_branch": 1}
++        m = {"set": s, "fold": f, "seed": 48, "score_on": "val", "top1": top1, "top1_last": top1, "init": None, "input": list(inp),
++             "variant": [], "flags": {"part_tokens": False, "cos_head": False}, "ema": False, "balanced": False, "steps": 600,
++             "steps_run": 600, "limit_train": 0, "epochs": 300, "stop_epoch": None, "channels": sohn.input_channels(inp),
++             "cfg": {"dim": 192, "batch_size": 512}, "params_keras_count": {"total": 1000 + len(s)},
++             "u02_sohn_branch": u02 if {"u02s", "u02c"} & set(inp) else None}
++        (d / "metrics.json").write_text(json.dumps(m | over))
++        for n in ("predictions_best_val.csv", "predictions_last_val.csv", "probs_val.npz", "logits_val.npz", *extra):
++            (d / n).touch()
++
++
++def test_e2_sel_rule_micro_and_greedy(tmp_path, monkeypatch, capsys):
++    """22.4: правило этапа 1 (judge) — Δ̄ = THR принят, Δ̄ = 1,008 нет, лучше у 6/10 да, у 5/10 нет; счёт ячейки — micro по записям
++    predictions_val.csv: в примере micro +2,0 (принят), а macro по исполнителям −3,33 (правило по нему не приняло бы) — решает micro,
++    macro только в печати. 22.3: CAND = текущая + рычаг шага (по metrics.json), текущая — итог прошлого шага; Δ̄ = +1,0 (одна
++    запись из 100) < THR — не принят. Решение не перезаписывается."""
++    import pytest
++    S = _e2_sel(tmp_path, monkeypatch)
++    z = {c: 0.0 for c in S.E2_CELLS}
++    assert S.THR == max(1.0, S.DELTA) and S.judge(z, {c: S.THR for c in z})[3] and not S.judge(z, {c: 1.008 for c in z})[3]
++    assert S.judge(z, {c: 3.0 if i < 6 else -1.0 for i, c in enumerate(z)})[3]          # +1,4, лучше у 6/10
++    assert not S.judge(z, {c: 5.0 if i < 5 else -1.0 for i, c in enumerate(z)})[3]      # +2,0, лучше у 5/10
++    _e2_put(S, "v0", 45, 5)                                       # micro 50,0; macro 50,0
++    _e2_put(S, "in_u02s", 48, 4, ("u02s",), top1_last=0.3)       # micro 52,0 (+2,0); macro (53,33 + 40) / 2 = 46,67 (−3,33)
++    with pytest.raises(SystemExit) as e:
++        S.e2("v0", "in_u02s", "U02-1")
++    assert e.value.code == 0 and json.loads(capsys.readouterr().out.splitlines()[-1])["accepted"]
++    p = tmp_path / "out/decide_e2_U02-1.json"
++    d = json.loads(p.read_text())
++    assert d["accepted"] and d["micro"]["accepted"] and (d["micro"]["diff"], d["micro"]["better"]) == (2.0, "10/10")
++    assert not d["macro_ref"]["accepted"] and (d["macro_ref"]["diff"], d["macro_ref"]["better"]) == (-3.333, "0/10")
++    assert (d["last_ref"]["diff"], d["last_ref"]["accepted"]) == (-20.0, False)   # last.pt (top1_last 0,3) — печать, не решение
++    assert (d["levers_current"], d["levers_candidate"]) == ([], ["u02s"])
++    assert sorted(d["micro"]["per_cell"]) == sorted(S.E2_CELLS) and d["threshold"] == round(S.THR, 4)
++    before = p.read_bytes()
++    with pytest.raises(SystemExit, match="!!!.*не перезаписывается"):
++        S.e2("v0", "in_u02s", "U02-1")
++    assert p.read_bytes() == before
++    with pytest.raises(AssertionError, match="поверх итога прошлого шага"):                # U02-1 принята → текущая in_u02s
++        S.e2("v0", "in_u02s", "U02-2")
++    _e2_put(S, "in_u02c", 49, 4, ("u02c",))                       # u02c поверх Sohn, а текущая — u02s
++    with pytest.raises(AssertionError, match="22.3"):
++        S.e2("in_u02s", "in_u02c", "U02-2")
++    _e2_put(S, "in_u02s-u02c", 49, 4, ("u02s", "u02c"))           # micro 53,0: +1,0 < THR
++    with pytest.raises(SystemExit) as e:
++        S.e2("in_u02s", "in_u02s-u02c", "U02-2")
++    d2 = json.loads((tmp_path / "out/decide_e2_U02-2.json").read_text())
++    assert e.value.code == 10 and not d2["accepted"] and d2["micro"]["diff"] == 1.0 and d2["micro"]["better"] == "10/10"
++    with pytest.raises(AssertionError, match="поверх итога прошлого шага"):                # U02-2 не принята → текущая in_u02s
++        S.e2("in_u02s-u02c", "in_u01a", "U01a")
++    with pytest.raises(ValueError):
++        S.e2("v0", "in_x", "r9")
++    assert sorted(f.name for f in (tmp_path / "out").iterdir()) == ["decide_e2_U02-1.json", "decide_e2_U02-2.json"]
++
++
++def test_e2_sel_run_dirs_loud(tmp_path, monkeypatch):
++    """22.10 п. 2: в каждом каталоге — "score_on": "val" и ни одного файла предсказаний без _val, иначе «!!!» и стоп (код ≠ 0);
++    прогон пробы (--stop-epoch), с --init, с идеей 0107 кроме № 2 или с predictions_val.csv ≠ top1 — отказ; решение не пишется."""
++    import pytest
++    S = _e2_sel(tmp_path, monkeypatch)
++    _e2_put(S, "v0", 45, 5)
++    for suf, extra, over in (("t1", (), {"score_on": None}), ("t2", ("predictions.csv",), {}), ("t3", ("probs.npz",), {}),
++                             ("t4", ("logits.npz",), {})):
++        _e2_put(S, suf, 48, 4, ("u02s",), extra, **over)
++        with pytest.raises(SystemExit, match="!!!") as e:
++            S.e2("v0", suf, "U02-1")
++        assert e.value.code != 0
++    for suf, over in (("p1", {"stop_epoch": 17, "steps_run": 17}), ("p2", {"init": {"init_from": "x"}}), ("p3", {"variant": [3]}),
++                      ("p4", {"top1": 0.9}), ("p5", {"seed": 99})):
++        _e2_put(S, suf, 48, 4, ("u02s",), **over)
++        with pytest.raises(AssertionError):
++            S.e2("v0", suf, "U02-1")
++    monkeypatch.setattr(S, "RUNS", tmp_path / "runs2")           # рычаг шага уже в «контроле» — плечо = текущая, не проба
++    _e2_put(S, "v0", 45, 5, ("u02s",))
++    _e2_put(S, "in_u02s", 48, 4, ("u02s",))
++    with pytest.raises(AssertionError, match="22.3"):
++        S.e2("v0", "in_u02s", "U02-1")
++    assert not (tmp_path / "out").exists()
++
++
++def test_e2_sel_step_and_data_guards(tmp_path, monkeypatch):
++    """22.3: первый шаг — только поверх контроля v0; плечо = текущая + ровно рычаг шага (лишний рычаг — отказ). Данные: записи
++    валидации плеча = записям текущей (подменён один sample_id, top1 тот же); metrics.json — своей ячейки (набор, фолд). Отказ —
++    до записи решения (рецензия Э2: мутанты L06–L09)."""
++    import csv
++    import pytest
++    S = _e2_sel(tmp_path, monkeypatch)
++
++    def case(k, puts, args, msg=None, edit=None):
++        monkeypatch.setattr(S, "RUNS", tmp_path / f"runs{k}")
++        for p in puts:
++            _e2_put(S, *p)
++        if edit:
++            edit(S.RUNS)
++        with pytest.raises(AssertionError, match=msg):
++            S.e2(*args)
++
++    def swap_id(runs):
++        p = runs / "uzsohn_e2_bukva_in_u02s/fold3/seed48/predictions_val.csv"
++        rows = list(csv.reader(open(p, encoding="utf-8")))
++        rows[1][1] = "chuzhaya_zapis"
++        with open(p, "w", newline="", encoding="utf-8") as fh:
++            csv.writer(fh).writerows(rows)
++
++    def meta(key, val):
++        def f(runs):
++            p = runs / "uzsohn_e2_slovo_in_u02s/fold2/seed48/metrics.json"
++            p.write_text(json.dumps(json.loads(p.read_text()) | {key: val}))
++        return f
++
++    std = [("v0", 45, 5), ("in_u02s", 48, 4, ("u02s",))]
++    case(1, [("in_u01a", 45, 5, ("u01a",)), ("in_u01a-u02s", 48, 4, ("u01a", "u02s"))], ("in_u01a", "in_u01a-u02s", "U02-1"),
++         "поверх итога прошлого шага")
++    case(2, [("v0", 45, 5), ("in_u02s-u01a", 48, 4, ("u02s", "u01a"))], ("v0", "in_u02s-u01a", "U02-1"), "22.3")
++    case(3, std, ("v0", "in_u02s", "U02-1"), "записи валидации", swap_id)
++    case(4, std, ("v0", "in_u02s", "U02-1"), None, meta("fold", "fold3"))
++    case(5, std, ("v0", "in_u02s", "U02-1"), None, meta("set", "bukva"))
++    assert not (tmp_path / "out").exists()
++
++
++def test_e2_sel_code_note(tmp_path, monkeypatch):
++    """Код 20 прогонов шага — в решении (code_note этапа 1): один коммит без dirty — без пометки; плечо с dirty — «ВНИМАНИЕ»
++    (печать, решение не меняет; рецензия Э2: F5)."""
++    import pytest
++    S = _e2_sel(tmp_path, monkeypatch)
++    g = {"commit": "a" * 40, "dirty": False}
++    _e2_put(S, "v0", 45, 5, git_osnovnaya_model=g)
++    _e2_put(S, "in_u02s", 48, 4, ("u02s",), git_osnovnaya_model=g)
++    _e2_put(S, "in_u02s-u02c", 49, 4, ("u02s", "u02c"), git_osnovnaya_model=g | {"dirty": True})
++    for cur, cand, step, rc in (("v0", "in_u02s", "U02-1", 0), ("in_u02s", "in_u02s-u02c", "U02-2", 10)):
++        with pytest.raises(SystemExit) as e:
++            S.e2(cur, cand, step)
++        assert e.value.code == rc
++    a, b = (json.loads((tmp_path / f"out/decide_e2_{s}.json").read_text())["code"] for s in ("U02-1", "U02-2"))
++    assert a.startswith("код прогонов этапа (20): коммиты aaaaaaa;") and a.endswith("(dirty) — 0")
++    assert b.startswith("**ВНИМАНИЕ:**") and b.endswith("(dirty) — 10")
++
++
++def test_e2_sel_prints(tmp_path, monkeypatch):
++    """Печать рядом с решением (на него не влияет): «без группы j» (22.7) — коды группы теста Slovo j убраны из валидации всех
++    ячеек; разброс val top-1 M13 на лучшей эпохе (22.4: первая эпоха min val_loss; разница затравок 42–44 по среднему наборов >
++    порога — пометка; затравка без всех 5 log.csv выпадает); доля ветки Sohn у u02*; параметры входа: stem или tok у № 2."""
++    import csv
++    import pytest
++    S = _e2_sel(tmp_path, monkeypatch)
++    for s in ("slovo", "bukva"):
++        for k, v in zip(range(42, 47), (0.50, 0.505, 0.52, 0.51, 0.49)):
++            for i in range(1, 6):
++                (S.RUNS / s / f"fold{i}" / f"seed{k}").mkdir(parents=True)
++                if (s, k, i) == ("bukva", 46, 5):
++                    continue
++                with open(S.RUNS / s / f"fold{i}" / f"seed{k}/log.csv", "w", newline="") as fh:   # эпоха 2 — первая с min val_loss
++                    csv.writer(fh).writerows([["epoch", "step", "loss", "val_loss", "val_top1", "lr", "sec"], [1, 5, 3, 2.0, 0.1, 1, 1],
++                                              [2, 10, 2, 1.0, v, 1, 2], [3, 15, 1, 1.0, 0.9, 1, 3]])
++    _e2_put(S, "v0", 45, 5)
++    _e2_put(S, "in_u02s", 48, 4, ("u02s",))
++    with pytest.raises(SystemExit):
++        S.e2("v0", "in_u02s", "U02-1")
++    d = json.loads((tmp_path / "out/decide_e2_U02-1.json").read_text())
++    wg = d["without_group"]                                       # без a: только b (50 → 40); без b: только a (+3,33); 3–5 — пусто
++    assert (wg["1"]["diff"], wg["1"]["accepted"], wg["2"]["diff"], wg["2"]["accepted"]) == (-10.0, False, 3.333, True)
++    assert all(wg[j]["diff"] == 2.0 and wg[j]["accepted"] for j in "345")
++    assert "совпало у 4/5 групп" in d["without_group_line"] and "не совпало у групп 1 — " in d["without_group_line"]
++    assert "«отбор не вложенный»" in d["without_group_line"]
++    m = d["m13_seed_spread"]
++    assert m["val_top1"]["slovo"] == {"42": 50.0, "43": 50.5, "44": 52.0, "45": 51.0, "46": 49.0} and "46" not in m["val_top1"]["bukva"]
++    assert m["range"] == {"slovo": 3.0, "bukva": 2.0} and m["gap_42_44"] == 2.0 and m["note"] == "порог ниже шума затравок M13"
++    assert "slovo: обучение 15360/1536000 (1.00 %), оценка 5/500" in d["u02_sohn_branch"] and "ВНИМАНИЕ" not in d["u02_sohn_branch"]
++    assert d["params"]["v0"] == {"total": {"slovo": 1005, "bukva": 1005}, "params_stem": 708 * 192}
++    assert d["params"]["in_u02s"]["params_stem"] == sohn.input_channels(("u02s",)) * 192
++    for i in range(1, 6):                                         # 42–44 ближе порога — без пометки
++        (S.RUNS / "slovo" / f"fold{i}" / "seed44/log.csv").write_text("epoch,step,loss,val_loss,val_top1,lr,sec\n1,5,1,1.0,0.505,1,1\n")
++        (S.RUNS / "bukva" / f"fold{i}" / "seed44/log.csv").write_text("epoch,step,loss,val_loss,val_top1,lr,sec\n1,5,1,1.0,0.505,1,1\n")
++    assert S.m13_spread()["gap_42_44"] == 0.5 and S.m13_spread()["note"] is None
++    import shutil
++    shutil.rmtree(S.RUNS / "slovo")
++    assert S.m13_spread()["gap_42_44"] is None and S.m13_spread()["range"]["slovo"] is None
++
++
++def test_e2_sel_tok_params_and_default_path(tmp_path, monkeypatch):
++    """0163 разд. 6: params_stem у № 2 — параметры tok (PartTokens SohnNet прогона): +149 568 к stem при 3 токенах, +187 008 при 4
++    (с U01a), как в 0163; без № 2 — прежнее выражение. Путь по умолчанию: report2 (этап 2) — бит в бит uzsohn_sel master."""
++    import sys
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++    import uzsohn_sel as S
++    m = {"cfg": {"dim": 192}, "flags": {"part_tokens": True}}
++    for tok, add in (((), 149_568), (("u02s", "u01b"), 149_568), (("u01a", "u04"), 187_008)):
++        net = sohn.SohnNet(33, channels=sohn.input_channels(tok), tokens=tok, part_tokens=True)
++        k = sum(p.numel() for p in net.tok.parameters())
++        assert S.params_stem(m | {"input": list(tok)}) == k == sohn.input_channels(tok) * 192 + add
++    for x in ({"cfg": {"dim": 192}}, {"cfg": {"dim": 192}, "channels": 1266}, {"cfg": {"dim": 384}, "flags": {"pose": True}},
++              {"cfg": {"dim": 192}, "channels": 792, "flags": {"part_tokens": False}}):
++        assert S.params_stem(x) == x.get("channels", 708) * x["cfg"]["dim"]
++    M, out = _sohn_at(MASTER_E2, "scripts/uzsohn_sel.py"), {}
++    for name, mod in (("master", M), ("new", S)):
++        monkeypatch.setattr(mod, "ms_per_record", lambda *a, **k: 1.0)   # время — не код
++        monkeypatch.setitem(sys.modules, "uzsohn_sel", mod)
++        (tmp_path / name).mkdir()
++        test_stage2_report2(tmp_path / name, monkeypatch)
++        out[name] = [(tmp_path / name / p).read_bytes() for p in ("reports/UZSOHN_stage2.md", "out/stage2.json")]
++    assert out["master"] == out["new"]

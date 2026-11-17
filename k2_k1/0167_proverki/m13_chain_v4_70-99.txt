@@ -1,0 +1,31 @@
+# scripts/m13_chain_v4.sh, коммит 045fd7d, блоб 7dd40f7a163f9f80542fb870702ab69d0148b76b; строки 70–99 (nl -ba)
+    70	need asl_e0 5   # v3: Э0 не повторяется — 5 прогонов есть
+    71	say "Э0 НЕ ПРОЙДЕН (0078: продолжать с пометкой; разница −2,71 п. п., reports/m13_e0_check.json) — далее по предрегистрации"
+    72	EXTRA=""
+    73	say "=== Bukva"
+    74	run_set <<< "$(for s in $SEEDS; do for f in $FOLDS5; do echo bukva $f $s bukva; done; done)"
+    75	need bukva 25
+    76	say "=== Slovo"
+    77	run_set <<< "$(for s in $SEEDS; do for f in $FOLDS5; do echo slovo $f $s slovo; done; done)"
+    78	need slovo 25
+    79	python scripts/m13_tables.py > $R/tables.out 2>&1 || say "!!! ОШИБКА таблицы (промежуточные)"
+    80	say "=== предобучение Slovo + Bukva"
+    81	run_set <<< "$(for s in $SEEDS; do echo sb all $s sb; done)"
+    82	need sb 5
+    83	say "=== корпус LOSO, с предобучением"
+    84	run_set <<< "$(for s in $SEEDS; do for f in $LOSO; do echo uzsl $f $s uzsl_pre $R/sb/all/seed$s/best.pt; done; done)"
+    85	need uzsl_pre $((nl * 5))
+    86	python scripts/m13_tables.py > $R/tables.out 2>&1 || say "!!! ОШИБКА таблицы (промежуточные)"
+    87	say "=== корпус LOSO, с нуля (справочно)"
+    88	run_set <<< "$(for s in $SEEDS; do for f in $LOSO; do echo uzsl $f $s uzsl_scratch; done; done)"
+    89	need uzsl_scratch $((nl * 5))
+    90	say "=== стоимость: жду простоя (до 2 ч)"
+    91	for i in $(seq 120); do
+    92	  python scripts/m13_cost.py > $R/cost.log 2>&1 && break
+    93	  sleep 60
+    94	done
+    95	[ -f reports/m13_cost.json ] || { say "машина не простаивала 2 ч — замер с --force (пометка в m13_cost_force.json)"; python scripts/m13_cost.py --force > $R/cost.log 2>&1; }
+    96	python scripts/m13_tables.py > $R/tables.out 2>&1 || { say "!!! ОШИБКА таблицы"; exit 1; }
+    97	sed "s/^/[$(date '+%F %T')] /" $R/tables.out
+    98	touch runs/UzSohn_M13.done
+    99	say "=== M13-Sohn завершена (reports/m13_tables.md, M13_report.md)"
