@@ -1,0 +1,6 @@
+model.py PART_POINTS: [list(range(6, 27)), list(range(27, 48)), list(range(0, 6)), list(range(48, 85))] → длины [21, 21, 6, 37] (порядок токенов: кисть Л, кисть П, тело, лицо)
+data.py: POSE_MP (11, 12, 13, 14, 23, 24) | FACE_MP 37 точек
+{'LIP': 40, 'NOSE': 4, 'REYE': 16, 'LEYE': 16, 'POSE_MP4': 4} | лицо № 2: 76 разных 76
+лицо: общих с МПК 20 | у № 2 нет 17 [4, 46, 52, 55, 64, 93, 151, 152, 172, 276, 282, 285, 294, 323, 397, 468, 473]
+тело: у № 2 нет [23, 24]
+0163 part_points: return [LH_LOC, RH_LOC, *body, [LOCAL[k] for k in LIP + NOSE + REYE + LEYE]]
