@@ -1,0 +1,22 @@
+m13_chain_v4.sh: блоб 7dd40f7
+m13_train.py: блоб 8ac5f0f
+--- строки цепочки, которые пропускает фильтр:
+22:python -c 'import numpy, torch' 2> /dev/null || { echo "!!! ОШИБКА: $(command -v python) без numpy/torch (урок 30, ERRORS_LESSONS.md) 
+41:say "=== M13-Sohn: кэши входа (ЦП)"
+42:python scripts/m13_build.py bukva slovo uzsl asl || { say "!!! ОШИБКА кэш"; exit 1; }
+61:        say "!!! ОШИБКА $tag $fold seed$seed (см. $log)"
+67:need() { [ "$(n_done $1)" -eq "$2" ] || { say "!!! $1: готово $(n_done $1) из $2 — стоп (перезапуск юнита продол
+73:say "=== Bukva"
+76:say "=== Slovo"
+79:python scripts/m13_tables.py > $R/tables.out 2>&1 || say "!!! ОШИБКА таблицы (промежуточные)"
+80:say "=== предобучение Slovo + Bukva"
+83:say "=== корпус LOSO, с предобучением"
+86:python scripts/m13_tables.py > $R/tables.out 2>&1 || say "!!! ОШИБКА таблицы (промежуточные)"
+87:say "=== корпус LOSO, с нуля (справочно)"
+90:say "=== стоимость: жду простоя (до 2 ч)"
+96:python scripts/m13_tables.py > $R/tables.out 2>&1 || { say "!!! ОШИБКА таблицы"; exit 1; }
+99:say "=== M13-Sohn завершена (reports/m13_tables.md, M13_report.md)"
+--- откуда в журнале числа теста (фильтр их не пропускает):
+59:        say "$tag $fold seed$seed: $(tail -1 $log)"
+97:sed "s/^/[$(date '+%F %T')] /" $R/tables.out
+--- m13_train.py: строк с '===' или '!!!': 0
