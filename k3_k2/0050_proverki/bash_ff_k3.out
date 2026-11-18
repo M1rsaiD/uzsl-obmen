@@ -1,0 +1,9 @@
+git 2.43.0, bash 5.2.21(1)-release
+1) git merge --ff-only во время sleep (inode 1262712 → 1262740):
+   A1
+   A2-staroe
+   A3-staroe
+2) запись в тот же файл (тот же inode, как редактор/printf >):
+   A1
+   XXXXXXXXXXXXXXXXXXXX-novoe-dlinnee
+   B3-novoe
