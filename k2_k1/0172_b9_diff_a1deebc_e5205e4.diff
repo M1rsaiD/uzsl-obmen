@@ -1,0 +1,216 @@
+diff --git a/scripts/turnir_val_m13.py b/scripts/turnir_val_m13.py
+new file mode 100644
+index 0000000..7718975
+--- /dev/null
++++ b/scripts/turnir_val_m13.py
+@@ -0,0 +1,109 @@
++"""Б9 (поправка 4 к TURNIR_prereg, 22.10 п. 5): выгрузка ВАЛИДАЦИИ прогонов M13 и UzSohn на протоколе П (Slovo, Bukva) по best.pt
++на ЦП — для «толпы Sohn»: состав смешанного ансамбля выбирается по валидации (turnir_eval.summary → choose_mixed), а m13_train
++пишет вероятности только теста (probs.npz). Тест здесь не читается и не считается: из каталога прогона — best.pt, log.csv (val_top1
++эпохи best.pt — сверка) и ключи сети metrics.json (NET); предсказываются только записи валидации фолда (m13_train.records).
++Источники и порядок — ячейки стенда (turnir_eval.C, kind m13, без корпуса — там состав вложенный LOSO): у пары (фолд, затравка)
++берётся тот же каталог, что у export_cell (первый в src_dirs с probs.npz и metrics.json; файлы теста не открываются).
++Выход — runs/TURNIR/preds/<набор>/<модель>/native/scratch/<фолд>__val__seed<k>.npz (формат стенда, role = 'val'; load_model(…,
++'val') читает его как фолд «<фолд>__val», в тестовых строках он не участвует) + val_export.json (откуда, sha256 best.pt, сверка).
++cd osnovnaya_model
++CUDA_VISIBLE_DEVICES= nice -n 19 PYTHONPATH=src:../uzsign_e1/src python scripts/turnir_val_m13.py [--threads 8] [--dataset Slovo]
++"""
++import argparse
++import csv
++import functools
++import inspect
++import json
++import os
++import sys
++from pathlib import Path
++
++import numpy as np
++
++sys.path.insert(0, str(Path(__file__).resolve().parent))
++import turnir_eval as te  # noqa: E402
++
++NET = ("set", "fold", "seed", "flags", "input", "channels", "arch")  # ключи metrics.json, что читаются (сеть и фолд; top-1 — нет)
++
++
++def net_meta(d: Path) -> dict:
++    m = json.loads((d / "metrics.json").read_text())
++    return {k: m.get(k) for k in NET}
++
++
++@functools.lru_cache(maxsize=1)
++def _records(set_: str, fold: str, pose: bool, inp: bool):
++    import m13_train as mt
++    return mt.records(set_, fold, pose=pose, inp=inp)
++
++
++def val_logits(d: Path, threads: int) -> dict:
++    """Логиты best.pt на валидации фолда прогона d — тем же predict, что валидация при обучении (ЦП, float32)."""
++    os.environ["CUDA_VISIBLE_DEVICES"] = ""
++    import torch
++    import m13_train as mt
++    from mpk import sohn
++    torch.set_num_threads(threads)
++    m = net_meta(d)
++    assert m["set"] in ("slovo", "bukva") and (m["arch"] or "sohn") == "sohn", (d, m["set"], m["arch"])
++    tokens, flags = tuple(m["input"] or ()), m["flags"] or {}
++    assert m["channels"] in (None, sohn.input_channels(tokens)), (d, m["channels"])
++    ck = torch.load(d / "best.pt", map_location="cpu")
++    names = list(ck["names"])
++    recs, glosses, clips, split = _records(m["set"], m["fold"], bool(flags.get("pose")), bool(tokens))
++    va = split[1]  # только валидация; split[2] (тест) не используется
++    recs.tokens = tokens
++    lab = {g: k for k, g in enumerate(names)}
++    labels = np.full(len(recs), -1, np.int64)
++    labels[va] = [lab[glosses[i]] for i in va]
++    kw = {"tokens": tokens} if "tokens" in inspect.signature(sohn.SohnNet).parameters else {}  # как m13_train ветки рычагов
++    model = sohn.SohnNet(len(names), sohn.CFG["dim"], channels=sohn.input_channels(tokens), **flags, **kw)
++    model.load_state_dict(ck["model"])
++    z, _ = mt.predict(model, recs, labels, va, torch.device("cpu"), sohn.CFG["label_smoothing"])
++    with open(d / "log.csv", newline="") as f:
++        log = {int(r["epoch"]): r["val_top1"] for r in csv.DictReader(f)}
++    return dict(ids=np.array([clips[i]["sample_id"] for i in va]), logits=z, names=names,
++                signer=np.array([str(clips[i]["signer_id"]) for i in va]), gloss=np.array([glosses[i] for i in va]),
++                top1=float((z.argmax(1) == labels[va]).mean()), top1_log=float(log[int(ck["epoch"])]), epoch=int(ck["epoch"]))
++
++
++def export(threads: int = 8, only: str | None = None, logits_fn=val_logits) -> int:
++    """→ число прогонов, не прошедших сверку val_top1 с log.csv (их файл не пишется)."""
++    bad = 0
++    for c in te.C:
++        if c["kind"] != "m13" or c["ds"] == te.LO or (only and c["ds"] != only):
++            continue
++        od = te.cell_dir(c)
++        mf = od / "val_export.json"
++        meta = json.loads(mf.read_text()) if mf.is_file() else {}
++        for d in te.src_dirs(c):
++            # отбор каталога — как export_cell (тот же прогон, что у теста ячейки); probs.npz — только наличие, не читается
++            if not ((d / "probs.npz").is_file() and (d / "metrics.json").is_file() and (d / "best.pt").is_file()):
++                continue
++            fold, seed = d.parent.name, d.name.removeprefix("seed")
++            out = od / f"{fold}__val__seed{seed}.npz"
++            if out.is_file():
++                continue
++            r = logits_fn(d, threads)
++            n = len(r["ids"])
++            # допуск — как сверка m10_cache: ГП bf16 при обучении против ЦП float32 здесь
++            if abs(r["top1"] - r["top1_log"]) * n > max(2, 0.005 * n):
++                print(f"!!! сверка валидации не пройдена: {d} (эпоха {r['epoch']}) val_top1 {r['top1']:.4f} ≠ log.csv "
++                      f"{r['top1_log']:.4f}", flush=True)
++                bad += 1
++                continue
++            te.save(out, ids=r["ids"], probs=te.softmax16(r["logits"]), classes=np.array(r["names"]), signer=r["signer"],
++                    gloss=r["gloss"], role=np.full(n, "val"), run=str(d))
++            meta[out.name] = dict(run=str(d.relative_to(te.ROOT.parent)), best_pt_sha256=te.sha(d / "best.pt"), epoch=r["epoch"],
++                                  n_val=n, val_top1=r["top1"], val_top1_log=r["top1_log"])
++            mf.write_text(json.dumps(meta, ensure_ascii=False, indent=1))
++            print("готово (валидация)", out.relative_to(te.OUT), "val_top1", round(r["top1"], 4), flush=True)
++    return bad
++
++
++if __name__ == "__main__":
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--threads", type=int, default=8)
++    ap.add_argument("--dataset", choices=["Slovo", "Bukva"])
++    a = ap.parse_args()
++    sys.exit(1 if export(a.threads, a.dataset) else 0)
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index 1d78356..a1ad4d2 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -1020,3 +1020,96 @@ def test_e2_chain_dirty_code_stops(tmp_path):
+         f.write("# правка без коммита\n")
+     r, calls, m13 = _run_chain(om, env)
+     assert r.returncode == 1 and "!!! незакоммиченный код" in r.stdout and m13 == []
++
++
++# ---------------------------------------------------------------- Б9: выгрузка валидации M13 / UzSohn (scripts/turnir_val_m13.py)
++import builtins  # noqa: E402
++import io  # noqa: E402
++
++import turnir_val_m13 as tv  # noqa: E402
++
++SENT = 0.987654  # «top-1 теста» в metrics.json прогонов: не должен попасть ни в печать, ни в файлы выгрузки
++
++
++def _fake_val(base, skill, bad=()):
++    """Подмена val_logits: валидация фолда из разбиения синтетики; сверка с log.csv сходится, кроме прогонов bad."""
++    split = json.loads((base / "OM/splits/slovo_p5.json").read_text())["folds"]
++    clips = {c["sample_id"]: c for c in json.loads(str(np.load(base / "OM/cache/M13/slovo.npz")["clips"]))}
++
++    def f(d, threads):
++        va = split[d.parent.name]["val"]
++        gloss = np.array([clips[i]["gloss"] for i in va])
++        lg = logits(gloss, skill["UzSohn" if "uzsohn_e1" in str(d) else "Sohn"], np.random.default_rng(int(d.name[4:])))
++        t = float((CLS[lg.argmax(1)] == gloss).mean())
++        return dict(ids=np.array(va), logits=lg, names=list(CLS), signer=np.array([clips[i]["signer_id"] for i in va]), gloss=gloss,
++                    top1=t, top1_log=t + (0.5 if str(d).endswith(bad) else 0), epoch=7)
++    return f
++
++
++def test_b9_val_export_feeds_sohn_crowd(stand, monkeypatch, capsys):
++    """Б9: без выгрузки «толпы Sohn» на Slovo нет; после — есть (состав по валидации), прежние строки сводки — бит в бит; файлы
++    теста прогонов (probs.npz, predictions*.csv, logits.npz) не открываются, «top-1 теста» нигде не печатается и не пишется."""
++    base = stand(UZ)
++    runs = base / "OM/runs/UzSohn"
++    for d in runs.glob("*/*/seed*"):
++        (d / "best.pt").write_bytes(b"x")
++        (d / "metrics.json").write_text(json.dumps({"top1": SENT, "top1_best": SENT} | json.loads((d / "metrics.json").read_text())))
++    run_stand(te)
++    rows0 = (base / "OM/runs/TURNIR/turnir_summary.csv").read_text().splitlines()
++    assert not any(",ens_mixed," in r and r.startswith("Slovo,") and "Sohn" in r for r in rows0)
++    seen = []
++    for mod, name in ((builtins, "open"), (io, "open"), (np, "load")):
++        real = getattr(mod, name)
++        monkeypatch.setattr(mod, name, lambda p, *a, _r=real, **k: (seen.append(str(p)), _r(p, *a, **k))[1])
++    capsys.readouterr()
++    bad = tv.export(1, logits_fn=_fake_val(base, {"Sohn": 1.6, "UzSohn": 2.0}, bad=("uzsohn_e1_slovo/fold2/seed44",)))
++    out = capsys.readouterr().out
++    monkeypatch.undo()
++    point(lambda k, v: monkeypatch.setattr(te, k, v), base)
++    assert bad == 1 and "!!! сверка валидации не пройдена" in out and str(SENT)[:6] not in out
++    assert any(p.endswith("best.pt") for p in seen) and not [p for p in seen if Path(p).name.startswith(("probs", "predictions", "logits"))]
++    vf = sorted((base / "OM/runs/TURNIR/preds").rglob("*__val__seed*.npz"))
++    assert len(vf) == 2 * 25 - 1 and not (te.PRED / "Slovo/UzSohn/native/scratch/fold2__val__seed44.npz").exists()
++    assert all({*np.load(f)["role"]} == {"val"} for f in vf)
++    assert not any("UzSL" in str(f) for f in vf)  # корпус — вложенный LOSO, валидация не нужна
++    meta = (te.PRED / "Slovo/Sohn/native/scratch/val_export.json").read_text()
++    assert str(SENT)[:6] not in meta and "best_pt_sha256" in meta
++    assert set(te.load_model(te.PRED / "Slovo/Sohn/native/scratch")) == set(range(42, 47))  # тестовые затравки — прежние
++    run_stand(te)
++    rows1 = (base / "OM/runs/TURNIR/turnir_summary.csv").read_text().splitlines()
++    mix = [r for r in rows1 if r.startswith("Slovo,") and ",ens_mixed," in r and "Sohn" in r]
++    assert len(mix) == 2 and all("val-состав" in r for r in mix)  # N = 3 и 5
++
++
++def test_b9_val_logits_real_net_reads_only_val(tmp_path, monkeypatch):
++    """Настоящий SohnNet и m13_train.predict на синтетике: предсказывается только валидация (индексы va), тест — никогда; логиты =
++    логитам той же сети; val_top1 эпохи best.pt — из log.csv."""
++    import m13_train as mt
++    from mpk import sohn
++    rng = np.random.default_rng(0)
++    n, T = 9, 6
++    xy = rng.normal(0.5, 0.1, (n * T, sohn.NUM_NODES, 2)).astype(np.float32)
++    recs = mt.Recs(xy, np.zeros((n * T, 4), bool), np.arange(0, n * T + 1, T))
++    glosses = [str(CLS[k % 3]) for k in range(n)]
++    clips = [dict(sample_id=f"r{k}", signer_id=f"S{k % 3:02d}", gloss=g) for k, g in enumerate(glosses)]
++    tr, va, tst = [0, 1, 2], [3, 4, 5], [6, 7, 8]
++    monkeypatch.setattr(mt, "records", lambda *a, **k: (recs, glosses, clips, (tr, va, tst)))
++    tv._records.cache_clear()
++    calls = []
++    real = mt.predict
++    monkeypatch.setattr(mt, "predict", lambda model, r, lab, idx, *a: (calls.append(list(idx)), real(model, r, lab, idx, *a))[1])
++    torch.manual_seed(0)
++    names = sorted(set(glosses))
++    net = sohn.SohnNet(len(names), sohn.CFG["dim"])
++    d = tmp_path / "slovo/fold1/seed42"
++    d.mkdir(parents=True)
++    torch.save({"model": net.state_dict(), "epoch": 2, "names": names}, d / "best.pt")
++    (d / "metrics.json").write_text(json.dumps({"set": "slovo", "fold": "fold1", "seed": 42, "flags": {}, "input": [], "top1": SENT}))
++    with open(d / "log.csv", "w", newline="") as f:
++        csv.writer(f).writerows([["epoch", "step", "loss", "val_loss", "val_top1", "lr", "sec"], [1, 1, 0, 0, 0.1, 0, 0], [2, 2, 0, 0, 0.25, 0, 0]])
++    r = tv.val_logits(d, 1)
++    assert calls == [va]
++    assert list(r["ids"]) == ["r3", "r4", "r5"] and r["top1_log"] == 0.25 and r["epoch"] == 2 and r["names"] == names
++    lab = np.array([names.index(glosses[i]) for i in va])
++    ref, _ = real(net, recs, np.concatenate([np.full(3, -1), lab, np.full(3, -1)]), va, torch.device("cpu"), 0.1)
++    assert np.allclose(r["logits"], ref, atol=1e-5) and r["top1"] == float((ref.argmax(1) == lab).mean())
