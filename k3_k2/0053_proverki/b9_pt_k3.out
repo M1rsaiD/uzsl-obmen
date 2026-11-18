@@ -1,0 +1,3 @@
+  warnings.warn(
+как Б9 0172 (только recs.tokens): AssertionError: (torch.Size([3, 64, 1182]), 1182, 4)
++ recs.part_tokens = flags['part_tokens'] (как main): predict прошёл, логиты (3, 5)
