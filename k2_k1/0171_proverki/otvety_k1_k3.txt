@@ -1,0 +1,7 @@
+m13_tables.py: коммит 045fd7d, блоб c642a3955e800bf400161461c27fe88b06771bc7, grep -c -E '===|!!!' = 0
+m13_train.py 49b93bd: блоб 5f83fec, grep -c = 0
+data.py master: блоб bbaae45ee18bdcda2d018b7166732a91a46b1685
+model.py:48: PART_POINTS = [list(range(6, 27)), list(range(27, 48)), list(range(0, 6)), list(range(48, 85))]  # в порядке токенов
+master f6a5a72 turnir_eval.py:578: parts = [p for p in comp.split("+") for _ in range(int(p.split("×")[1]) if "×" in p else 1)]
+turnir_e2_chain.sh a1deebc: блоб 53a09884f8e888052b87cea4c9f8f86c785f0d78
+m13_train.py master f6a5a72 (его исполняет M13): блоб 5d9aebb, grep -c = 0

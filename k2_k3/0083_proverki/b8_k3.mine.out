@@ -1,0 +1,11 @@
+стенд 475: name = "+".join(f"{n}×{k}" if k > 1 else n for n, k in zip(names, top) if k) + ("*" if len(set(chosen)) > 1 else "")
+стенд 599: parts = [p for p in comp.split("+") for _ in range(int(p.split("×")[1].rstrip("*")) if "×" in p else 1)]
+master 578: parts = [p for p in comp.split("+") for _ in range(int(p.split("×")[1]) if "×" in p else 1)]
+
+состав (строка 475)    | master                                        | стенд 964ecba | (б)
+A1×2+SL-GCN            | 5.5                                           | 5.5          | 5.5
+A1×2+SL-GCN*           | нет данных                                    | нет данных   | нет данных
+A1+SL-GCN×2*           | ValueError (invalid literal for int() with base 10: '2*') | 6.5          | нет данных
+Sohn×2+UzSohn*         | нет данных                                    | нет данных   | нет данных
+Sohn+UzSohn×2*         | ValueError (invalid literal for int() with base 10: '2*') | 1.25         | нет данных
+Sohn×3*                | ValueError (invalid literal for int() with base 10: '3*') | 0.75         | нет данных

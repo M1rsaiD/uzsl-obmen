@@ -1,0 +1,52 @@
+diff --git a/scripts/turnir_e2_chain.sh b/scripts/turnir_e2_chain.sh
+index 1320b43..53a0988 100644
+--- a/scripts/turnir_e2_chain.sh
++++ b/scripts/turnir_e2_chain.sh
+@@ -118,8 +118,9 @@ if [ ! -f runs/TURNIR_E2_OK ]; then
+   hold_on
+ fi
+ say "жду 10 мин подряд без python на ГП (П11: идущие прогоны турнира не обрываются)"
+-while true; do
+-  while gpu_busy; do sleep 60; done
++n=0
++while true; do  # поправка к1 0151: раз в час — PID python на ГП (взаимная блокировка с held() видна в журнале в первый час)
++  while gpu_busy; do sleep 60; n=$((n + 1)); [ $((n % 60)) -eq 0 ] && say "жду ГП: python на ГП — PID $(nvidia-smi --query-compute-apps=pid,process_name --format=csv,noheader | grep python | cut -d, -f1 | paste -sd' ')"; done
+   ok=1; for i in $(seq 10); do sleep 60; gpu_busy && { ok=0; break; }; done
+   [ $ok = 1 ] && break
+ done
+diff --git a/scripts/turnir_eval.py b/scripts/turnir_eval.py
+index 0789dc5..7b099a1 100644
+--- a/scripts/turnir_eval.py
++++ b/scripts/turnir_eval.py
+@@ -593,10 +593,9 @@ def summary(level_main: float) -> None:
+                         c, src = correct_mixed([M[n] for n in names], cb, ids, gloss), f"val-состав@{head}"
+                     if c is None:
+                         continue
+-                    # «*» в конце вложенного состава (различается между исполнителями) — не часть числа: int("3*") в master падает (с
+-                    # UzSohn «толпа Sohn» на корпусе впервые не пуста). shortcut: «Имя*» без ×k — «нет данных», как в master (бит в
+-                    # бит); считать и его — только с «за» к1/к3
+-                    parts = [p for p in comp.split("+") for _ in range(int(p.split("×")[1].rstrip("*")) if "×" in p else 1)]
++                    # Б8 (б), к1 0151, к3 0050, к2 0171: «*» (состав различается между исполнителями) — одной цены нет → «нет
++                    # данных» у всякого такого состава; бит в бит с master на всех строках, что master выдаёт (на «×k*» он падал)
++                    parts = [] if comp.endswith("*") else [p for p in comp.split("+") for _ in range(int(p.split("×")[1]) if "×" in p else 1)]
+                     parts = [p.split("×")[0] for p in parts]
+                     add(ds, comp, "ens_mixed", N, "native", cond, c, signer, min(len(M[n]) for n in names), src, parts)
+     OUT.mkdir(parents=True, exist_ok=True)
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index 4ec4023..1d78356 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -317,10 +317,11 @@ def test_uzsohn_accepted_rows_and_outside_print(stand, monkeypatch):
+         te.e2_state()
+ 
+ 
+-@pytest.mark.parametrize("comp, cost", [("Sohn×2+UzSohn×3*", ("8", "80", "13")), ("Sohn×4+UzSohn*", ("нет данных",) * 3)])
++@pytest.mark.parametrize("comp, cost", [("Sohn×2+UzSohn×3", ("8", "80", "13")), ("Sohn×2+UzSohn×3*", ("нет данных",) * 3),
++                                        ("Sohn×4+UzSohn*", ("нет данных",) * 3)])
+ def test_summary_nested_star_composition(stand, monkeypatch, comp, cost):
+     """Вложенный состав корпуса, разный у исполнителей («…×3*»): сводка не падает, цена — по частям без «*» (с UzSohn «толпа Sohn»
+-    на корпусе впервые не пуста; стенд master падал на int("3*")); «Имя*» без ×k — «нет данных», как в master (бит в бит)."""
++    на корпусе впервые не пуста; стенд master падал на int("3*")); Б8 (б): у всякого состава с «*» цена — «нет данных»."""
+     base = stand(UZ)
+     for c in te.C:
+         te.export_cell(c, 1)

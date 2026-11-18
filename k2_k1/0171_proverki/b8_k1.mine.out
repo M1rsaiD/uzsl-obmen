@@ -1,0 +1,6 @@
+A1×2+SL-GCN            части=['A1', 'A1', 'SL-GCN'] gflops=6.0
+A1×2+SL-GCN*           части=['A1', 'A1', 'SL-GCN*'] gflops=нет данных
+A1+SL-GCN×2*           части=['A1', 'SL-GCN', 'SL-GCN'] gflops=9.0
+Sohn×2+UzSohn*         части=['Sohn', 'Sohn', 'UzSohn*'] gflops=нет данных
+Sohn+UzSohn×2*         части=['Sohn', 'UzSohn', 'UzSohn'] gflops=17.0
+Б8: «Имя*» → нет цены → строки нет на панели UzSL рисунка Парето; «Имя×k*» → цена самого частого состава → строка есть
