@@ -1,0 +1,5 @@
+1) предобучение (Slovo, без теста): шагов 24 | доли пакета {'slovo': 16} | best_step 8 | EMA decay 0.99 | файлы: ['best.pt', 'log.csv', 'metrics.json']
+2) param_groups на дереве рычагов: групп кодировщика 5 | параметров в группах [18, 16, 16, 16, 3] | голов 5 | головы: ['emb', 'heads', 'protos']
+3.1) дообучение, max_steps 6 (все 5 групп заморожены (шаги 1–6)): веса и MaskedBN групп = предобучению: [True, True, True, True, True] | замороженные на последнем шаге: [0, 1, 2, 3, 4] | lr кодировщика / lr голов = 0.100 | emb изменилось: True | best_step 6
+3.2) дообучение, max_steps 14 (шаг 14: группы 0–1 разморожены (с 7 и 11), 2–4 — нет): веса и MaskedBN групп = предобучению: [False, False, True, True, True] | замороженные на последнем шаге: [2, 3, 4] | lr кодировщика / lr голов = 0.100 | emb изменилось: True | best_step 14
+4) g3_code.txt: {'src/mpk/sohn.py': '7f1ac1ffa7fc6e706f52500c6981f4b0a344f3ca', 'scripts/m13_train.py': '5f83fecd2fcbccc582603fcc14ee32fc80f58be2', 'scripts/turnir_sohn_shared.py': 'fc5d15ab4cbbf8fd0ab57f4e12f0633ed70a47a4'}

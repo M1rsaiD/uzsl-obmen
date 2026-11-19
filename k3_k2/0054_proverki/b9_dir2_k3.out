@@ -1,0 +1,8 @@
+ячейка Sohn на Slovo, источники: ['UzSohn/slovo/fold*/seed*', 'M13/slovo/fold*/seed*', 'TURNIR/train/Slovo/Sohn/native/scratch/*/seed*']
+1) оба полные, d1 сходится     : тест (export_cell) — UzSohn; валидация (Б9) — ['UzSohn']; код export 0 (bad 0) → тот же прогон; --check: пропусков 0
+!!! сверка валидации не пройдена: …/runs/UzSohn/slovo/fold1/seed42 (эпоха 1) val_top1 0.5000 ≠ log.csv 0.0000
+!!! нет валидации: …/runs/UzSohn/slovo/fold1/seed42
+2) d1 не сходится с log.csv    : тест (export_cell) — UzSohn; валидация (Б9) — нет; код export 1 (bad 1) → файла нет; --check: пропусков 1
+!!! нет metrics.json или best.pt у прогона теста: …/runs/UzSohn/slovo/fold1/seed42
+!!! нет валидации: …/runs/UzSohn/slovo/fold1/seed42
+3) у d1 нет best.pt            : тест (export_cell) — UzSohn; валидация (Б9) — нет; код export 1 (bad 1) → файла нет; --check: пропусков 1
