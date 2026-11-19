@@ -1,0 +1,12 @@
+e2_state после селфтеста: ('Э2', 'UzSohn (Э2: U01b, № 2)')
+строк сводки 29; с UzSohn 7:
+  Slovo | 'UzSohn (Э2: U01b, № 2)' | single | source: runs/TURNIR/preds/Slovo/UzSohn/native/scratch@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+  Slovo | 'UzSohn (Э2: U01b, № 2)' | ens_homo | source: runs/TURNIR/preds/Slovo/UzSohn/native/scratch@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+  Slovo | 'UzSohn (Э2: U01b, № 2)' | ens_homo | source: runs/TURNIR/preds/Slovo/UzSohn/native/scratch@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+  Slovo | 'UzSohn (Э2: U01b, № 2)' | ens_homo | source: runs/TURNIR/preds/Slovo/UzSohn/native/scratch@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+  Slovo | 'UzSohn (Э2: U01b, № 2)' | ens_homo | source: runs/TURNIR/preds/Slovo/UzSohn/native/scratch@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+  Slovo | 'UzSohn (Э2: U01b, № 2)×3' | ens_mixed | source: val-состав@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+  Slovo | 'UzSohn (Э2: U01b, № 2)×5' | ens_mixed | source: val-состав@; общий рецепт UzSohn не обучался (поправка 4, 22.8)
+pareto_turnir.load: принято строк 29
+plot: файл есть (125203 байт)
+ВСЁ СОВПАЛО

@@ -1,0 +1,6 @@
+строки 189–205: batch() need()
+Traceback … FileNotFoundError (заглушка)
+nl0_k3.sh: line 9: $2: unbound variable
+nl0_k3.sh: line 9: $2: unbound variable
+хвост цепочки (239–252) завершился с кодом 1
+uzsohn_e1_uzsl_pre: 0 каталогов; UzSohn_E2_E1.done: нет
