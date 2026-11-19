@@ -1,0 +1,44 @@
+diff --git a/scripts/turnir_cost.py b/scripts/turnir_cost.py
+index 6994bf2..7d33d4d 100644
+--- a/scripts/turnir_cost.py
++++ b/scripts/turnir_cost.py
+@@ -102,6 +102,9 @@ def sohn_shared_cell(c: dict) -> dict:
+     from mpk import sohn
+     from mpk.model import Deploy
+     name, T = {"Slovo": "slovo", "Bukva": "bukva", "UzSL": "uzsl"}[c["ds"]], 32
++    d = next((d for d in te.src_dirs(c) if (d / "metrics.json").is_file()), None)  # к1 0158 разд. 4: T цены = T обученной сети
++    if d is not None:
++        assert json.loads((d / "metrics.json").read_text())["config"]["model"]["T"] == T, f"{d}: T прогона ≠ {T} (П29)"
+     torch.manual_seed(0)
+     m = ts.SohnShared({**tt.SOHN_MODEL, "T": T}, {name: NCLS[c["ds"]]}).eval()
+     pc, dep = param_counts(m), Deploy(m, name).eval()
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index 7eebb7d..10da1bf 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -1347,6 +1347,25 @@ def test_cost_g3_real_net(monkeypatch, ds, name, ncls):
+     assert n["T"] != 32 and n["params_m"] != r["params_m"] and abs(n["gflops"] - r["gflops"]) > 0.01
+ 
+ 
++@pytest.mark.parametrize("T", [32, 48])
++def test_cost_g3_T_from_run(tmp_path, monkeypatch, T):
++    """к1 0158 разд. 4: цена Sohn (общий) считается при T = 32 (П29) — сверка с T обученной сети из metrics.json первой готовой
++    затравки группы 3 (config.model.T, пишет порт); расхождение — отказ, а не молча другая сеть."""
++    import turnir_cost as tc
++    real = tc.bench
++    monkeypatch.setattr(tc, "bench", lambda fn: real(fn, 3))
++    monkeypatch.setattr(te, "RUNS", tmp_path)
++    c = next(c for c in te.C if G3(c) and c["ds"] == "Bukva")
++    d = tmp_path / "TURNIR/train/Bukva/Sohn/shared/scratch/fold1/seed0"
++    d.mkdir(parents=True)
++    (d / "metrics.json").write_text(json.dumps({"config": {"model": {"T": T}}}))
++    if T == 32:
++        assert tc.sohn_shared_cell(c)["T"] == 32
++    else:
++        with pytest.raises(AssertionError, match="T прогона"):
++            tc.sohn_shared_cell(c)
++
++
+ def test_cost_idle_sees_port(monkeypatch):
+     """Сеанс стоимости (П33, разд. 2 п. 8) — на простаивающей машине: процесс порта группы 3 (раннер зовёт его подпроцессом,
+     turnir_train.run_job) — занятость, как mpk.train и m13_train. Подставной процесс с той же командной строкой (exec -a), pgrep."""
