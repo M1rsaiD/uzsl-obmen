@@ -1,0 +1,4 @@
+slovo  n_cls  1001: total 2 473 991  encoder 1 733 790  inference_heads 483 945  train_only 256 256 (protos 256 256 = n_cls·256: True)  | (А) 2.2177 M  (Б) 2.4740 M  | родной SohnNet 2.1192 M
+bukva  n_cls    33: total 1 853 503  encoder 1 733 790  inference_heads 111 265  train_only   8 448 (protos 8 448 = n_cls·256: True)  | (А) 1.8451 M  (Б) 1.8535 M  | родной SohnNet 1.7465 M
+uzsl   n_cls   682: total 2 269 512  encoder 1 733 790  inference_heads 361 130  train_only 174 592 (protos 174 592 = n_cls·256: True)  | (А) 2.0949 M  (Б) 2.2695 M  | родной SohnNet 1.9964 M
+ВСЁ СОВПАЛО
