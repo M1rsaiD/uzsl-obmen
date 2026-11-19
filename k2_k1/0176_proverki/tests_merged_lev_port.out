@@ -1,0 +1,4 @@
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+128 passed, 299 warnings in 99.59s (0:01:39)
+самопроверка пройдена; 17 строк сводки (синтетика, не результаты)

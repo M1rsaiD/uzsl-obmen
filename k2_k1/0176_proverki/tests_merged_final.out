@@ -1,0 +1,5 @@
+# дерево a4fd5de = fa5e37c (рычаги) + c9a9c2a (порт группы 3), 19.11.2026; ЦП, nice 19
+# pytest tests/test_turnir_sohn_shared.py tests/test_turnir_e2.py tests/test_sohn.py:
+141 passed, 299 warnings in 116.84s (0:01:56)
+# turnir_eval.py --selftest (синтетика; таблица не приводится):
+самопроверка пройдена; 17 строк сводки (синтетика, не результаты)

@@ -1,0 +1,111 @@
+== model
+строк кода 398 / 399; отличий 9
+--- 7563b5e
++++ OM
+@@ -289,3 +289,3 @@
+ 
+-    def encode(self, x: torch.Tensor, mask: torch.Tensor, aspect: torch.Tensor):
++    def encode(self, x: torch.Tensor, mask: torch.Tensor, aspect: torch.Tensor, t0: torch.Tensor | None=None):
+         B, T = x.shape[:2]
+@@ -310,3 +310,4 @@
+         a = _masked_softmax(self.fuse_k(tok) @ self.fuse_q / math.sqrt(tok.shape[-1]), pm, 2)
+-        s = (a[..., None] * tok).sum(2) + self.pos[:T]
++        pos = self.pos[:T] if t0 is None else self.pos[t0[:, None] + torch.arange(T, device=x.device)]
++        s = (a[..., None] * tok).sum(2) + pos
+         fm = pm.amax(2)
+@@ -335,4 +336,4 @@
+ 
+-    def forward(self, x: torch.Tensor, mask: torch.Tensor, aspect: torch.Tensor, dataset) -> dict | list[dict]:
+-        z, tok, pm, _ = self.encode(x, mask, aspect)
++    def forward(self, x: torch.Tensor, mask: torch.Tensor, aspect: torch.Tensor, dataset, t0=None) -> dict | list[dict]:
++        z, tok, pm, _ = self.encode(x, mask, aspect, t0)
+         if isinstance(dataset, str):
+== train
+строк кода 371 / 396; отличий 49
+--- 7563b5e
++++ OM
+@@ -17,4 +17,4 @@
+ from torch.utils.flop_counter import FlopCounterMode
+-from .e1util import detect_dominant
+-from .e1util import load_config, lr_factor, sha256, signer_bootstrap
++from uzsign_e1.data import detect_dominant
++from uzsign_e1.train import load_config, lr_factor, sha256, signer_bootstrap
+ from . import augment, data
+@@ -22,2 +22,3 @@
+ ROOT = Path(__file__).resolve().parents[2]
++E1_ROOT = ROOT.parent / 'S'
+ MIN_WORST = 10
+@@ -32,3 +33,3 @@
+ def code_state() -> dict:
+-    return {'S': repo_state(ROOT, ('S', 'S', 'S', 'S'))}
++    return {'S': repo_state(ROOT, ('S', 'S', 'S', 'S')), 'S': repo_state(E1_ROOT, ('S',))}
+ HEAD_PARTS = {'S', 'S', 'S', 'S'}
+@@ -42,2 +43,3 @@
+     out = ([], [])
++    bs = max(1, bs * 32 // max(T, 32))
+     for a in range(0, len(clips), bs):
+@@ -93,2 +95,5 @@
+     lab = {g: k for k, g in enumerate(labels)}
++    ds = augment.GpuSet(cache, dev, flip=flip, use_z=cfg['S'].get('S', False), view=view(cfg['S']))
++    if cfg['S']['S'] == 'S':
++        ds.samslr = cfg['S']['S']
+     aug = None
+@@ -100,3 +105,3 @@
+         assert isinstance(aug['S'], bool), aug['S']
+-    return {'S': name, 'S': cache, 'S': idx, 'S': labels, 'S': signer, 'S': aug, 'S': torch.tensor([lab.get(c['S'], -1) for c in cache['S']], device=dev), 'S': augment.GpuSet(cache, dev, flip=flip, use_z=cfg['S'].get('S', False), view=view(cfg['S'])), 'S': {r: torch.as_tensor(v, device=dev) for r, v in idx.items()}, 'S': {**cache['S']['S'], 'S': n_real, 'S': len(idx['S']) - n_real, 'S': len(idx['S']), 'S': n_val, 'S': len(idx['S'])}, 'S': hands}
++    return {'S': name, 'S': cache, 'S': idx, 'S': labels, 'S': signer, 'S': aug, 'S': torch.tensor([lab.get(c['S'], -1) for c in cache['S']], device=dev), 'S': ds, 'S': {r: torch.as_tensor(v, device=dev) for r, v in idx.items()}, 'S': {**cache['S']['S'], 'S': n_real, 'S': len(idx['S']) - n_real, 'S': len(idx['S']), 'S': n_val, 'S': len(idx['S'])}, 'S': hands}
+ 
+@@ -213,2 +218,12 @@
+     multi, T, bs = (len(S) > 1, mc['S'], tc['S'])
++    assert tc['S'] in ('S', 'S'), tc['S']
++    sam_opt, so = (tc['S'] == 'S', tc['S'])
++    every = tc['S']
++    if sam_opt:
++        assert not multi and refit_steps is None and (not tc['S']) and (not tc['S']) and (ft['S'] is False)
++        bs = so['S']
++        spe = len(S[0]['S']['S']) // bs
++        every = spe
++    T_tr = S[0]['S'].samslr['S'] if S[0]['S'].samslr else T
++    assert not (multi and S[0]['S'].samslr), 'S'
+     share = shares([len(s['S']['S']) for s in S], bs)
+@@ -222,7 +237,14 @@
+     steps = tc['S'] if refit_steps is None else refit_steps
+-    warmup = max(1, round(tc['S'] * steps))
+-    assert warmup < steps, (warmup, steps)
+-    pg, groups = param_groups(model, ft, tc['S'])
+-    opt = torch.optim.AdamW(pg, lr=tc['S'], weight_decay=tc['S'])
+-    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: lr_factor(s, warmup, steps))
++    if sam_opt:
++        steps = so['S'] * spe
++        groups = []
++        opt = torch.optim.SGD(model.parameters(), lr=so['S'], momentum=so['S'], nesterov=so['S'], weight_decay=so['S'])
++        W, ms_ = (so['S'], so['S'])
++        sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: (s // spe + 1) / W if s // spe < W else 0.1 ** sum((s // spe >= m for m in ms_)))
++    else:
++        warmup = max(1, round(tc['S'] * steps))
++        assert warmup < steps, (warmup, steps)
++        pg, groups = param_groups(model, ft, tc['S'])
++        opt = torch.optim.AdamW(pg, lr=tc['S'], weight_decay=tc['S'])
++        sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: lr_factor(s, warmup, steps))
+     ema = None
+@@ -258,2 +280,4 @@
+         for step in range(1, last + 1):
++            if sam_opt and (step - 1) % spe == 0:
++                orders = [torch.empty(0, dtype=torch.long, device=dev) for _ in S]
+             xs, ms, as_, ys = ([], [], [], [])
+@@ -264,3 +288,3 @@
+                 b, orders[k] = (orders[k][:n], orders[k][n:])
+-                x, m, a = augment.batch(s['S'], b, T, s['S'], g)
++                x, m, a = augment.batch(s['S'], b, T_tr, s['S'], g)
+                 (xs.append(x), ms.append(m), as_.append(a), ys.append(s['S'][b]))
+@@ -279,3 +303,4 @@
+                 else:
+-                    rs = [fwd(xs[0], ms[0], as_[0], S[0]['S'])]
++                    kw = {'S': S[0]['S'].last_t0} if S[0]['S'].samslr else {}
++                    rs = [fwd(xs[0], ms[0], as_[0], S[0]['S'], **kw)]
+                     loss = seg_loss(rs[0], ys[0])
+@@ -294,3 +319,3 @@
+             n_sum += 1
+-            if step % tc['S'] == 0 or step == last:
++            if step % every == 0 or step == last:
+                 sync()

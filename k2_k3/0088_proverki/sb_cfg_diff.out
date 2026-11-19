@@ -1,0 +1,20 @@
+полей вне model: 90; различаются: 3
+condition A1: m83_pretrain_sb_a1 | A2: pretrain_slovo_bukva_a2 | MPK_large: m83_pretrain_sb_a1_big | SL-GCN (= ST-GCN): pretrain_sb_slgcn_orig
+experiment A1: M8 | A2: M9 | MPK_large: M8 | SL-GCN (= ST-GCN): M11P
+train.compile A1: True | A2: True | MPK_large: True | SL-GCN (= ST-GCN): False
+--- общие (значение A1):
+train.lr 0.001 (одинаково у всех)
+train.weight_decay 0.05 (одинаково у всех)
+train.warmup_frac 0.05 (одинаково у всех)
+train.steps 18407 (одинаково у всех)
+train.batch_size 128 (одинаково у всех)
+train.ema True (одинаково у всех)
+train.ema_decay 0.999 (одинаково у всех)
+train.eval_every 920 (одинаково у всех)
+train.select best_val (одинаково у всех)
+finetune.freeze_steps 0 (одинаково у всех)
+finetune.unfreeze_every 0 (одинаково у всех)
+finetune.backbone_lr_mult 1.0 (одинаково у всех)
+loss.lambda_emb 0.5 (одинаково у всех)
+loss.beta_part 0.1 (одинаково у всех)
+loss.label_smoothing 0.1 (одинаково у всех)
