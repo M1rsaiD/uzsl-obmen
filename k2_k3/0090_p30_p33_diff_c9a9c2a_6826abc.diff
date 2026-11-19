@@ -1,0 +1,736 @@
+diff --git a/scripts/turnir_cost.py b/scripts/turnir_cost.py
+index 150599f..6994bf2 100644
+--- a/scripts/turnir_cost.py
++++ b/scripts/turnir_cost.py
+@@ -1,12 +1,13 @@
+ """Турнир — сеанс стоимости в ОДНОМ сеансе (TURNIR_prereg.md разд. 2 п. 8) → reports/turnir_cost.json (читает turnir_eval.py).
+ 
+ cd osnovnaya_model && CUDA_VISIBLE_DEVICES= PYTHONPATH=src:../uzsign_e1/src python scripts/turnir_cost.py [--force]
+-Запуск — только на простаивающей машине (load < 3, нет mpk.train / m13_train / их кода; иначе отказ; --force — проверка
++Запуск — только на простаивающей машине (load < 3, нет mpk.train / m13_train / их кода / порта группы 3; иначе отказ; --force — проверка
+ кода → turnir_cost_force.json, не для текста). Способ — как Г2-4 / m13_cost.py: ЦП i9-14900KF, float32, batch 1, все
+ потоки torch, медиана 100 замеров после 10 прогревов; GFLOPs — torch.utils.flop_counter (mpk-модели — mpk.train.cost).
+ Окно при тесте: mpk.train-модели — их T (32; E1 — 64); Sohn — медиана длины записи набора (Slovo/Bukva 47, корпус 61 —
+ M13_sohn_prereg разд. 3). Модель — по config.yaml готового прогона ячейки (главный рецепт; UzSohn — по его metrics.json,
+-поправка 4, 22.10 п. 5); веса случайные (на цену не влияют).
++поправка 4, 22.10 п. 5); веса случайные (на цену не влияют). Sohn (общий, группа 3) — сеть порта (Д-Т при T = 32, головы _Base),
++отдельный ключ turnir_eval.COST_KEY («Sohn/shared», П33); ключи и записи прочих моделей — как были.
+ Размер: ONNX (mpk-модели; export через torch.onnx во временный файл) — МБ = 10⁶ байт. Часы ГП на обучение — из журналов
+ (TURNIR_inventory: ч на прогон × прогонов) — отдельное поле gpu_h_train_per_run.
+ """
+@@ -39,7 +40,7 @@ SOHN_T = {"Slovo": 47, "Bukva": 47, "UzSL": 61}
+ 
+ def idle_or_die() -> float:
+     load = os.getloadavg()[0]
+-    busy = subprocess.run(["pgrep", "-f", "mpk[.]train|run_[a]ll[.]py|m13_trai[n]|turnir_thei[r]|m11_samsl[r]"],
++    busy = subprocess.run(["pgrep", "-f", "mpk[.]train|run_[a]ll[.]py|m13_trai[n]|turnir_thei[r]|m11_samsl[r]|turnir_sohn_share[d]"],
+                           capture_output=True, text=True).stdout.split()
+     assert FORCE or (load < 3.0 and not busy), f"машина не простаивает: load {load:.1f}, процессы {busy}"
+     return load
+@@ -93,6 +94,22 @@ def sohn_cell(c: dict) -> dict:
+     return {"gflops": g, "latency_ms": ms, "params_m": sohn.keras_param_count(net)["trainable"] / 1e6, "T": T}
+ 
+ 
++def sohn_shared_cell(c: dict) -> dict:
++    """П33: Sohn (общий) — сеть порта группы 3 (turnir_sohn_shared.SohnShared: Д-Т при T = 32, головы _Base), вход порта [1, T, 708]
++    + маска. Как mpk-модели: граф вывода Deploy (логиты + вложение), параметры — кодировщик + головы вывода (param_counts)."""
++    import turnir_sohn_shared as ts
++    import turnir_train as tt
++    from mpk import sohn
++    from mpk.model import Deploy
++    name, T = {"Slovo": "slovo", "Bukva": "bukva", "UzSL": "uzsl"}[c["ds"]], 32
++    torch.manual_seed(0)
++    m = ts.SohnShared({**tt.SOHN_MODEL, "T": T}, {name: NCLS[c["ds"]]}).eval()
++    pc, dep = param_counts(m), Deploy(m, name).eval()
++    x, mk = torch.randn(1, T, sohn.CHANNELS), torch.ones(1, T, dtype=torch.bool)
++    g, ms = bench(lambda: dep(x, mk, None))
++    return {"gflops": g, "latency_ms": ms, "params_m": (pc["encoder"] + pc["inference_heads"]) / 1e6, "T": T}
++
++
+ def uzsohn_cell(c: dict) -> dict | None:
+     """UzSohn (поправка 4, 22.10 п. 5): сеть — по metrics.json прогона ячейки (input, channels, flags; № 3 — EMA весов — сеть не
+     меняет, № 4 — cos_head уже во flags). Вход — как uzsohn_sel.ms_per_record: preprocess_u(tokens), при № 2 — и маска
+@@ -124,17 +141,20 @@ def main() -> None:
+            "when": time.strftime("%F %T")}
+     for c in te.C:
+         rec = te.MAIN_RECIPE.get(c["model"], "native")
+-        if c["recipe"] != rec or (c["ds"] != te.LO and c["cond"] != "scratch") or (c["ds"] == te.LO and c["cond"] != "transfer"):
++        key = te.COST_KEY.get((c["model"], c["recipe"]), c["model"])  # П33: Sohn (общий) — свой ключ; прочие — модель, как было
++        if (c["recipe"] != rec and key == c["model"]) or (c["ds"] != te.LO and c["cond"] != "scratch") or \
++                (c["ds"] == te.LO and c["cond"] != "transfer"):
+             continue
+         try:
+-            r = sohn_cell(c) if c["model"] == "Sohn" else uzsohn_cell(c) if c["model"] == "UzSohn" else mpk_cell(c)
++            r = sohn_shared_cell(c) if key != c["model"] else sohn_cell(c) if c["model"] == "Sohn" else \
++                uzsohn_cell(c) if c["model"] == "UzSohn" else mpk_cell(c)
+         except Exception as e:
+-            print("!!!", c["ds"], c["model"], type(e).__name__, e, flush=True)
++            print("!!!", c["ds"], key, type(e).__name__, e, flush=True)
+             r = None
+         if r:
+             r["gpu_h_train_per_run"] = c["h"]
+-            out.setdefault(c["ds"], {})[c["model"]] = r
+-            print(c["ds"], c["model"], {k: round(v, 3) if isinstance(v, float) else v for k, v in r.items()}, flush=True)
++            out.setdefault(c["ds"], {})[key] = r
++            print(c["ds"], key, {k: round(v, 3) if isinstance(v, float) else v for k, v in r.items()}, flush=True)
+     p = ROOT / ("reports/turnir_cost" + ("_force" if FORCE else "") + ".json")
+     p.write_text(json.dumps(out, indent=1, ensure_ascii=False))
+     print("записано", p)
+diff --git a/scripts/turnir_eval.py b/scripts/turnir_eval.py
+index 7b099a1..80692d2 100644
+--- a/scripts/turnir_eval.py
++++ b/scripts/turnir_eval.py
+@@ -52,6 +52,10 @@ E2_OUT_SHA = "0041fcd901eca06cb60e7b8ef119ce55cd042f9dc393657700bb40228a995c30"
+ B_MAIN = 20000  # главные пары и ДИ сводки: крайние квантили (1 − 0,01/m) — 20 000 повторов (0063, п. 6); затравка ГСЧ — та же
+ # главная строка архитектуры — её лучший рецепт по валидации (0063 п. 2): SL-GCN, ST-GCN — общий (Г2/Г3), остальные — родной
+ MAIN_RECIPE = {"SL-GCN": "shared", "ST-GCN": "shared"}
++RECIPE_RU = {"native": "родной", "shared": "общий"}  # подпись стороны пары с явным рецептом (П30)
++# П33: цена — по ключу (модель, рецепт); у прежних ячеек ключ — модель (цена главной строки архитектуры, как было), у Sohn (общий)
++# — свой: другая сеть (Д-Т, T = 32, головы _Base); нет записи — «нет данных», цена родного Sohn не подставляется
++COST_KEY = {("Sohn", "shared"): "Sohn/shared"}
+ N_SEEDS = 5
+ FMT = ["dataset", "model", "kind", "members", "recipe", "condition", "top1", "top1_lo", "top1_hi", "ci_level", "gflops",
+        "latency_ms", "params_m", "n_seeds", "source"]
+@@ -59,7 +63,8 @@ FMT = ["dataset", "model", "kind", "members", "recipe", "condition", "top1", "to
+ # ── Ячейки турнира: (набор, модель, рецепт, условие) → источники готовых прогонов и цена одного прогона в ч ГП ─────────
+ # kind: run — каталоги mpk.train (config.yaml + best.pt; вероятности — из кэша M10 или выгрузкой на ЦП);
+ #       samslr / stgcn — их код (M11 Г/Г3; оценки теста сохранены их main.py: eval_results/*.pkl, test_result.pkl);
+-#       m13 — порт Sohn (серия M13, другой агент; формат его вывода подключается после M13).
++#       m13 — вывод m13_train (probs.npz + predictions.csv): Sohn M13 / UzSohn и группа 3 — Sohn в общем рецепте (порт
++#       scripts/turnir_sohn_shared.py, П28–П33; его затравки обучает раннер турнира, выход — runs/TURNIR/train).
+ # h — ч ГП на один (фолд, затравка): журнал runs/journal.csv (секунды / jobs, медиана) или длительность серии / число
+ #     прогонов; «~» — оценка по аналогу (см. reports/TURNIR_inventory.md). pre — ч ГП одного предобучения S+B (на затравку).
+ P, LO = "Slovo", "UzSL"
+@@ -93,7 +98,7 @@ for ds, low in (("Slovo", "slovo"), ("Bukva", "bukva")):
+          0.297 if S else 0.047, "Г2-2 / M12-1 A")
+     cell(ds, "Sohn", "native", "scratch", "m13", [f"UzSohn/{low}/fold*/seed*", f"M13/{low}/fold*/seed*"], 0.43 if S else 0.05,
+          "M13: 4 затравки (42–45) идут; 5-я — дообучить")
+-    cell(ds, "Sohn", "shared", "scratch", "none", [], 0.30 if S else 0.04, "~ нет порта Sohn в mpk.train (вопрос)")
++    cell(ds, "Sohn", "shared", "scratch", "m13", [], 0.30 if S else 0.04, "~ группа 3: порт scripts/turnir_sohn_shared.py (П28–П33)")
+     # справочный состав (только Slovo/Bukva, одиночки)
+     cell(ds, "E1", "native", "scratch", "run", [f"M8/m81_{low}_e1_transformer_e1rec/fold*/seed*"], 0.020 if S else 0.003,
+          "трансформер E1, рецепт e1rec (M8.1)", main=False)
+@@ -122,7 +127,7 @@ for cond in ("transfer", "scratch"):
+          "M12 LOSO / ~ шаги с нуля × 7", pre=0.394 if T else None)
+     cell(LO, "Sohn", "native", cond, "m13", [f"{r}/uzsl_{'pre' if T else 'scratch'}/*/seed*" for r in ("UzSohn", "M13")], 0.07,
+          "M13: 4 затравки идут; 5-я — дообучить", pre=0.5 if T else None)
+-    cell(LO, "Sohn", "shared", cond, "none", [], 0.05 if T else 0.35, "~ нет порта Sohn в mpk.train (вопрос)",
++    cell(LO, "Sohn", "shared", cond, "m13", [], 0.05 if T else 0.35, "~ группа 3: порт scripts/turnir_sohn_shared.py (П28–П33)",
+          pre=0.4 if T else None)
+ 
+ # UzSohn в Э1 — только если в Э2 что-то принято (поправка 4, 22.8); обучает цепочка Э2 (turnir_train их пропускает). Свои теги
+@@ -206,9 +211,11 @@ def inventory() -> None:
+     nfold = {k: len(v) for k, v in FOLDS.items()}
+     rows, tot, tots = [], defaultdict(float), defaultdict(float)
+     for c in C:
++        g3 = c["model"] == "Sohn" and c["recipe"] == "shared"  # группа 3: затравки раннера (формат m13) — как done_seeds раннера
++        m13 = c["kind"] == "m13" and not g3  # M13 / UzSohn: затравки обучает своя цепочка
+         ds = src_dirs(c) if c["kind"] in ("run", "samslr", "stgcn", "m13", "their") else []
+-        if c["kind"] == "run":
+-            ds = [d for d in ds if (d / "metrics.json").is_file()]
++        if c["kind"] == "run" or g3:  # у группы 3 — только seed<число>, как done_seeds раннера (копии seed2.bak_… не затравки)
++            ds = [d for d in ds if (d / "metrics.json").is_file() and (not g3 or d.name.removeprefix("seed").isdigit())]
+             n_stale = sum(not data_ok(d) for d in ds)
+             ds = [d for d in ds if data_ok(d)]  # затравки на иных данных не допускаются (0063 п. 1)
+         elif c["kind"] == "m13":
+@@ -216,13 +223,14 @@ def inventory() -> None:
+         else:
+             ds = [d for d in ds if (d / "predictions.csv").is_file()]
+         info = [run_info(d, "run" if c["kind"] == "m13" else c["kind"]) for d in ds] if c["kind"] != "m13" else \
+-            [dict(fold=d.parent.name, seed=d.name, commit="M13", data={}, src_diff=[], has_pt=True, cfgsig="") for d in ds]
++            [dict(fold=d.parent.name, seed=int(d.name[4:]) if g3 else d.name, commit="порт группы 3" if g3 else "M13", data={},
++                  src_diff=[], has_pt=True, cfgsig="") for d in ds]
+         seeds = defaultdict(set)
+         for i in info:
+             seeds[i["seed"]].add(i["fold"])
+         full = sorted(s for s, f in seeds.items() if len(f) == nfold[c["ds"]])
+-        have = len(full) if c["kind"] != "m13" else 0  # M13 считается «в работе»
+-        need = max(0, N_SEEDS - have) if c["kind"] != "m13" else 1
++        have = len(full) if not m13 else 0  # M13 считается «в работе»
++        need = max(0, N_SEEDS - have) if not m13 else 1
+         commits = sorted({i["commit"] for i in info})
+         datas = {json.dumps(i["data"], sort_keys=True) for i in info}
+         cfgs = defaultdict(set)
+@@ -238,16 +246,16 @@ def inventory() -> None:
+             pstat = "—"
+         n_runs = need * nfold[c["ds"]]
+         h = n_runs * c["h"] + (need * c["pre"] if c["pre"] else 0)
+-        if c["kind"] == "m13":  # UzSohn — в Э1 только при принятом рычаге (22.8), его часы — 22.9 поправки 4, не эта формула
++        if m13:  # UzSohn — в Э1 только при принятом рычаге (22.8), его часы — 22.9 поправки 4, не эта формула
+             h = 1 * nfold[c["ds"]] * c["h"] + (c["pre"] or 0) if c["model"] == "Sohn" else 0.0
+         hs = N_SEEDS * nfold[c["ds"]] * c["h"] + (N_SEEDS * c["pre"] if c["pre"] else 0)  # строго: все 5 з. заново
+-        if c["kind"] == "m13":
++        if m13:
+             hs = h
+         stage = "Э1" if c["main"] else "Э1 справ."
+         tot[(stage, c["ds"], c["recipe"])] += h
+         tots[(stage, c["ds"], c["recipe"])] += hs
+-        n_stale = n_stale if c["kind"] == "run" else 0
+-        verdict = ("есть" if need == 0 else f"дообучить {need} з." if have else f"обучить {need} з.") if c["kind"] != "m13" else \
++        n_stale = n_stale if c["kind"] == "run" or g3 else 0
++        verdict = ("есть" if need == 0 else f"дообучить {need} з." if have else f"обучить {need} з.") if not m13 else \
+             "M13 идёт → +1 з." if c["model"] == "Sohn" else "по итогу Э2 (поправка 4, 22.8; часы — 22.9)"
+         reuse = "—"
+         if info and c["kind"] == "run":
+@@ -256,7 +264,7 @@ def inventory() -> None:
+             reuse = ("данные/фолды ✓" if ok_data else "данные/фолды ✗") + ("; конфиг ✓" if ok_cfg else "; конфиг ≠ между затравками фолда") + \
+                     ("; src = HEAD" if not diff else "; src ≠ HEAD: " + ",".join(diff))
+         elif info:
+-            reuse = "их код без правок; данные — runs/M11/*/data"
++            reuse = "код — runs/TURNIR/g3_code.txt (П32)" if g3 else "их код без правок; данные — runs/M11/*/data"
+         if n_stale:
+             verdict += f" (не допущено {n_stale} прогонов: данные ≠ текущим)"
+         rows.append(f"| {c['ds']} | {c['model']} | {c['recipe']} | {c['cond']} | {len(ds)} | "
+@@ -357,6 +365,9 @@ def export_cell(c, threads: int) -> None:
+             out = od / f"{fold}__seed{seed}.npz"
+             if out.is_file():
+                 continue
++            if c["model"] == "Sohn" and c["recipe"] == "shared" and not (seed.isdigit() and (d / "metrics.json").is_file() and data_ok(d)):
++                print("группа 3: не затравка, прогон не завершён или данные ≠ текущим, пропуск", d, flush=True)  # как done_seeds раннера
++                continue
+             z = np.load(d / "probs.npz")
+             with open(d / "predictions.csv", newline="", encoding="utf-8") as f:
+                 pr = {r["sample_id"]: r for r in csv.DictReader(f)}
+@@ -545,7 +556,8 @@ def summary(level_main: float) -> None:
+ 
+     def add(ds, model, kind, members, recipe, cond, c, signer, n_seeds, source, parts):
+         t, lo, hi = acc_ci(c, signer, level_main, ds, B=B_MAIN)
+-        g = [cost.get(ds, {}).get(p, {}) for p in parts]  # turnir_cost.json: {набор: {модель: {gflops, latency_ms, params_m}}}
++        # turnir_cost.json: {набор: {ключ: {gflops, latency_ms, params_m}}}, ключ — COST_KEY (модель, рецепт) или модель (П33)
++        g = [cost.get(ds, {}).get(COST_KEY.get((p, recipe), p), {}) for p in parts]
+         sm = lambda k: round(sum(x[k] for x in g), 4) if g and all(k in x for x in g) else "нет данных"  # noqa: E731
+         if st == "Э2" and "UzSohn" in model:  # подпись по П21 «Название» (ключ UzSohn — внутренний); пометка 22.8 «в таблицах»
+             model, source = model.replace("UzSohn", uz), f"{source}; общий рецепт UzSohn не обучался (поправка 4, 22.8)"
+@@ -607,7 +619,8 @@ def summary(level_main: float) -> None:
+ 
+ 
+ def pairs_table(pairs: list[tuple], main: bool, cond_corpus="transfer", m: int = 0, keep: set | None = None) -> list[str]:
+-    """Пары (набор, модель_a, модель_b), одиночки; рецепт — MAIN_RECIPE (главная строка архитектуры). main — уровень
++    """Пары (набор, модель_a, модель_b), одиночки; рецепт — MAIN_RECIPE (главная строка архитектуры) или явный: сторона —
++    (модель, рецепт), в подписи — рецепт (П30, группа 3; +2,71 и sohn_verdict — по модели сторон). main — уровень
+     1 − 0,01/m (m — главных пар в семействе, по умолчанию len(pairs)) и 20 000 повторов; иначе — справочно, 95 %. Вывод — по
+     macro; micro рядом (0063 п. 7). Строки UzSohn — по итогу Э2 (e2_state). keep — печать 22.7 поправки 4: под каждой
+     строкой — та же пара только на исполнителях keep."""
+@@ -617,17 +630,19 @@ def pairs_table(pairs: list[tuple], main: bool, cond_corpus="transfer", m: int =
+     out = [f"| набор | пара | Δ macro, п. п. | ДИ {100 * lvl:.4g} % | вывод | Δ micro [ДИ] | доля исп. с ухудшением |",
+            "|---|---|---|---|---|---|---|"]
+     for ds, a, b in pairs:
++        (a, ra, xa), (b, rb, xb) = ((x, MAIN_RECIPE.get(x, "native"), "") if isinstance(x, str) else (*x, f" ({RECIPE_RU[x[1]]})")
++                                    for x in (a, b))
+         if "UzSohn" in (a, b) and st != "Э2":  # 22.8: UzSohn ≡ Sohn (M13) — без повтора чисел; итога Э2 нет — «ждёт», как было
+-            out.append(f"| {ds} | {a} − {b} | {f'≡ наша реализация Sohn (M13): Э2 — {uz}' if st else 'ждёт'} | | | | |")
++            out.append(f"| {ds} | {a}{xa} − {b}{xb} | {f'≡ наша реализация Sohn (M13): Э2 — {uz}' if st else 'ждёт'} | | | | |")
+             continue
+         cond = cond_corpus if ds == LO else "scratch"
+-        ma, mb = (load_model(PRED / ds / x / MAIN_RECIPE.get(x, "native") / cond) for x in (a, b))
++        ma, mb = (load_model(PRED / ds / x / r / cond) for x, r in ((a, ra), (b, rb)))
+         if not ma or not mb:
+-            out.append(f"| {ds} | {a} − {b} | ждёт | | | | |")
++            out.append(f"| {ds} | {a}{xa} − {b}{xb} | ждёт | | | | |")
+             continue
+         ids, signer, gloss = align([ma, mb])
+         ca, cb = correct_ens(ma, 1, ids, gloss), correct_ens(mb, 1, ids, gloss)
+-        one = (a in SOHN_LIKE) != (b in SOHN_LIKE)  # «порт − порт» (UzSohn − Sohn): сдвиг +2,71 сокращается (уточнение П18, 22.7)
++        one = (a in SOHN_LIKE) != (b in SOHN_LIKE)  # «порт − порт» (UzSohn − Sohn; Sohn − Sohn, П30): сдвиг +2,71 сокращается (П18, 22.7)
+         mark = "; отбор не вложенный (22.7)" if nn and ds == P and "UzSohn" in (a, b) else ""
+         sel = [("", np.ones(len(ids), bool))]
+         if keep:
+@@ -636,12 +651,13 @@ def pairs_table(pairs: list[tuple], main: bool, cond_corpus="transfer", m: int =
+         for tag, k in sel:
+             r = paired(ca[k], cb[k], signer[k], lvl, ds, True, B)
+             q = paired(ca[k], cb[k], signer[k], lvl, ds, False, B)
+-            out.append(f"| {ds} | {label(a, uz)} − {label(b, uz)}{tag} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | "
++            out.append(f"| {ds} | {label(a, uz)}{xa} − {label(b, uz)}{xb}{tag} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | "
+                        f"{sohn_verdict(a, b, r) if one else verdict(r['lo'], r['hi'])}{mark} | "
+                        f"{q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |")
+             if one:
+                 sh = shift_for(a, b)
+-                out.append(f"| {ds} | ↳ устойчивость: +{SOHN_GAP} к точности {label(a if a in SOHN_LIKE else b, uz)} | {r['delta'] + sh:+.2f} | "
++                x = label(a, uz) + xa if a in SOHN_LIKE else label(b, uz) + xb
++                out.append(f"| {ds} | ↳ устойчивость: +{SOHN_GAP} к точности {x} | {r['delta'] + sh:+.2f} | "
+                            f"[{r['lo'] + sh:+.2f}; {r['hi'] + sh:+.2f}] | {verdict(r['lo'] + sh, r['hi'] + sh)} | | |")
+     return out
+ 
+@@ -782,6 +798,25 @@ REF_PAIRS = [(ds, a, b) for ds in ("Slovo", "UzSL", "Bukva") for a, b in
+              (("A1", "SL-GCN"), ("A1", "ST-GCN"), ("A1", "A2"), ("A1", "MPK_large"))] + \
+             [("Bukva", a, b) for a, b in (("Sohn", "A1"), ("Sohn", "SL-GCN"), ("UzSohn", "A1"), ("UzSohn", "SL-GCN"))] + \
+             [(ds, "UzSohn", "Sohn") for ds in (P, LO)]  # поправка 4, 22.7: «UzSohn (Э2) − Sohn», без строки +2,71 (уточнение П18)
++# П30 (поправка 4, П28–П33): пары группы 3 — справочно (95 %, macro, бутстреп BOOT), рецепт сторон — явный; вне m = 8 (П6).
++# «Sohn (родной) − Sohn (общий)» — без строки +2,71 (порт с обеих сторон); «Sohn (общий) − SL-GCN (общий)» — с ней (П18)
++G3_PAIRS = [(ds, ("Sohn", "native"), ("Sohn", "shared")) for ds in (P, "Bukva", LO)] + \
++           [(ds, ("Sohn", "shared"), ("SL-GCN", "shared")) for ds in (P, LO)]
++
++
++def g3_tail() -> list[str]:
++    """Раздел pairs.md «группа 3» (П30): корпус — перенос; «Sohn − Sohn» на корпусе ещё и с нуля — отдельной таблицей."""
++    return ["", "## Группа 3, справочно (поправка 4, П30; 95 %; вне m = 8; корпус — перенос)", ""] + pairs_table(G3_PAIRS, False) + \
++        ["", "Корпус с нуля:", ""] + pairs_table([(LO, ("Sohn", "native"), ("Sohn", "shared"))], False, "scratch")
++
++
++def pairs_md() -> str:
++    """runs/TURNIR/pairs.md (команда summary): главные пары, справочные, хвост поправки 4 (e2_tail), группа 3 (g3_tail)."""
++    return "\n".join(["# Э1 — главные пары (одиночки, родной рецепт; корпус — перенос)", "",
++                      f"Затравок в ячейках: см. turnir_summary.csv (n_seeds). Пока Э1 не завершён (нет runs/TURNIR_E1.done) — "
++                      f"**прогон стенда на готовых прогонах, не результат турнира**; корпус — предварительно до проверки меток.", ""] +
++                     pairs_table(MAIN_PAIRS, True) + ["", "## Справочно (95 %)", ""] + pairs_table(REF_PAIRS, False) + e2_tail() +
++                     g3_tail()) + "\n"
+ 
+ 
+ # ── Правило остановки ветки UzSohn (поправка 2 к TURNIR_prereg.md) ─────────────────────────────────────────────────────
+@@ -975,10 +1010,12 @@ def selftest() -> None:
+     assert sohn_verdict("Sohn", "A1", dict(lo=1.0, hi=3.0)) == "лучше"  # Sohn лучше — правило 0078 не касается
+     cn, nm = correct_mixed_nested(m3, ["A1", "SL-GCN", "ST-GCN"], 1, ids, gloss, signer)
+     assert nm == "SL-GCN" and np.allclose(cn, correct_ens(Sg, 1, ids, gloss)), (nm, "вложенный выбор: сильнейшая при N = 1")
+-    # формат сводки — проверка их же загрузчиком (0062), если клон рядом
++    # формат сводки — проверка их же загрузчиком (0062), если клон рядом; в сводке и группа 3 (П30): Sohn (общий) = копия ST-GCN
++    shutil.copytree(PRED / "Slovo/ST-GCN/shared/scratch", PRED / "Slovo/Sohn/shared/scratch")
+     summary(0.99)
+     rows = list(csv.DictReader(open(OUT / "turnir_summary.csv", encoding="utf-8")))
+     assert rows and list(rows[0]) == FMT and {r["kind"] for r in rows} == {"single", "ens_homo", "ens_mixed"}
++    assert sum((r["model"], r["recipe"]) == ("Sohn", "shared") for r in rows) == 5  # одиночная + однородные ансамбли 2…5
+     pz = os.environ.get("PARETO_TURNIR")
+     if pz and Path(pz).is_file():
+         import importlib.util
+@@ -1009,6 +1046,22 @@ def selftest() -> None:
+     assert len(t) == 5 and "↳" not in t[3] and t[4].startswith("| Slovo | ↳ устойчивость: +2.71 к точности UzSohn (Э2: U01b, № 2) |")
+     assert t[2] == (f"| Slovo | UzSohn (Э2: U01b, № 2) − наша реализация Sohn | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | "
+                     f"{verdict(r['lo'], r['hi'])} | {q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |"), t
++    # П30 (T5): пары группы 3 — рецепт сторон явный (Sohn (родной) = копия A1, Sohn (общий) = копия ST-GCN); «Sohn − Sohn» — без
++    # строки +2,71 и без sohn_verdict, «Sohn (общий) − SL-GCN (общий)» — с ними (П18); справочно: 95 %, бутстреп BOOT
++    cs = correct_ens(load_model(PRED / "Slovo/ST-GCN/shared/scratch"), 1, ids, gloss)
++    t = pairs_table([(P, ("Sohn", "native"), ("Sohn", "shared")), (P, ("Sohn", "shared"), ("SL-GCN", "shared"))], False)
++    (r1, q1), (r2, q2) = [[paired(x, y, signer, .95, P, mac) for mac in (True, False)]
++                          for x, y in ((c1, cs), (cs, correct_ens(Sg, 1, ids, gloss)))]
++    row = lambda pair, r, q, v: (f"| Slovo | {pair} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | {v} | "  # noqa: E731
++                                 f"{q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |")
++    assert "ДИ 95 %" in t[0] and len(t) == 5 and r1["delta"] != 0, t
++    assert t[2] == row("наша реализация Sohn (родной) − наша реализация Sohn (общий)", r1, q1, verdict(r1["lo"], r1["hi"])), t
++    assert t[3] == row("наша реализация Sohn (общий) − SL-GCN (общий)", r2, q2, sohn_verdict("Sohn", "SL-GCN", r2)), t
++    assert t[4] == (f"| Slovo | ↳ устойчивость: +2.71 к точности наша реализация Sohn (общий) | {r2['delta'] + 2.71:+.2f} | "
++                    f"[{r2['lo'] + 2.71:+.2f}; {r2['hi'] + 2.71:+.2f}] | {verdict(r2['lo'] + 2.71, r2['hi'] + 2.71)} | | |"), t
++    g = g3_tail()  # раздел pairs.md: Bukva и корпус в синтетике — «ждёт»; корпус с нуля — своя таблица
++    assert g[3] == t[0] and g[5] == t[2] and g[8:10] == t[3:5] and g[6] == "| Bukva | Sohn (родной) − Sohn (общий) | ждёт | | | | |", g
++    assert g[-1] == "| UzSL | Sohn (родной) − Sohn (общий) | ждёт | | | | |" and len(g) == 17 and g[12] == "Корпус с нуля:", g
+     # П25: строка Э3 «Sohn×3 − Sohn» — её случай и два случая к3 (0043 разд. 2): ветка решения проверена в обе стороны
+     sm = load_model(PRED / "Slovo/Sohn/native/scratch")
+     r3 = both(correct_ens(sm, 3, ids, gloss), correct_ens(sm, 1, ids, gloss), signer, P)
+@@ -1047,10 +1100,6 @@ if __name__ == "__main__":
+         stoprule()
+     elif a.cmd == "summary":
+         summary(0.99)  # ДИ одиночек/ансамблей в сводке — 99 % (FORMAT.md: 99 для главных строк), 20 000 повторов
+-        (OUT / "pairs.md").write_text("\n".join(["# Э1 — главные пары (одиночки, родной рецепт; корпус — перенос)", "",
+-                                                 f"Затравок в ячейках: см. turnir_summary.csv (n_seeds). Пока Э1 не завершён (нет runs/TURNIR_E1.done) — "
+-                                                 f"**прогон стенда на готовых прогонах, не результат турнира**; корпус — предварительно до проверки меток.", ""] +
+-                                                pairs_table(MAIN_PAIRS, True) + ["", "## Справочно (95 %)", ""] +
+-                                                pairs_table(REF_PAIRS, False) + e2_tail()) + "\n", encoding="utf-8")
++        (OUT / "pairs.md").write_text(pairs_md(), encoding="utf-8")
+     else:
+         ap.print_help()
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index 42dd4de..7eebb7d 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -16,7 +16,7 @@ import subprocess
+ import sys
+ import time
+ import types
+-from collections import Counter
++from collections import Counter, defaultdict
+ from pathlib import Path
+ 
+ import numpy as np
+@@ -81,16 +81,20 @@ def mpk_run(d, cache, exp, cond, fold, seed, parts):
+     np.savez(p, sample_id=ids, logits=lg, labels=CLS, signer=signer, gloss=gloss, role=role, top1_test=0.5)
+ 
+ 
+-def build(base: Path, rng, uz=None) -> None:
++def build(base: Path, rng, uz=None, g3=False) -> None:
+     """Синтетический турнир: Slovo (5 фолдов; валидация — S01 / S03) и корпус (LOSO S01…S10 + other); A1 и SL-GCN — прогоны
+-    mpk.train, Sohn (и UzSohn в Э1 при uz) — каталоги M13; разбиения и опись кэша M13 — для печати 22.7."""
++    mpk.train, Sohn (и UzSohn в Э1 при uz) — каталоги M13; разбиения и опись кэша M13 — для печати 22.7. g3 — ещё группа 3
++    (П32: прогоны раннера в формате m13, затравки 0–4; Slovo, корпус перенос и с нуля; Bukva нет) и Sohn (родной) корпуса с
++    нуля (M13, 42–46) — своей затравкой ГСЧ: прочие данные те же, что без g3."""
+     runs, v2 = base / "OM/runs", base / "uzsign_ai_v2/runs"
++    tests = {}  # (набор, фолд) → записи теста (для g3)
+     cache = runs / "M10/cache"
+     sk = {"A1": 1.5, "SL-GCN": 1.8, "Sohn": 1.6, "UzSohn": 2.0}
+     clips = {"slovo": [], "bukva": []}
+     split = {"slovo": {"folds": {}}, "bukva": {"folds": {"fold1": {"train": [], "val": [], "test": []}}}}
+     for k, fold in enumerate(FOLDS_P):
+         t, v = recs(f"t{k}", SIG[2 * k: 2 * k + 2], rng), recs(f"v{k}", ["S03" if k == 0 else "S01"], rng)
++        tests["Slovo", fold] = t
+         clips["slovo"] += [dict(sample_id=i, signer_id=s, gloss=g) for x in (t, v) for i, s, g in zip(*x)]
+         split["slovo"]["folds"][fold] = {"train": [], "val": list(v[0]), "test": list(t[0])}
+         for model, path in (("A1", "M7/slovo_a_ema"), ("SL-GCN", "M11G2/g2_slovo_slgcn_orig_mpkrec")):
+@@ -108,6 +112,7 @@ def build(base: Path, rng, uz=None) -> None:
+     sk = {"Sohn": 2.5, "UzSohn": 2.8}
+     for f in SIG + ["other"]:
+         t = recs("u", [f], rng)
++        tests["UzSL", f] = t
+         lg = logits(t[2], 0.8, rng)
+         for path in (v2 / "loso", v2 / "M12_slgcn_loso"):
+             for s in range(3):
+@@ -123,6 +128,13 @@ def build(base: Path, rng, uz=None) -> None:
+         for s in ("U02-1", "U02-2", "U01a", "U04", "U01b", "r2", "r3", "r4"):
+             (runs / f"UZSOHN/decide_e2_{s}.json").write_text(json.dumps({"accepted": True, "without_group": {
+                 str(j): {"accepted": True} for j in range(1, 6)}}))
++    r3 = np.random.default_rng(3)
++    for (ds, f), t in tests.items() if g3 else ():
++        for cond in ("scratch",) if ds == "Slovo" else ("transfer", "scratch"):
++            for s in range(5):
++                m13_run(runs / f"TURNIR/train/{ds}/Sohn/shared/{cond}/{f}/seed{s}", *t, logits(t[2], 1.7, r3), None)
++        for s in range(42, 47) if ds == "UzSL" else ():
++            m13_run(runs / f"UzSohn/uzsl_scratch/{f}/seed{s}", *t, logits(t[2], 2.2, r3), None)
+     for d in ("slovo", "bukva"):
+         for sub in ("splits", "cache/M13", "reports"):
+             (base / "OM" / sub).mkdir(parents=True, exist_ok=True)
+@@ -159,20 +171,27 @@ def snapshot(out: Path) -> dict:
+ 
+ @pytest.fixture
+ def stand(tmp_path, monkeypatch):
+-    def make(uz=None):
++    def make(uz=None, g3=False):
+         base = (tmp_path / "base").resolve()
+-        build(base, np.random.default_rng(0), uz)
++        build(base, np.random.default_rng(0), uz, g3)
+         point(lambda k, v: monkeypatch.setattr(te, k, v), base)
+         return base
+     return make
+ 
+ 
++G3 = lambda c: c["model"] == "Sohn" and c["recipe"] == "shared"  # noqa: E731  ячейки группы 3 (П28–П33)
++G3_NOTE = "~ группа 3: порт scripts/turnir_sohn_shared.py (П28–П33)"
++
++
+ def test_stand_bit_exact_vs_master(tmp_path, stand, capsys):
+-    """Ячейки, выгрузка (npz и metrics.json), stoprule, сводка, пары и печать — как у master f6a5a72; новое — только строки UzSohn."""
++    """Ячейки, выгрузка (npz и metrics.json), stoprule, сводка, пары и печать — как у master f6a5a72; новое — только строки UzSohn
++    и у 4 ячеек группы 3 вид m13 и примечание по факту порта (П28–П33: источник, часы, условия — как были)."""
+     old = base_module(tmp_path, "turnir_eval")
+     base = stand()
+     point(lambda k, v: setattr(old, k, v), base)
+-    assert [c for c in te.C if c["model"] != "UzSohn"] == old.C
++    assert [c for c in te.C if c["model"] != "UzSohn" and not G3(c)] == [c for c in old.C if not G3(c)]
++    assert [dict(c, kind="none", note="") for c in te.C if G3(c)] == [dict(c, note="") for c in old.C if G3(c)]
++    assert [(c["kind"], c["note"]) for c in te.C if G3(c)] == [("m13", G3_NOTE)] * 4
+     assert [(c["ds"], c["cond"], c["kind"], c["src"][0]) for c in te.C if c["model"] == "UzSohn"] == [
+         ("Slovo", "scratch", "m13", "UzSohn/uzsohn_e1_slovo/fold*/seed*"), ("Bukva", "scratch", "m13", "UzSohn/uzsohn_e1_bukva/fold*/seed*"),
+         ("UzSL", "transfer", "m13", "UzSohn/uzsohn_e1_uzsl_pre/*/seed*"), ("UzSL", "scratch", "m13", "UzSohn/uzsohn_e1_uzsl_scratch/*/seed*")]
+@@ -197,7 +216,10 @@ def test_stand_bit_exact_vs_master(tmp_path, stand, capsys):
+     o_inv = inv.read_text(encoding="utf-8").splitlines()
+     te.inventory()
+     n_inv = inv.read_text(encoding="utf-8").splitlines()
+-    assert [x for x in n_inv if "| UzSohn |" not in x] == o_inv
++    g3 = lambda x: "| Sohn | shared |" in x  # noqa: E731  строки группы 3: всё, кроме примечания, — как в master
++    assert [x for x in n_inv if "| UzSohn |" not in x and not g3(x)] == [x for x in o_inv if not g3(x)]
++    assert [x.split(" | ")[:-1] for x in n_inv if g3(x)] == [x.split(" | ")[:-1] for x in o_inv if g3(x)] and \
++        [x.split(" | ")[-1] for x in n_inv if g3(x)] == [f"{G3_NOTE} |"] * 4
+     assert [x.split(" | ")[10:12] for x in n_inv if "| UzSohn |" in x] == [["0.0", "0.0"]] * 4
+ 
+ 
+@@ -447,7 +469,8 @@ def test_plan_skips_uzsohn(tmp_path, monkeypatch):
+ 
+ 
+ def test_cost_dispatch_default_path(tmp_path, monkeypatch):
+-    """Стоимость прежних ячеек — те же функции, что у master f6a5a72; UzSohn — uzsohn_cell (3 ячейки главного рецепта)."""
++    """Стоимость прежних ячеек — те же функции, что у master f6a5a72; UzSohn — uzsohn_cell (3 ячейки главного рецепта); Sohn
++    (общий, группа 3) — sohn_shared_cell (П33; 3 ячейки — условие главной строки)."""
+     import turnir_cost as tc
+     old = base_module(tmp_path, "turnir_cost")
+     calls = {tc: [], old: []}
+@@ -455,12 +478,13 @@ def test_cost_dispatch_default_path(tmp_path, monkeypatch):
+     for mod in (tc, old):
+         monkeypatch.setattr(mod, "idle_or_die", lambda: 0.0)
+         monkeypatch.setattr(mod, "ROOT", tmp_path)  # turnir_cost.json — во временный каталог
+-        for f in ("sohn_cell", "mpk_cell", "uzsohn_cell"):
++        for f in ("sohn_cell", "mpk_cell", "uzsohn_cell", "sohn_shared_cell"):
+             monkeypatch.setattr(mod, f, lambda c, f=f, mod=mod: calls[mod].append((f, c["ds"], c["model"])), raising=False)
+     tc.main()
+     monkeypatch.setattr(te, "C", [c for c in te.C if c["model"] != "UzSohn"])  # old.te — тот же te
+     old.main()
+-    assert [x for x in calls[tc] if x[2] != "UzSohn"] == calls[old] and len(calls[old]) > 10
++    assert [x for x in calls[tc] if x[2] != "UzSohn" and x[0] != "sohn_shared_cell"] == calls[old] and len(calls[old]) > 10
++    assert [x for x in calls[tc] if x[0] == "sohn_shared_cell"] == [("sohn_shared_cell", ds, "Sohn") for ds in ("Slovo", "Bukva", "UzSL")]
+     assert [x for x in calls[tc] if x[2] == "UzSohn"] == [("uzsohn_cell", ds, "UzSohn") for ds in ("Slovo", "Bukva", "UzSL")]
+ 
+ 
+@@ -1172,3 +1196,279 @@ def test_b9_native_recipe_only(tmp_path, monkeypatch, fn):
+     assert (tv.check() if fn == "check" else tv.export(1)) == 0
+     assert sorted(seen) == sorted((c["model"], "native", c["ds"]) for c in native)
+     assert not any(tmp_path.iterdir())  # ничего не записано
++
++
++# ---------------------------------------------------------------- группа 3 в стенде (П30, П32, П33; косметика инвентаризации)
++NN, NS, SLS = ("Sohn", "native"), ("Sohn", "shared"), ("SL-GCN", "shared")
++
++
++def _g3_row(ds, a, b, cond, v):
++    """Ожидаемая строка пары с явным рецептом сторон: одиночки, macro (micro рядом), 95 %, бутстреп BOOT набора (справочно)."""
++    ma, mb = (te.load_model(te.PRED / ds / m / r / cond) for m, r in (a, b))
++    ids, signer, gloss = te.align([ma, mb])
++    ca, cb = te.correct_ens(ma, 1, ids, gloss), te.correct_ens(mb, 1, ids, gloss)
++    r, q = (te.paired(ca, cb, signer, .95, ds, mac) for mac in (True, False))
++    name = " − ".join(f"{te.label(m)} ({te.RECIPE_RU[rc]})" for m, rc in (a, b))
++    return r, (f"| {ds} | {name} | {r['delta']:+.2f} | [{r['lo']:+.2f}; {r['hi']:+.2f}] | {v(r)} | "
++               f"{q['delta']:+.2f} [{q['lo']:+.2f}; {q['hi']:+.2f}] | {100 * r['worse_share']:.0f} % |")
++
++
++def test_g3_export_inventory_pairs(tmp_path, stand, monkeypatch):
++    """П32 и косметика инвентаризации: ячейки группы 3 — вид m13, источник — каталоги раннера; стенд выгружает их как m13
++    (исполнитель Slovo — из predictions.csv, корпуса — фолд), инвентаризация считает их затравки (M13 — как была). П30: рецепт
++    сторон явный, 95 %, BOOT; «Sohn (родной) − Sohn (общий)» — без строки +2,71 и без sohn_verdict (и корпус с нуля — своей
++    таблицей), «Sohn (общий) − SL-GCN (общий)» — с ними; pairs.md = прежний текст (стенд PRE_G3) + раздел группы 3."""
++    base = stand(g3=True)
++    assert [(c["ds"], c["cond"], c["kind"], c["src"]) for c in te.C if G3(c)] == [
++        (ds, cond, "m13", [f"TURNIR/train/{ds}/Sohn/shared/{cond}/*/seed*"])
++        for ds, cond in (("Slovo", "scratch"), ("Bukva", "scratch"), ("UzSL", "transfer"), ("UzSL", "scratch"))]
++    for c in te.C:
++        te.export_cell(c, 1)
++    for ds, cond, folds in (("Slovo", "scratch", FOLDS_P), ("UzSL", "transfer", SIG + ["other"]), ("UzSL", "scratch", SIG + ["other"])):
++        d = te.PRED / ds / "Sohn/shared" / cond
++        assert sorted(p.name for p in d.glob("*.npz")) == sorted(f"{f}__seed{s}.npz" for f in folds for s in range(5))
++        for k, f in enumerate(folds):
++            p = te.load_pred(d / f"{f}__seed4.npz")
++            assert set(p["role"]) == {"test"} and set(p["signer"]) == ({f} if ds == "UzSL" else set(SIG[2 * k: 2 * k + 2]))
++    assert not (te.PRED / "Bukva/Sohn/shared").exists()
++    te.inventory()
++    inv = [x.split(" | ") for x in (base / "OM/reports/TURNIR_inventory.md").read_text(encoding="utf-8").splitlines()]
++    g = [r[4:8] + r[9:11] for r in inv if r[1:3] == ["Sohn", "shared"]]
++    run = ["0,1,2,3,4", "порт группы 3", "код — runs/TURNIR/g3_code.txt (П32)", "**есть**", "0.0"]
++    assert g == [["25", *run], ["0", "—", "—", "—", "**обучить 5 з.**", "1.0"], ["55", *run], ["55", *run]], g
++    assert [r[9] for r in inv if r[:4] == ["| UzSL", "Sohn", "native", "scratch"]] == ["**M13 идёт → +1 з.**"]  # M13 — как была
++
++    old = base_module(tmp_path, "turnir_eval", PRE_G3)  # стенд до правки П30/П33 (ветка инструментов) — на тех же данных
++    point(lambda k, v: setattr(old, k, v), base)
++    new = te.pairs_md()
++    head = new.split("\n")[:4]
++    prev = "\n".join(head + old.pairs_table(old.MAIN_PAIRS, True) + ["", "## Справочно (95 %)", ""] + old.pairs_table(old.REF_PAIRS, False)
++                     + old.e2_tail())
++    assert head[0] == "# Э1 — главные пары (одиночки, родной рецепт; корпус — перенос)" and len(prev) > 2000
++    assert new == prev + "\n" + "\n".join(te.g3_tail()) + "\n"
++
++    monkeypatch.setattr(te, "sohn_verdict", lambda a, b, r: f"0078: {a} − {b}")  # какие строки идут через правило 0078 п. 3
++    main = te.pairs_table(te.MAIN_PAIRS, True)  # прежние пары «Sohn − X» — тоже через него (строка pairs_table общая)
++    assert [x.split(" | ")[4] for x in main if x.startswith("| Slovo | наша реализация Sohn − ")] == ["0078: Sohn − A1", "0078: Sohn − SL-GCN"]
++    g = te.g3_tail()
++    plain = lambda r: te.verdict(r["lo"], r["hi"])  # noqa: E731
++    assert g[1] == "## Группа 3, справочно (поправка 4, П30; 95 %; вне m = 8; корпус — перенос)" and g[13] == "Корпус с нуля:"
++    assert "ДИ 95 %" in g[3] and g[15] == g[3] and len(g) == 18 and sum("↳" in x for x in g) == 2
++    assert g[6] == "| Bukva | Sohn (родной) − Sohn (общий) | ждёт | | | | |"
++    rows = {}
++    for i, ds, a, b, cond, v in ((5, "Slovo", NN, NS, "scratch", plain), (7, "UzSL", NN, NS, "transfer", plain),
++                                 (17, "UzSL", NN, NS, "scratch", plain), (8, "Slovo", NS, SLS, "scratch", lambda r: "0078: Sohn − SL-GCN"),
++                                 (10, "UzSL", NS, SLS, "transfer", lambda r: "0078: Sohn − SL-GCN")):
++        r, rows[i] = _g3_row(ds, a, b, cond, v)
++        assert g[i] == rows[i], (i, g[i], rows[i])
++        if b == SLS:  # строка устойчивости П18: +2,71 к точности Sohn (общий)
++            assert g[i + 1] == (f"| {ds} | ↳ устойчивость: +2.71 к точности наша реализация Sohn (общий) | {r['delta'] + 2.71:+.2f} | "
++                                f"[{r['lo'] + 2.71:+.2f}; {r['hi'] + 2.71:+.2f}] | {plain({k: r[k] + 2.71 for k in ('lo', 'hi')})} | | |")
++    assert rows[7].split(" | ")[2:] != rows[17].split(" | ")[2:]  # корпус: перенос и с нуля — разные прогоны
++
++
++@pytest.mark.parametrize("own", [False, True])
++def test_g3_cost_key_in_summary(stand, own):
++    """П33: сводка берёт цену по (модель, рецепт): строки Sohn (общий) — по ключу «Sohn/shared», без него — «нет данных» (цена
++    родного Sohn не подставляется); прежний turnir_cost.json (без рецепта) читается, строки родного Sohn и прочих — как были."""
++    base = stand(g3=True)
++    for c in te.C:
++        te.export_cell(c, 1)
++    cost = {"load_avg_1min": 0.5, "cpu": "x", "Slovo": {"Sohn": dict(gflops=1, latency_ms=10, params_m=2, T=47),
++                                                        "SL-GCN": dict(gflops=5, latency_ms=50, params_m=6, T=32)},
++            "UzSL": {"Sohn": dict(gflops=1.5, latency_ms=15, params_m=2.5, T=61)}}
++    if own:
++        cost["Slovo"]["Sohn/shared"] = dict(gflops=3, latency_ms=30, params_m=4, T=32)
++    (base / "OM/reports/turnir_cost.json").write_text(json.dumps(cost))
++    te.summary(0.99)
++    rows = list(csv.DictReader(open(base / "OM/runs/TURNIR/turnir_summary.csv", encoding="utf-8")))
++    got = lambda ds, m, rec: {(r["kind"], r["condition"], int(r["members"])): (r["gflops"], r["latency_ms"], r["params_m"])  # noqa: E731
++                              for r in rows if (r["dataset"], r["model"], r["recipe"]) == (ds, m, rec)}
++    sh, nat = got("Slovo", "Sohn", "shared"), got("Slovo", "Sohn", "native")
++    assert len(sh) == 5 and len(nat) == 5 and len(got("UzSL", "Sohn", "shared")) == 10
++    assert sh == {k: tuple(str(round(x * k[2], 4)) for x in (3, 30, 4)) if own else ("нет данных",) * 3 for k in sh}
++    assert nat == {k: tuple(str(round(x * k[2], 4)) for x in (1, 10, 2)) for k in nat}
++    assert set(got("UzSL", "Sohn", "shared").values()) == {("нет данных",) * 3}  # на корпусе ключа нет — не цена родного Sohn
++    assert set(got("Slovo", "SL-GCN", "shared").values()) == {tuple(str(round(x * n, 4)) for x in (5, 50, 6)) for n in range(1, 4)}
++
++
++def test_cost_g3_own_key(tmp_path, monkeypatch):
++    """П33: сеанс стоимости — Sohn (общий) через sohn_shared_cell (3 ячейки: условие главной строки) под ключом «Sohn/shared»;
++    записи и ключи прочих моделей — как у master f6a5a72 (тот же список ячеек; новое — только этот ключ в каждом наборе)."""
++    import turnir_cost as tc
++    old = base_module(tmp_path, "turnir_cost")
++    (tmp_path / "reports").mkdir()
++    out = {}
++    monkeypatch.setattr(te, "C", [c for c in te.C if c["model"] != "UzSohn"])  # у master UzSohn нет
++    for mod in (old, tc):
++        monkeypatch.setattr(mod, "idle_or_die", lambda: 0.0)
++        monkeypatch.setattr(mod, "ROOT", tmp_path)
++        for f in ("sohn_cell", "mpk_cell", "uzsohn_cell", "sohn_shared_cell"):
++            monkeypatch.setattr(mod, f, lambda c, f=f: dict(f=f, cell=[c["ds"], c["model"], c["recipe"], c["cond"]]), raising=False)
++        mod.main()
++        out[mod] = json.loads((tmp_path / "reports/turnir_cost.json").read_text())
++    meta = {"load_avg_1min", "torch_threads", "cpu", "commit", "force", "when"}
++    assert set(out[tc]) == set(out[old]) and {k: out[tc][k] for k in meta} == {k: out[old][k] for k in meta} | {"when": out[tc]["when"]}
++    for ds, cond in (("Slovo", "scratch"), ("Bukva", "scratch"), ("UzSL", "transfer")):
++        new = dict(out[tc][ds])
++        g3 = new.pop("Sohn/shared")
++        assert new == out[old][ds] and list(new) == list(out[old][ds]) and new["Sohn"]["f"] == "sohn_cell"
++        h = next(c["h"] for c in te.C if G3(c) and (c["ds"], c["cond"]) == (ds, cond))
++        assert g3 == dict(f="sohn_shared_cell", cell=[ds, "Sohn", "shared", cond], gpu_h_train_per_run=h)
++
++
++@pytest.mark.parametrize("ds,name,ncls", [("Slovo", "slovo", 1001), ("Bukva", "bukva", 33), ("UzSL", "uzsl", 682)])
++def test_cost_g3_real_net(monkeypatch, ds, name, ncls):
++    """П33 на ЦП, на каждом наборе: сеть порта (SohnShared, Д-Т при T = 32, головы _Base на 2·dim) с головой своего набора (число
++    классов задано здесь, не NCLS стоимости) — GFLOPs графа вывода Deploy (логиты + вложение; больше одного кодировщика), задержка,
++    параметры — кодировщик + головы вывода (protos — только обучение); это не цена родного SohnNet (окно 47/61, classifier)."""
++    import turnir_cost as tc
++    import turnir_sohn_shared as ts
++    import turnir_train as tt
++    from torch.utils.flop_counter import FlopCounterMode
++    from mpk import sohn
++    from mpk.model import Deploy, param_counts
++    real = tc.bench
++    monkeypatch.setattr(tc, "bench", lambda fn: real(fn, 3))  # 3 замера вместо 100: проверка кода, не цена
++    c = next(c for c in te.C if G3(c) and c["ds"] == ds)
++    r = tc.sohn_shared_cell(c)
++    m = ts.SohnShared({**tt.SOHN_MODEL, "T": 32}, {name: ncls}).eval()
++    pc = param_counts(m)
++    x, mk = torch.randn(1, 32, sohn.CHANNELS), torch.ones(1, 32, dtype=torch.bool)
++
++    def gflops(fn):  # счётчик FLOPs детерминирован (по формам), веса не важны
++        with torch.no_grad(), FlopCounterMode(display=False) as fc:
++            fn()
++        return fc.get_total_flops() / 1e9
++    assert r["T"] == 32 and r["latency_ms"] > 0 and pc["train_only"] > 0
++    assert r["params_m"] == (pc["encoder"] + pc["inference_heads"]) / 1e6
++    assert r["gflops"] == gflops(lambda: Deploy(m, name)(x, mk, None)) > gflops(lambda: m.net(x, mk))
++    n = tc.sohn_cell(c)
++    assert n["T"] != 32 and n["params_m"] != r["params_m"] and abs(n["gflops"] - r["gflops"]) > 0.01
++
++
++def test_cost_idle_sees_port(monkeypatch):
++    """Сеанс стоимости (П33, разд. 2 п. 8) — на простаивающей машине: процесс порта группы 3 (раннер зовёт его подпроцессом,
++    turnir_train.run_job) — занятость, как mpk.train и m13_train. Подставной процесс с той же командной строкой (exec -a), pgrep."""
++    import turnir_cost as tc
++    import turnir_train as tt
++    cmd = f"{sys.executable} {tt.PORT} --config runs/x/seed0.yaml --seed 0 --out runs/x/seed0"
++    p = subprocess.Popen(["bash", "-c", f'exec -a "{cmd}" sleep 30'])
++    try:
++        for _ in range(50):  # дождаться exec (командная строка — уже подставная)
++            if Path(f"/proc/{p.pid}/cmdline").read_bytes().startswith(cmd.encode()):
++                break
++            time.sleep(0.02)
++        monkeypatch.setattr(tc, "FORCE", False)
++        monkeypatch.setattr(tc.os, "getloadavg", lambda: (0.0, 0.0, 0.0))
++        with pytest.raises(AssertionError) as e:
++            tc.idle_or_die()
++        assert f"'{p.pid}'" in str(e.value), e.value
++    finally:
++        p.kill()
++        p.wait()
++
++
++def _g3_seed(runs: Path, seed: int, meta: dict | None, rel: str = "TURNIR/train/Slovo/Sohn/shared/scratch") -> Path:
++    """Каталог затравки в формате m13 (Slovo, fold1; по умолчанию — раннер группы 3): probs.npz + predictions.csv; metrics.json —
++    meta (None — не дописан)."""
++    d = runs / rel / f"fold1/seed{seed}"
++    d.mkdir(parents=True)
++    np.savez(d / "probs.npz", ids=np.array(["a", "b"]), probs=te.softmax16(np.eye(2)), classes=np.array(["c0", "c1"]))
++    (d / "predictions.csv").write_text("dataset,sample_id,signer_id,gloss,pred,correct,top5\nx,a,S01,c0,,,\nx,b,S01,c1,,,\n")
++    if meta is not None:
++        (d / "metrics.json").write_text(json.dumps(meta))
++    return d
++
++
++def test_g3_inventory_export_stale_partial(tmp_path, monkeypatch):
++    """Группа 3 — одно правило готовой затравки у раннера (done_seeds), инвентаризации и выгрузки: metrics.json и данные = текущим
++    (0063 п. 1). Затравка на иных данных (inputs_sha256 ≠ файлу) — «не допущено 1», не выгружается; недописанная (нет
++    metrics.json: порт пишет его последним) — не считается и не выгружается; копия seed2.bak_… — не затравка (как done_seeds:
++    isdigit); «ч ГП строго» — все 5 з. заново, как у ячеек run.
++    Прежние ячейки m13 (M13, Sohn родной) — выгрузка как у master f6a5a72: такие каталоги берутся (проверка — только группы 3)."""
++    import turnir_train as tt
++    runs, root = tmp_path / "runs", tmp_path / "OM"
++    (root / "reports").mkdir(parents=True)
++    for k, v in dict(ROOT=root, RUNS=runs, OUT=runs / "TURNIR", PRED=runs / "TURNIR/preds",
++                     FOLDS={"Slovo": ["fold1"], "Bukva": ["fold1"], "UzSL": ["F1"]}).items():
++        monkeypatch.setattr(te, k, v)
++    data = tmp_path / "x.npz"
++    data.write_bytes(b"new")
++    for s in range(5):
++        _g3_seed(runs, s, {"inputs_sha256": {str(data): hashlib.sha256(b"new").hexdigest()}})
++    _g3_seed(runs, 5, {"inputs_sha256": {str(data): "0" * 64}})
++    _g3_seed(runs, 6, None)
++    _g3_seed(runs, "2.bak_20261119", {"inputs_sha256": {str(data): hashlib.sha256(b"new").hexdigest()}})  # копия — не затравка
++    _g3_seed(runs, 42, {"inputs_sha256": {str(data): "0" * 64}}, "M13/slovo")
++    _g3_seed(runs, 43, None, "M13/slovo")
++    c = next(c for c in te.C if G3(c) and c["ds"] == "Slovo")
++    assert tt.done_seeds(c) == set(range(5))
++    te.inventory()
++    r = next(x for x in (root / "reports/TURNIR_inventory.md").read_text(encoding="utf-8").splitlines()
++             if x.startswith("| Slovo | Sohn | shared |")).split(" | ")
++    assert r[4:6] == ["5", "0,1,2,3,4"] and r[9] == "**есть (не допущено 1 прогонов: данные ≠ текущим)**", r
++    assert r[10:12] == ["0.0", f"{5 * c['h']:.1f}"], r
++    te.export_cell(c, 1)
++    assert sorted(p.name for p in te.cell_dir(c).glob("*.npz")) == [f"fold1__seed{s}.npz" for s in range(5)]
++    nat = next(c for c in te.C if (c["ds"], c["model"], c["recipe"]) == ("Slovo", "Sohn", "native"))
++    te.export_cell(nat, 1)
++    assert sorted(p.name for p in te.cell_dir(nat).glob("*.npz")) == ["fold1__seed42.npz", "fold1__seed43.npz"]
++
++
++def test_g3_pairs_macro_not_micro(tmp_path, monkeypatch):
++    """П30: Δ и вывод — по macro (micro — рядом), и у пар с явным рецептом, и у прежних (сторона — модель). Исполнители с разным
++    числом записей (4…58), навык зависит от их числа: macro ≠ micro (в синтетике build — поровну, там macro ≡ micro); ожидание —
++    счёт прямо по файлам, не кодом стенда."""
++    rng = np.random.default_rng(7)
++    cl = np.array([f"c{k}" for k in range(8)])
++    sig = [f"s{k:02d}" for k in range(10)]
++    n = {s: 4 + 6 * k for k, s in enumerate(sig)}
++    signer = np.array([s for s in sig for _ in range(n[s])])
++    ids = np.array([f"r{i:04d}" for i in range(len(signer))])
++    gloss = cl[rng.integers(0, len(cl), len(ids))]
++    for k, v in dict(PRED=tmp_path / "preds", RUNS=tmp_path / "runs", OUT=tmp_path / "out").items():
++        monkeypatch.setattr(te, k, v)
++    ok = {}
++    for model, seeds, skill in (("Sohn/native", range(42, 47), lambda s: 3.0 if n[s] > 30 else 0.3),
++                                ("Sohn/shared", range(5), lambda s: 1.5), ("SL-GCN/shared", range(5), lambda s: 0.3 if n[s] > 30 else 3.0)):
++        hit = defaultdict(list)  # запись → верно ли (по затравкам); одиночная — среднее по затравкам
++        for s in seeds:
++            for f in (0, 1):
++                k = np.arange(len(ids)) % 2 == f
++                lg = rng.normal(0, 1, (k.sum(), len(cl)))
++                lg[np.arange(k.sum()), np.searchsorted(cl, gloss[k])] += [skill(x) for x in signer[k]]
++                p = te.softmax16(lg)
++                te.save(te.PRED / "Slovo" / model / "scratch" / f"fold{f + 1}__seed{s}.npz", ids=ids[k], probs=p, classes=cl,
++                        signer=signer[k], gloss=gloss[k], role=np.full(k.sum(), "test"), run="синтетика")
++                for i, o in zip(ids[k], cl[p.astype(np.float32).argmax(1)] == gloss[k]):
++                    hit[i].append(float(o))
++        ok[model] = np.array([np.mean(hit[i]) for i in ids])
++
++    def mm(a, b):
++        d = ok[a] - ok[b]
++        return 100 * np.mean([d[signer == s].mean() for s in sig]), 100 * d.sum() / len(d)
++    t = te.pairs_table([("Slovo", ("Sohn", "native"), ("Sohn", "shared")), ("Slovo", ("Sohn", "shared"), ("SL-GCN", "shared")),
++                        ("Slovo", "Sohn", "SL-GCN")], False)
++    rows = [x.split(" | ") for x in t[2:]]
++    assert len(rows) == 5 and "↳ устойчивость" in rows[2][1] and "↳ устойчивость" in rows[4][1], t
++    for row, (a, b) in zip((rows[0], rows[1], rows[3]), (("Sohn/native", "Sohn/shared"), ("Sohn/shared", "SL-GCN/shared"),
++                                                         ("Sohn/native", "SL-GCN/shared"))):
++        mac, mic = mm(a, b)
++        assert f"{mac:+.2f}" != f"{mic:+.2f}"  # данные различают macro и micro
++        assert row[2] == f"{mac:+.2f}" and row[5].startswith(f"{mic:+.2f} ["), (row, mac, mic)
++    assert rows[2][2] == f"{mm('Sohn/shared', 'SL-GCN/shared')[0] + 2.71:+.2f}" and rows[4][2] == f"{mm('Sohn/native', 'SL-GCN/shared')[0] + 2.71:+.2f}"
++
++
++def test_b9_skips_group3_real_cells(stand, monkeypatch, capsys):
++    """Б9 (к1 0155, к3 0054): ячейки группы 3 теперь вида m13 (П30) — при готовых прогонах группы 3 выгрузка валидации и --check
++    по настоящему списку ячеек их не открывают (рецепт не native): толпа Sohn — только из родного Sohn."""
++    stand(g3=True)
++    assert [c["kind"] for c in te.C if G3(c)] == ["m13"] * 4
++    seen, first = [], tv.first_dirs
++    monkeypatch.setattr(tv, "first_dirs", lambda c: seen.extend(first(c)) or first(c))
++    tv.check()
++    tv.export(1, logits_fn=lambda d, t: pytest.fail(f"нет best.pt — валидация не считается: {d}"))
++    out = capsys.readouterr().out
++    assert len(seen) == 2 * 25 and all("/UzSohn/slovo/" in str(d) for d in seen)  # check и export: Sohn Slovo, 5 фолдов × 5 затравок
++    assert "TURNIR/train" not in out and "shared" not in out and "!!! нет валидации" in out
