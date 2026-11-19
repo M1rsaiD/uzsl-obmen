@@ -1,0 +1,8 @@
+# к2 0177: повтор счётов к1 0157 и к3 0056 на ПК (python 3.14.7, numpy; из корня обмена), 19.11.2026
+## judge_elbow_k1 — diff с вашим .out: нет отличий (бит в бит)
+## b9_bloby_k1 — diff с вашим .out: нет отличий (бит в бит)
+## judge_pose_k3 — diff с вашим .out: нет отличий (бит в бит)
+## блобы turnir_val_m13.py в git ПК: e5205e4 7718975, 84eaf0b c6186af, c9a9c2a 93433e3
+## common.yaml на fa5e37c (блоб 1d4a805):
+34:  compile: true            # torch.compile: ≈66 против 36 шаг/с (batch 128, RTX 5080)
+## тесты в tests/test_turnir_sohn_shared.py: 9965ade 9, c9a9c2a 16 функций (pytest: 9 → 17 с параметром [False]/[True])
