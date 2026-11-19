@@ -1,0 +1,11 @@
+исполнялись файлы дерева (под профилем, событие call):
+  scripts/m13_train.py             → scripts/m13_train.py                          в G3_CODE
+  scripts/turnir_sohn_shared.py    → scripts/turnir_sohn_shared.py                 в G3_CODE
+  src/mpk/augment.py               → src/mpk/augment.py                            в G3_CODE
+  src/mpk/baselines.py             → src/mpk/baselines.py                          в G3_CODE
+  src/mpk/e1util.py                → ../uzsign_e1/src/uzsign_e1/train.py (на ПК)   в G3_CODE
+  src/mpk/sohn.py                  → src/mpk/sohn.py                               в G3_CODE
+  src/mpk/train.py                 → src/mpk/train.py                              в G3_CODE
+  stubs/m13_build.py               → scripts/m13_build.py                          в G3_CODE
+вне G3_CODE: нет
+в G3_CODE, но не исполнялись: нет
