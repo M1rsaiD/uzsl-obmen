@@ -1,0 +1,157 @@
+diff --git a/scripts/turnir_val_m13.py b/scripts/turnir_val_m13.py
+index 7718975..c6186af 100644
+--- a/scripts/turnir_val_m13.py
++++ b/scripts/turnir_val_m13.py
+@@ -52,7 +52,7 @@ def val_logits(d: Path, threads: int) -> dict:
+     names = list(ck["names"])
+     recs, glosses, clips, split = _records(m["set"], m["fold"], bool(flags.get("pose")), bool(tokens))
+     va = split[1]  # только валидация; split[2] (тест) не используется
+-    recs.tokens = tokens
++    recs.tokens, recs.part_tokens = tokens, bool(flags.get("part_tokens"))  # как m13_train.main (№ 2 — маска частей; к1 0154, к3 0053)
+     lab = {g: k for k, g in enumerate(names)}
+     labels = np.full(len(recs), -1, np.int64)
+     labels[va] = [lab[glosses[i]] for i in va]
+@@ -67,6 +67,33 @@ def val_logits(d: Path, threads: int) -> dict:
+                 top1=float((z.argmax(1) == labels[va]).mean()), top1_log=float(log[int(ck["epoch"])]), epoch=int(ck["epoch"]))
+ 
+ 
++def first_dirs(c) -> list:
++    """Для каждой пары (фолд, затравка) — только первый каталог с probs.npz, как export_cell: валидация того же прогона, что тест
++    ячейки (к3 0053 разд. 1.2); probs.npz — только наличие, не читается."""
++    seen, out = set(), []
++    for d in te.src_dirs(c):
++        k = (d.parent.name, d.name)
++        if (d / "probs.npz").is_file() and k not in seen:
++            seen.add(k)
++            out.append(d)
++    return out
++
++
++def check(only: str | None = None) -> int:
++    """Полнота до TURNIR_FREEZE (к1 0154, к3 0053): у каждой пары с тестом ячейки m13 (Slovo, Bukva) — файл валидации; → число
++    пропусков (каждый — «!!!»); ничего не считает и не пишет."""
++    miss = 0
++    for c in te.C:
++        if c["kind"] != "m13" or c["ds"] == te.LO or (only and c["ds"] != only):
++            continue
++        for d in first_dirs(c):
++            if not (te.cell_dir(c) / f"{d.parent.name}__val__seed{d.name.removeprefix('seed')}.npz").is_file():
++                print(f"!!! нет валидации: {d}", flush=True)
++                miss += 1
++    print(f"Б9 полнота: пропусков {miss}", flush=True)
++    return miss
++
++
+ def export(threads: int = 8, only: str | None = None, logits_fn=val_logits) -> int:
+     """→ число прогонов, не прошедших сверку val_top1 с log.csv (их файл не пишется)."""
+     bad = 0
+@@ -76,11 +103,12 @@ def export(threads: int = 8, only: str | None = None, logits_fn=val_logits) -> i
+         od = te.cell_dir(c)
+         mf = od / "val_export.json"
+         meta = json.loads(mf.read_text()) if mf.is_file() else {}
+-        for d in te.src_dirs(c):
+-            # отбор каталога — как export_cell (тот же прогон, что у теста ячейки); probs.npz — только наличие, не читается
+-            if not ((d / "probs.npz").is_file() and (d / "metrics.json").is_file() and (d / "best.pt").is_file()):
+-                continue
++        for d in first_dirs(c):
+             fold, seed = d.parent.name, d.name.removeprefix("seed")
++            if not ((d / "metrics.json").is_file() and (d / "best.pt").is_file()):   # не молча и не к следующему каталогу (к3 0053)
++                print(f"!!! нет metrics.json или best.pt у прогона теста: {d}", flush=True)
++                bad += 1
++                continue
+             out = od / f"{fold}__val__seed{seed}.npz"
+             if out.is_file():
+                 continue
+@@ -105,5 +133,6 @@ if __name__ == "__main__":
+     ap = argparse.ArgumentParser()
+     ap.add_argument("--threads", type=int, default=8)
+     ap.add_argument("--dataset", choices=["Slovo", "Bukva"])
++    ap.add_argument("--check", action="store_true", help="только полнота (до TURNIR_FREEZE; к1 0154)")
+     a = ap.parse_args()
+-    sys.exit(1 if export(a.threads, a.dataset) else 0)
++    sys.exit(1 if (check(a.dataset) if a.check else export(a.threads, a.dataset)) else 0)
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index a1ad4d2..20ec5b1 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -3,6 +3,7 @@
+ scripts/turnir_e2_chain.sh (22.1, 22.10 п. 3) — с подменёнными командами. Только ЦП и синтетика во временных каталогах (runs/** не
+ читается); прежнее поведение — бит в бит со стендом master f6a5a72 (git show).
+ CUDA_VISIBLE_DEVICES= PYTHONPATH=src:../uzsign_e1/src python -m pytest -q tests/test_turnir_e2.py"""
++import inspect
+ import csv
+ import hashlib
+ import importlib.util
+@@ -1067,6 +1068,7 @@ def test_b9_val_export_feeds_sohn_crowd(stand, monkeypatch, capsys):
+     monkeypatch.undo()
+     point(lambda k, v: monkeypatch.setattr(te, k, v), base)
+     assert bad == 1 and "!!! сверка валидации не пройдена" in out and str(SENT)[:6] not in out
++    assert tv.check() == 1   # к1 0154: несошедшийся прогон — пропуск полноты, не молча
+     assert any(p.endswith("best.pt") for p in seen) and not [p for p in seen if Path(p).name.startswith(("probs", "predictions", "logits"))]
+     vf = sorted((base / "OM/runs/TURNIR/preds").rglob("*__val__seed*.npz"))
+     assert len(vf) == 2 * 25 - 1 and not (te.PRED / "Slovo/UzSohn/native/scratch/fold2__val__seed44.npz").exists()
+@@ -1081,8 +1083,9 @@ def test_b9_val_export_feeds_sohn_crowd(stand, monkeypatch, capsys):
+     assert len(mix) == 2 and all("val-состав" in r for r in mix)  # N = 3 и 5
+ 
+ 
+-def test_b9_val_logits_real_net_reads_only_val(tmp_path, monkeypatch):
+-    """Настоящий SohnNet и m13_train.predict на синтетике: предсказывается только валидация (индексы va), тест — никогда; логиты =
++@pytest.mark.parametrize("pt", [False, True])
++def test_b9_val_logits_real_net_reads_only_val(tmp_path, monkeypatch, pt):
++    """pt — № 2 (part_tokens; есть только в ветке рычагов / слитом дереве, иначе пропуск; к1 0154, к3 0053). Настоящий SohnNet и m13_train.predict на синтетике: предсказывается только валидация (индексы va), тест — никогда; логиты =
+     логитам той же сети; val_top1 эпохи best.pt — из log.csv."""
+     import m13_train as mt
+     from mpk import sohn
+@@ -1098,13 +1101,16 @@ def test_b9_val_logits_real_net_reads_only_val(tmp_path, monkeypatch):
+     calls = []
+     real = mt.predict
+     monkeypatch.setattr(mt, "predict", lambda model, r, lab, idx, *a: (calls.append(list(idx)), real(model, r, lab, idx, *a))[1])
++    if pt and "part_tokens" not in inspect.signature(sohn.SohnNet).parameters:
++        pytest.skip("№ 2 нет в этом дереве")
+     torch.manual_seed(0)
+     names = sorted(set(glosses))
+-    net = sohn.SohnNet(len(names), sohn.CFG["dim"])
++    net = sohn.SohnNet(len(names), sohn.CFG["dim"], **({"part_tokens": True} if pt else {}))
+     d = tmp_path / "slovo/fold1/seed42"
+     d.mkdir(parents=True)
+     torch.save({"model": net.state_dict(), "epoch": 2, "names": names}, d / "best.pt")
+-    (d / "metrics.json").write_text(json.dumps({"set": "slovo", "fold": "fold1", "seed": 42, "flags": {}, "input": [], "top1": SENT}))
++    (d / "metrics.json").write_text(json.dumps({"set": "slovo", "fold": "fold1", "seed": 42, "flags": {"part_tokens": True} if pt else {},
++                                                "input": [], "top1": SENT}))
+     with open(d / "log.csv", "w", newline="") as f:
+         csv.writer(f).writerows([["epoch", "step", "loss", "val_loss", "val_top1", "lr", "sec"], [1, 1, 0, 0, 0.1, 0, 0], [2, 2, 0, 0, 0.25, 0, 0]])
+     r = tv.val_logits(d, 1)
+@@ -1113,3 +1119,33 @@ def test_b9_val_logits_real_net_reads_only_val(tmp_path, monkeypatch):
+     lab = np.array([names.index(glosses[i]) for i in va])
+     ref, _ = real(net, recs, np.concatenate([np.full(3, -1), lab, np.full(3, -1)]), va, torch.device("cpu"), 0.1)
+     assert np.allclose(r["logits"], ref, atol=1e-5) and r["top1"] == float((ref.argmax(1) == lab).mean())
++
++
++@pytest.mark.parametrize("first", ["mismatch", "no_best"])
++def test_b9_first_dir_only(tmp_path, monkeypatch, capsys, first):
++    """к3 0053 разд. 1.2: у пары (фолд, затравка) — только первый каталог с probs.npz (как export_cell); его отказ — «!!!», файла нет,
++    ко второму каталогу (полному, сходящемуся) не переходим; check() видит пропуск."""
++    dirs = []
++    for src in ("A", "B"):
++        d = tmp_path / src / "slovo/fold1/seed42"
++        d.mkdir(parents=True)
++        for f in ("probs.npz", "metrics.json", "best.pt"):
++            if not (src == "A" and first == "no_best" and f == "best.pt"):
++                (d / f).write_text("x")
++        dirs.append(d)
++    od = tmp_path / "cell"
++    od.mkdir()
++    monkeypatch.setattr(te, "C", [dict(kind="m13", ds="Slovo", model="Sohn")])
++    monkeypatch.setattr(te, "src_dirs", lambda c: list(dirs))
++    monkeypatch.setattr(te, "cell_dir", lambda c: od)
++    used = []
++    def fake(d, threads):
++        used.append(d)
++        n = 20   # сдвиг 0,5 · 20 = 10 записей > допуска max(2; 0,5 % n)
++        return dict(ids=np.array([f"r{k}" for k in range(n)]), logits=np.zeros((n, 3), np.float32), names=["x", "y", "z"],
++                    signer=np.full(n, "S1"), gloss=np.full(n, "x"), top1=0.0 if d == dirs[0] else 0.5, top1_log=0.5, epoch=1)
++    assert tv.export(1, logits_fn=fake) == 1
++    assert "!!!" in capsys.readouterr().out
++    assert dirs[1] not in used and not list(od.glob("*__val__*.npz"))
++    assert tv.check() == 1
++

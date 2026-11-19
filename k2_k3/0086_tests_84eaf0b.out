@@ -1,0 +1,5 @@
+turnir-e2-tools 84eaf0b: tests/test_turnir_e2.py — 53 passed, 3 skipped (пропуски: № 2 нет в ветке инструментов — 1; прежние — 2)
+слитое дерево 3b28f2a = turnir-e2-levers fa5e37c + turnir-e2-tools 84eaf0b: tests/test_sohn.py + tests/test_turnir_e2.py — 122 passed, 299 warnings in 104.60s (0:01:44)
+turnir_eval.py --selftest (3b28f2a): самопроверка пройдена; 17 строк сводки (синтетика, не результаты)
+мутации: (1) recs.part_tokens снят → test_b9_val_logits_real_net_reads_only_val[True] падает (слитое дерево); (2) правило первого каталога снято → test_b9_first_dir_only[mismatch], [no_best] падают (2 из 2)
+блоб scripts/turnir_val_m13.py: c6186aff3b93ea50c3f9f0bee88ca490385c8ed8
