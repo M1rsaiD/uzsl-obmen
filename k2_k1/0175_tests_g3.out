@@ -1,0 +1,5 @@
+turnir-g3-port e516900 (от turnir-e2-tools 84eaf0b, 9 коммитов):
+tests/test_turnir_sohn_shared.py + tests/test_turnir_e2.py + tests/test_sohn.py — 93 passed, 3 skipped (повтор к2, 19.11 09:28)
+turnir_eval.py --selftest — самопроверка пройдена
+блобы: scripts/turnir_train.py fe899b3c22ea, scripts/turnir_sohn_shared.py fc5d15ab4cbb
+runs/: файлов порта нет (дымовой прогон агента писал вне runs/; проверено find, 19.11 09:25)

@@ -1,0 +1,837 @@
+diff --git a/scripts/turnir_sohn_shared.py b/scripts/turnir_sohn_shared.py
+new file mode 100644
+index 0000000..fc5d15a
+--- /dev/null
++++ b/scripts/turnir_sohn_shared.py
+@@ -0,0 +1,339 @@
++"""Турнир, группа 3 — Sohn в общем рецепте (порт (ii′), П28–П33 поправки 4; group3_port_design.md ред. 3, разд. 2.3, 5).
++
++cd osnovnaya_model && PYTHONPATH=src:../uzsign_e1/src python scripts/turnir_sohn_shared.py --config CFG --seed K --out DIR
++Запускает scripts/turnir_train.py run (run_job — подпроцессом, как mpk.train; сам раннер torch не импортирует). Конфиг —
++шаблон группы 1 той же ячейки и фолда (A1: родной рецепт = общий), меняется только блок model (turnir_train.swap_model).
++Определение Д-Т (П29): вход и предобработка — Sohn (cache/M13, 118 точек, sohn.preprocess) на окне T = 32 (окно и аугментации
++mpk.augment на 118 точках — как m13_train.a1_aug_sohn, но T из конфига, не длина записи); от SohnNet — stem, блоки, top,
++среднее по маске; classifier → Identity, LateDropout нет; головы mpk.baselines._Base на 2·dim; layer_groups — 5 парами сверху.
++Цикл — как mpk.train.run: AdamW, прогрев + косинус, param_groups, заморозка и разморозка сверху вниз (MaskedBN замороженных
++групп — в режиме вывода), EMA (ema_avg_fn, после commit_bn), best_val каждые eval_every или last (merge_val); S+B — две головы
++с долями пакета shares(), отбор — по среднему val голов.
++Выход (формат m13 — стенд выгружает без правок): best.pt, log.csv, metrics.json; при тесте — probs.npz, predictions.csv.
++Проверки до обучения: части разбиения не пересекаются, исполнители различны по data.disjoint, тест не в обучении; единая
++версия кода группы 3 (П32) — блобы G3_CODE в runs/TURNIR/g3_code.txt (первое задание пишет, каждое следующее сверяет).
++"""
++import argparse
++import csv
++import json
++import subprocess
++import sys
++import time
++from pathlib import Path
++
++import numpy as np
++import torch
++import torch.nn.functional as F
++import yaml
++from torch.utils.data import DataLoader, Dataset
++
++from mpk import sohn
++from mpk.baselines import _Base
++from mpk.train import ema_avg_fn, load_init, param_groups, shares
++from uzsign_e1.train import lr_factor, sha256
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++import m13_build  # noqa: E402
++import m13_train as mt  # noqa: E402
++
++M13_DIR = ROOT / "cache/M13"  # кэш Sohn (118 точек), <набор>.npz
++SET = {"slovo": "slovo", "bukva": "bukva", "uzsl": "uzsl"}  # data.dataset шаблона → набор M13
++G3_CODE = ("src/mpk/sohn.py", "scripts/m13_train.py", "scripts/turnir_sohn_shared.py")  # П32 (+ сам скрипт порта)
++CODE_FILE = ROOT / "runs/TURNIR/g3_code.txt"
++
++
++def code_check(path: Path) -> dict:
++    """П32: первое задание группы 3 пишет блобы (git hash-object), каждое следующее сверяет; иначе — стоп до обучения."""
++    b = {p: subprocess.run(["git", "hash-object", str(ROOT / p)], capture_output=True, text=True, check=True).stdout.strip()
++         for p in G3_CODE}
++    if path.is_file():
++        old = json.loads(path.read_text())
++        assert old == b, f"!!! код группы 3 ≠ {path}: {old} против {b} — стоп до обучения (П32)"
++    else:
++        path.parent.mkdir(parents=True, exist_ok=True)
++        path.write_text(json.dumps(b, indent=1))
++    return b
++
++
++def aug_t(x: np.ndarray, asp: float, aug: dict, rng: np.random.Generator, T: int) -> np.ndarray:
++    """= m13_train.a1_aug_sohn, но окно T кадров (Д-Т): индексы — mpk.augment.window(0, L, L, T, aug); выпадение кистей,
++    поворот, масштаб, сдвиг (y · H/W) и дрожание кистей — на T кадрах. При T = L — бит в бит a1_aug_sohn (тест).
++    П31: запись M13 = [lo, hi) — сдвиг границ наружу (Bukva) упирается в края записи, т. е. его нет."""
++    from mpk.augment import window
++    assert aug["window"] == "mpk" and aug["spatial"] == "mpk", aug
++    L = len(x)
++    one = lambda v: torch.tensor([v])
++    x = x[window(one(0), one(L), one(L), T, aug, torch.Generator().manual_seed(int(rng.integers(2 ** 62))))[0].numpy()].copy()
++    lo_p, hi_p = aug["p_hand_drop"]
++    drop = rng.random((T, 2)) < lo_p + rng.random() * (hi_p - lo_p)
++    m = np.zeros(x.shape[:2], bool)
++    m[:, sohn.LH_LOC], m[:, sohn.RH_LOC] = drop[:, :1], drop[:, 1:]
++    x[m] = np.nan
++    ang = (rng.random() * 2 - 1) * np.radians(aug["rot_deg"])
++    sc = aug["scale"][0] + rng.random() * (aug["scale"][1] - aug["scale"][0])
++    cs, sn = np.cos(ang) * sc, np.sin(ang) * sc
++    px, py = x[..., 0] - 0.5, (x[..., 1] - 0.5) * asp
++    sh = (rng.random(2) * 2 - 1) * aug["shift"]
++    px, py = cs * px - sn * py + sh[0], sn * px + cs * py + sh[1]
++    h = sohn.LH_LOC + sohn.RH_LOC
++    jit = rng.standard_normal((T, len(h), 2)) * aug["hand_jitter"]
++    px[:, h] += jit[..., 0]
++    py[:, h] += jit[..., 1]
++    return np.stack([px + 0.5, py / asp + 0.5], -1).astype(np.float32)
++
++
++class SohnShared(_Base):
++    """Sohn Д-Т (П29): stem + блоки + top + среднее по маске из SohnNet (classifier → Identity, LateDropout выключен),
++    головы _Base (heads, emb, protos) на 2·dim."""
++
++    def __init__(self, mc: dict, n_classes: dict[str, int]):
++        # shortcut: _Base требует ключи входа Н2 (eps, clip, in_channels) — у Sohn свой вход, mpk_input не вызывается
++        super().__init__(2 * mc["dim"], {**mc, "input": "mpk", "eps": 1e-3, "clip": 10.0, "in_channels": [0]}, n_classes)
++        self.net = sohn.SohnNet(1, mc["dim"])
++        self.net.classifier = torch.nn.Identity()
++
++    def encode(self, x, mask, aspect=None):
++        return (self.net(x, mask),)
++
++    def layer_groups(self) -> list[list]:
++        """5 групп парами сверху: {g8, g7}, {g6, g5}, {g4, g3}, {g2, g1}, {g0} по m13_train.sohn_groups (П29, ред. 3)."""
++        g = mt.sohn_groups(self.net)
++        assert len(g) == 9, len(g)
++        return [g[0] + g[1], g[2] + g[3], g[4] + g[5], g[6] + g[7], g[8]]
++
++
++def load_set(name: str, dc: dict, merge_val: bool) -> dict:
++    """Записи M13 + фолд шаблона; проверки — как mpk.train.prepare_set (части, покрытие, исполнители, тест вне обучения)."""
++    path = lambda p: Path(p) if Path(p).is_absolute() else ROOT / p
++    m13, cache, split = M13_DIR / f"{SET[dc['dataset']]}.npz", path(dc["cache"]), path(dc["split"])
++    c = m13_build.load(str(m13))
++    recs, clips = mt.Recs(c["xy"], c["absent"], c["offsets"]), c["clips"]
++    pos = {cl["sample_id"]: i for i, cl in enumerate(clips)}
++    assert len(pos) == len(clips), "повтор sample_id в кэше M13"
++    with np.load(cache, allow_pickle=False) as z:  # H/W записи — из кэша МПК шаблона (по sample_id)
++        asp = dict(zip((cl["sample_id"] for cl in json.loads(str(z["clips"]))), z["aspect"].astype(np.float32)))
++    fold = json.loads(split.read_text())["folds"][dc["fold"]]
++    idx = {r: np.array([pos[s] for s in fold[r]], np.int64) for r in ("train", "val", "test")}
++    used = np.concatenate(list(idx.values()))
++    has_test = dc.get("has_test", True)
++    assert len(np.unique(used)) == len(used), f"{name}: части пересекаются"
++    assert len(idx["train"]) and len(idx["val"]) and (len(idx["test"]) > 0) == has_test, (name, has_test)
++    assert dc["partial_split_ok"] or len(used) == len(pos), f"{name}: разбиение покрывает {len(used)} из {len(pos)} записей"
++    signer = np.array([cl["signer_id"] for cl in clips])
++    for a, b in dc["disjoint"]:
++        assert not set(signer[idx[a]]) & set(signer[idx[b]]), f"{name}: общие исполнители {a}∩{b}"
++    labels = sorted({clips[i]["gloss"] for i in used})
++    lab = {g: k for k, g in enumerate(labels)}
++    if merge_val:  # train ∪ val, val нет (mpk.train.prepare_set)
++        idx["train"], idx["val"] = np.concatenate([idx["train"], idx["val"]]), np.empty(0, np.int64)
++    assert not set(idx["train"]) & set(idx["test"]), "тест в обучении"
++    return {"name": name, "recs": recs, "clips": clips, "idx": idx, "labels": labels,
++            "y": np.array([lab.get(cl["gloss"], -1) for cl in clips], np.int64),
++            "asp": np.array([asp[cl["sample_id"]] for cl in clips], np.float32), "inputs": [m13, cache, split]}
++
++
++class Items(Dataset):
++    """(набор k, запись i, позиция) → (sohn.preprocess окна T [T, 708], метка); аугментация — от (затравка, позиция)."""
++
++    def __init__(self, S, augs, seed: int, T: int):
++        self.S, self.augs, self.seed, self.T = S, augs, seed, T
++
++    def __len__(self):
++        return sum(len(s["recs"]) for s in self.S)
++
++    def __getitem__(self, item):
++        k, i, pos = item
++        s = self.S[k]
++        x, _ = s["recs"][i]
++        if self.augs is not None:
++            x = aug_t(x, float(s["asp"][i]), self.augs[k], np.random.default_rng([self.seed, pos]), self.T)
++        else:
++            x = x[mt.a1_window(len(x), self.T)]  # проверка: T равномерных кадров (mpk.augment.window, aug=None)
++        return sohn.preprocess(x), int(s["y"][i])
++
++
++class Batches:
++    """Пакет — куски наборов подряд (доли share); у каждого — подряд случайные перестановки train, новая при исчерпании
++    (как mpk.train); один набор — бит в бит m13_train.EpochStream."""
++
++    def __init__(self, trains, share, steps: int, seed: int):
++        self.trains, self.share, self.steps, self.seed = trains, share, steps, seed
++
++    def __len__(self):
++        return self.steps
++
++    def __iter__(self):
++        rng, pos = np.random.default_rng([self.seed, 7]), 0
++        orders = [np.empty(0, np.int64) for _ in self.trains]
++        for _ in range(self.steps):
++            out = []
++            for k, (tr, n) in enumerate(zip(self.trains, self.share)):
++                if len(orders[k]) < n:
++                    orders[k] = np.concatenate([orders[k], rng.permutation(tr)])
++                b, orders[k] = orders[k][:n], orders[k][n:]
++                out += [(k, int(i), pos + j) for j, i in enumerate(b)]
++                pos += n
++            yield out
++
++
++def collate(items):
++    x, m = sohn.collate([a for a, _ in items])
++    return x, m, torch.tensor([b for _, b in items])
++
++
++@torch.no_grad()
++def infer(model, S, k: int, idx, T: int, dev, workers: int) -> np.ndarray:
++    model.eval()
++    dl = DataLoader(Items(S, None, 0, T), batch_size=256, collate_fn=collate, sampler=[(k, int(i), 0) for i in idx],
++                    num_workers=workers, multiprocessing_context=mt.FORK if workers else None)
++    out = []
++    for x, m, _ in dl:
++        with torch.autocast(dev.type, torch.bfloat16, enabled=dev.type == "cuda"):
++            out.append(model(x.to(dev), m.to(dev), None, S[k]["name"])["logits"].float().cpu().numpy())
++    return np.concatenate(out)
++
++
++def run(cfg: dict, seed: int, out: Path, max_steps: int | None, workers: int, code_file: Path) -> dict:
++    t0 = time.time()
++    mc, tc, lc, ft = cfg["model"], cfg["train"], cfg["loss"], cfg["finetune"]
++    assert mc["arch"] == "sohn_shared", mc["arch"]
++    assert tc["optimizer"] == "adamw" and not tc["refit_trainval"] and not cfg["synth"]["enabled"] \
++        and cfg["dominant"]["mode"] == "none" and tc["ema"] and tc["augment"], "вне общего рецепта турнира"
++    assert tc["select"] in ("best_val", "last"), tc["select"]
++    code = code_check(code_file)  # П32 — до данных и обучения
++    dcs = cfg["data"]["sets"] if "sets" in cfg["data"] else {cfg["data"]["dataset"]: cfg["data"]}
++    S = [load_set(n, dc, tc["merge_val"]) for n, dc in dcs.items()]
++    assert sum(len(s["idx"]["test"]) > 0 for s in S) <= 1, "тест — не больше чем у одного набора"
++    augs = []
++    for dc in dcs.values():  # сдвиг границ по набору (mpk.train.prepare_set)
++        a = dict(cfg["aug"])
++        if "boundary_inward_only" in dc:
++            assert a["boundary_inward_only"] == "per_set", "при data.sets сдвиг границ задаётся в каждом наборе"
++            a["boundary_inward_only"] = dc["boundary_inward_only"]
++        assert isinstance(a["boundary_inward_only"], bool), a["boundary_inward_only"]
++        augs.append(a)
++    out.mkdir(parents=True, exist_ok=False)
++    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
++    torch.manual_seed(seed)
++    multi, T, bs, steps = len(S) > 1, mc["T"], tc["batch_size"], tc["steps"]
++    share = shares([len(s["idx"]["train"]) for s in S], bs)
++    segs = tuple((s["name"], n) for s, n in zip(S, share))
++    model = SohnShared(mc, {s["name"]: len(s["labels"]) for s in S}).to(dev)
++    init = None if ft["init_from"] is False else load_init(model, ft["init_from"])
++    warmup = max(1, round(tc["warmup_frac"] * steps))
++    assert warmup < steps, (warmup, steps)
++    pg, groups = param_groups(model, ft, tc["lr"])
++    opt = torch.optim.AdamW(pg, lr=tc["lr"], weight_decay=tc["weight_decay"])
++    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: lr_factor(s, warmup, steps))
++    decay = tc["ema_decay"] if steps >= tc["ema_short_below"] else tc["ema_decay_short"]
++    ema = torch.optim.swa_utils.AveragedModel(model, multi_avg_fn=ema_avg_fn(decay, tc["ema_warmup"]), use_buffers=True)
++    ev = ema.module
++    ce = lambda lg, y: F.cross_entropy(lg.float(), y, label_smoothing=lc["label_smoothing"])
++
++    def seg_loss(r, y):  # = mpk.train.seg_loss (part_logits у _Base пуст)
++        loss = ce(r["logits"], y)
++        if lc["lambda_emb"]:
++            loss = loss + lc["lambda_emb"] * ce(r["emb_logits"], y)
++        if lc["beta_part"] and r["part_logits"]:
++            loss = loss + lc["beta_part"] * sum(ce(p, y) for p in r["part_logits"])
++        return loss
++
++    def save(step):
++        torch.save({"model": ev.state_dict(), "labels": {s["name"]: s["labels"] for s in S}, "step": step,
++                    "arch": mc["arch"]}, out / "best.pt")
++
++    last = steps if max_steps is None else min(steps, max_steps)
++    has_val, every = all(len(s["idx"]["val"]) for s in S), tc["eval_every"]
++    # shortcut: без torch.compile (MaskedBN копит моменты в dict Python — граф рвётся); на расписание и числа рецепта не влияет
++    dl = DataLoader(Items(S, augs, seed, T), batch_sampler=Batches([s["idx"]["train"] for s in S], share, last, seed),
++                    collate_fn=collate, num_workers=workers, prefetch_factor=2 if workers else None,
++                    multiprocessing_context=mt.FORK if workers else None, persistent_workers=workers > 0)
++    best, best_step, v1, loss_sum, n_sum, t_train, trace = -1.0, 0, float("nan"), 0.0, 0, 0.0, []
++    with open(out / "log.csv", "w", newline="") as flog:
++        log = csv.writer(flog)
++        log.writerow(["step", "lr", "train_loss", "val_top1", *([f"val_top1_{s['name']}" for s in S] if multi else []),
++                      "steps_per_s", "elapsed_s"])
++        ts = time.time()
++        for step, (x, m, y) in enumerate(dl, 1):
++            x, m, y = x.to(dev), m.to(dev), y.to(dev)
++            model.train()
++            fz = [k for k in range(len(groups)) if step <= ft["freeze_steps"] + k * ft["unfreeze_every"]]
++            for k in fz:  # замороженные группы: бегущие средние MaskedBN (у mpk.train — _BatchNorm)
++                for mod in groups[k]:
++                    for b in mod.modules():
++                        if isinstance(b, sohn.MaskedBN):
++                            b.eval()
++            model.net.set_pass(0)
++            with torch.autocast(dev.type, torch.bfloat16, enabled=dev.type == "cuda"):
++                if multi:
++                    rs = model(x, m, None, segs)
++                    loss = sum(n / bs * seg_loss(r, yy) for r, yy, n in zip(rs, torch.split(y, share), share))
++                else:
++                    loss = seg_loss(model(x, m, None, S[0]["name"]), y)
++            opt.zero_grad(set_to_none=True)
++            loss.backward()
++            for k in fz:
++                for p in opt.param_groups[1 + k]["params"]:
++                    p.grad = None  # AdamW пропускает параметры без градиента (и weight decay тоже), как mpk.train
++            trace.append((step, [g["lr"] for g in opt.param_groups], fz))
++            lr = opt.param_groups[0]["lr"]
++            opt.step()
++            sched.step()
++            model.net.commit_bn()
++            ema.update_parameters(model)
++            loss_sum = loss_sum + loss.detach()  # без синхронизации ГП на каждом шаге (как mpk.train)
++            n_sum += 1
++            if step % every == 0 or step == last:
++                t_train += time.time() - ts
++                tl = float(loss_sum) / n_sum
++                assert np.isfinite(tl), f"loss = {tl} на шаге {step}"
++                v1s = [float((infer(ev, S, k, s["idx"]["val"], T, dev, workers).argmax(1) == s["y"][s["idx"]["val"]]).mean())
++                       for k, s in enumerate(S)] if has_val else []
++                v1 = float(np.mean(v1s)) if has_val else float("nan")
++                log.writerow([step, lr, tl, v1, *(v1s if multi else []), round(step / t_train, 2), round(time.time() - t0, 1)])
++                flog.flush()
++                loss_sum, n_sum = 0.0, 0
++                if has_val and v1 > best and tc["select"] == "best_val":  # контрольная точка — только по val
++                    best, best_step = v1, step
++                    save(step)
++                ts = time.time()
++    if not has_val or tc["select"] == "last":  # train ∪ val / select: last — веса последнего шага
++        best_step, best = last, (v1 if has_val else best)
++        save(last)
++    ev.load_state_dict(torch.load(out / "best.pt", map_location=dev)["model"])
++    res = {}
++    for k, s in enumerate(S):
++        te_ = s["idx"]["test"]
++        if len(te_):
++            lg = infer(ev, S, k, te_, T, dev, workers)
++            res["top1"] = mt.write_preds(out / "predictions.csv", s["name"], lg, te_, s["clips"], s["y"], s["labels"])
++            np.savez(out / "probs.npz", ids=np.array([s["clips"][i]["sample_id"] for i in te_]),
++                     probs=torch.from_numpy(lg).softmax(-1).numpy().astype(np.float16), classes=np.array(s["labels"]))
++    metrics = {**res, "best_step": best_step, "best_val_top1": best, "steps": steps, "steps_done": last, "max_steps": max_steps,
++               "batch_share": dict(segs), "train_steps_per_s": last / max(t_train, 1e-9), "init_from": init, "ema_decay": decay,
++               "n_groups": len(groups), "labels": {s["name"]: s["labels"] for s in S}, "seed": seed, "config": cfg,
++               "code_blobs": code, "device": torch.cuda.get_device_name(dev) if dev.type == "cuda" else "cpu",
++               "params_torch": sum(p.numel() for p in model.parameters()),
++               # только данные (разд. 3 п. 2 проекта): код — в code_blobs, иначе data_ok забраковал бы прогоны после правки скриптов
++               "inputs_sha256": {str(p): sha256(p) for s in S for p in s["inputs"]},
++               "prereg": "reports/TURNIR_prereg.md (поправка 4, П28–П33)", "wall_time_s": time.time() - t0}
++    (out / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=1))
++    return {**metrics, "trace": trace}
++
++
++def main(argv=None) -> dict:
++    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
++    ap.add_argument("--config", required=True)
++    ap.add_argument("--seed", type=int, required=True)
++    ap.add_argument("--out", required=True)
++    ap.add_argument("--max-steps", type=int, help="обрыв после N шагов (дымовой тест); расписание lr не меняется")
++    ap.add_argument("--workers", type=int, default=6)
++    ap.add_argument("--code-file", default=str(CODE_FILE))
++    a = ap.parse_args(argv)
++    cfg = {**yaml.safe_load(Path(a.config).read_text()), "seed": a.seed}
++    return run(cfg, a.seed, Path(a.out), a.max_steps, a.workers, Path(a.code_file))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/scripts/turnir_train.py b/scripts/turnir_train.py
+index b025809..fe899b3 100644
+--- a/scripts/turnir_train.py
++++ b/scripts/turnir_train.py
+@@ -5,8 +5,9 @@ python scripts/turnir_train.py plan                # список заданий
+ python scripts/turnir_train.py run --jobs 2         # обучение группы 1; готовое (metrics.json) пропускается
+ Группы (--groups, порядок 1 → 3 → 2, письмо 0064): 1 — mpk.train (шаблон — config.yaml готового прогона той же ячейки и
+   фолда с текущими данными или производный по DERIVE; Sohn — 5-я затравка 46 через scripts/m13_train.py); 2 — родные рецепты
+-  SL-GCN/ST-GCN их кодом (scripts/turnir_their.py; решение автора 0064 — на всех наборах); 3 — Sohn в общем рецепте (после
+-  порта в build_model, 0063 п. 3 — пока «не запускается»). Перед КАЖДЫМ новым прогоном — scripts/weekend_gate.sh.
++  SL-GCN/ST-GCN их кодом (scripts/turnir_their.py; решение автора 0064 — на всех наборах); 3 — Sohn в общем рецепте: порт
++  (ii′) scripts/turnir_sohn_shared.py (П28–П33 поправки 4) — тем же путём, что группа 1 (шаблон A1 той же ячейки и фолда,
++  меняется только модель; подпроцесс). Перед КАЖДЫМ новым прогоном — scripts/weekend_gate.sh.
+ Выход: runs/TURNIR/train/<набор>/<модель>/<рецепт>/<условие>/<фолд>/seed<k>; предобучения S+B новых затравок —
+   runs/TURNIR/train/pretrain/<модель>/all/seed<k>. Новые затравки — наименьшие свободные номера (A1: 3, 4; Sohn: 46).
+ Проверки до обучения: хеши кэша и разбиения в шаблоне = текущим файлам (те же данные и фолды); в обучение не попадает
+@@ -32,6 +33,9 @@ TR = RUNS / "TURNIR/train"
+ SOHN_TAG = {"Slovo": "slovo", "Bukva": "bukva"}
+ SOHN_SEED = 46  # их 42–45 (M13) + 1
+ SMALL = 2500  # шагов: как run_all.SMALL
++G3_TPL = "A1"  # группа 3 (П28): шаблон — ячейка A1 (родной рецепт = общий) того же набора, условия и фолда
++SOHN_MODEL = {"arch": "sohn_shared", "dim": 192, "emb_dim": 256, "emb_scale": 16.0}  # Д-Т (П29); T — из шаблона (32)
++PORT = "scripts/turnir_sohn_shared.py"
+ 
+ 
+ def pre_tpl(model: str) -> Path | None:
+@@ -59,6 +63,8 @@ def swap_model(cfg: dict, model: str) -> dict:
+     elif model == "SL-GCN":
+         slg = yaml.safe_load(next(iter(sorted((te.UZ / "runs/M12_slgcn_loso").glob("*/seed0/config.yaml")))).read_text())["model"]
+         cfg["model"] = {**slg, "keep_ramp_steps": round(0.4 * cfg["train"]["steps"])}
++    elif model == "Sohn":  # группа 3 (П29): Sohn Д-Т — scripts/turnir_sohn_shared.py
++        cfg["model"] = {**SOHN_MODEL, "T": m["T"]}
+     return cfg
+ 
+ 
+@@ -73,6 +79,10 @@ def with_defaults(cfg: dict) -> dict:
+ def fold_tpl(c: dict, fold: str) -> tuple[dict, str] | None:
+     """Шаблон конфига для (ячейка, фолд): готовый прогон ячейки с теми же данными, что сейчас (иначе — следующий),
+     или производный по DERIVE."""
++    if c["model"] == "Sohn" and c["recipe"] == "shared":  # группа 3 (П28): всегда шаблон A1 той же ячейки и фолда
++        bc = next(x for x in te.C if x["ds"] == c["ds"] and x["model"] == G3_TPL and x["cond"] == c["cond"] and x["recipe"] == "native")
++        t = fold_tpl(bc, fold)
++        return (swap_model(t[0], "Sohn"), f"DERIVE({G3_TPL}→Sohn) {t[1]}") if t else None
+     for d in te.src_dirs(c):
+         if (d / "config.yaml").is_file() and (d / "metrics.json").is_file():
+             cfg = yaml.safe_load((d / "config.yaml").read_text())
+@@ -151,16 +161,15 @@ def plan(groups=(1,)) -> list[dict]:
+         cell_out = TR / c["ds"] / c["model"] / c["recipe"] / c["cond"]
+         if g not in groups:
+             continue
+-        if g == 3 or g == 0:  # группа 3 — после порта Sohn в mpk.model.build_model (после M13; 0063 п. 3)
+-            jobs.append(dict(cell=f"{c['ds']}/{c['model']}/{c['recipe']}/{c['cond']}", out=None,
+-                             missing="группа 3: нет порта Sohn в build_model" if g == 3 else "нет источника"))
++        if g == 0:
++            jobs.append(dict(cell=f"{c['ds']}/{c['model']}/{c['recipe']}/{c['cond']}", out=None, missing="нет источника"))
+             continue
+         if g == 2:
+             jobs += their_jobs(c, cell_out)
+             continue
+-        if c["model"] in te.SOHN_LIKE:  # поправка 3: все 5 затравок 42–46 обучает сама M13 (m13_chain_v3.sh) — в группе 1 Sohn нет;
++        if c["model"] in te.SOHN_LIKE and g != 3:  # поправка 3: все 5 затравок 42–46 обучает сама M13 (m13_chain_v3.sh) — в группе 1 Sohn нет;
+             continue                   # UzSohn в Э1 — цепочка Э2 (поправка 4, 22.8)
+-        if c["model"] == "Sohn":  # (прежний путь, не используется) 5-я затравка своим кодом M13 (интерфейс m13_train.py: --set --fold --seed --tag --init --out)
++        if c["model"] == "Sohn" and g != 3:  # (прежний путь, не используется) 5-я затравка своим кодом M13 (интерфейс m13_train.py: --set --fold --seed --tag --init --out)
+             pre = TR / "pretrain/Sohn/all" / f"seed{SOHN_SEED}"
+             if c["cond"] == "transfer":
+                 jobs.append(dict(cell="Sohn/pretrain", out=pre, small=False, cmd=[
+@@ -180,14 +189,15 @@ def plan(groups=(1,)) -> list[dict]:
+             continue
+         pre_out = {}
+         if c["cond"] == "transfer":
+-            pt = pre_tpl(c["model"])
++            pm = "Sohn_shared" if g == 3 else c["model"]  # группа 3: не pretrain/Sohn — занято прежней веткой (SOHN_SEED)
++            pt = pre_tpl(G3_TPL if g == 3 else c["model"])
+             for s in new:
+-                o = TR / "pretrain" / c["model"] / "all" / f"seed{s}"
++                o = TR / "pretrain" / pm / "all" / f"seed{s}"
+                 pc = with_defaults(yaml.safe_load(pt.read_text()))
+-                if c["model"] == "ST-GCN":
+-                    pc = swap_model(pc, "ST-GCN")
+-                pc["experiment"], pc["condition"] = "TURNIR", f"pretrain_sb_{c['model']}"
+-                jobs.append(dict(cell=f"pretrain/{c['model']}", out=o, small=False, cfg=pc, seed=s, src=str(pt.parent)))
++                if c["model"] in ("ST-GCN", "Sohn"):
++                    pc = swap_model(pc, c["model"])
++                pc["experiment"], pc["condition"] = "TURNIR", f"pretrain_sb_{pm}"
++                jobs.append(dict(cell=f"pretrain/{pm}", out=o, small=False, cfg=pc, seed=s, src=str(pt.parent)))
+                 pre_out[s] = o
+         for f in te.FOLDS[c["ds"]]:
+             t = fold_tpl(c, f)
+@@ -252,6 +262,8 @@ def run_job(j: dict) -> str:
+         cp = out.parent / f"seed{j['seed']}.yaml"
+         cp.write_text(yaml.safe_dump(j["cfg"], allow_unicode=True, sort_keys=False))
+         cmd = [sys.executable, "-m", "mpk.train", "--config", str(cp), "--seed", str(j["seed"]), "--out", str(out)]
++        if j["cfg"]["model"].get("arch") == SOHN_MODEL["arch"]:  # группа 3 (П28): порт — свой скрипт, тоже подпроцессом (раннер без torch)
++            cmd[1:3] = [PORT]
+     env = {**__import__("os").environ, "PYTHONPATH": f"{ROOT / 'src'}:{ROOT.parent / 'uzsign_e1/src'}"}
+     t0 = time.time()
+     r = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True)
+diff --git a/tests/test_turnir_e2.py b/tests/test_turnir_e2.py
+index 20ec5b1..3d7f9b3 100644
+--- a/tests/test_turnir_e2.py
++++ b/tests/test_turnir_e2.py
+@@ -28,6 +28,7 @@ sys.path.insert(0, str(OM / "scripts"))
+ import turnir_eval as te  # noqa: E402
+ 
+ BASE = "f6a5a72"  # master до поправки 4: этот стенд зовёт идущая цепочка турнира (turnir_e1_chain.sh, строки 51, 67–69)
++PRE_G3 = "84eaf0b"  # ветка инструментов до порта группы 3 (П28–П33): план групп 1 и 2 — бит в бит с ней
+ K, REC = 6, 6
+ CLS = np.array([f"c{k}" for k in range(K)])
+ SIG = [f"S{k:02d}" for k in range(1, 11)]  # тест Slovo (по 2 на фолд) и исполнители LOSO корпуса
+@@ -37,10 +38,10 @@ UZ = {"input": ["u01b"], "flags": {"part_tokens": True, "cos_head": True}, "ema"
+ UZ_NAME = "UzSohn (Э2: U01b, № 2, № 3, № 4)"
+ 
+ 
+-def base_module(tmp_path, name):
+-    """Скрипт master f6a5a72 (git show) — отдельным модулем, для сравнения бит в бит."""
+-    p = tmp_path / f"{name}_base.py"
+-    p.write_bytes(subprocess.run(["git", "-C", str(OM), "show", f"{BASE}:scripts/{name}.py"], capture_output=True, check=True).stdout)
++def base_module(tmp_path, name, rev=BASE):
++    """Скрипт master f6a5a72 (или rev; git show) — отдельным модулем, для сравнения бит в бит."""
++    p = tmp_path / f"{name}_{rev}.py"
++    p.write_bytes(subprocess.run(["git", "-C", str(OM), "show", f"{rev}:scripts/{name}.py"], capture_output=True, check=True).stdout)
+     spec = importlib.util.spec_from_file_location(f"{name}_base", p)
+     mod = importlib.util.module_from_spec(spec)
+     spec.loader.exec_module(mod)
+@@ -421,20 +422,26 @@ def test_freeze_gate_commands(tmp_path):
+ 
+ def test_plan_skips_uzsohn(tmp_path, monkeypatch):
+     """UzSohn в Э1 обучает цепочка Э2 (22.8): раннер турнира его не планирует (без правки — AttributeError на шаблоне S+B);
+-    план прежних ячеек (группы 1, 3, 2) — бит в бит с master f6a5a72."""
++    план прежних ячеек групп 1 и 2 — бит в бит с master f6a5a72 и с PRE_G3; группа 3 — порт (П28): 165 заданий вместо 4 строк
++    «нет порта Sohn» (подробно — tests/test_turnir_sohn_shared.py)."""
+     import turnir_train as tt
+-    old = base_module(tmp_path, "turnir_train")
+-    cfg = {"model": {}, "train": {"steps": 3000}, "finetune": {}, "data": {}}
++    old, prev = base_module(tmp_path, "turnir_train"), base_module(tmp_path, "turnir_train", PRE_G3)
++    cfg = {"model": {"T": 32}, "train": {"steps": 3000}, "finetune": {}, "data": {}}
+     tpl = tmp_path / "tpl.yaml"
+     tpl.write_text(json.dumps(cfg))
+     monkeypatch.setattr(te, "RUNS", tmp_path / "runs")  # прогонов нет: план из шаблонов-заглушек, runs/** не читается
+-    for mod in (tt, old):
++    for mod in (tt, old, prev):
+         monkeypatch.setattr(mod, "pre_tpl", lambda model: tpl)
+         monkeypatch.setattr(mod, "fold_tpl", lambda c, f: (cfg, "tpl"))
+         monkeypatch.setattr(mod, "stgcn_block", lambda: {})
+-    new, full = tt.plan((1, 3, 2)), te.C
++    is3 = lambda j: "/Sohn/shared/" in j["cell"] or j["cell"] == "pretrain/Sohn_shared"
++    rest = lambda J: [j for j in J if not is3(j)]
++    new, before, full = tt.plan((1, 3, 2)), prev.plan((1, 3, 2)), te.C
++    assert rest(new) == rest(before) and len(rest(new)) > 100
++    assert [j["missing"] for j in before if is3(j)] == ["группа 3: нет порта Sohn в build_model"] * 4
++    assert len([j for j in new if is3(j)]) == 165 and not any(j.get("missing") for j in new if is3(j))
+     monkeypatch.setattr(te, "C", [c for c in full if c["model"] != "UzSohn"])  # старый план — на прежних ячейках (old.te — тот же te)
+-    assert new == old.plan((1, 3, 2)) and len(new) > 100
++    assert rest(new) == rest(old.plan((1, 3, 2)))
+     monkeypatch.setattr(te, "C", [c for c in full if c["model"] == "UzSohn"])
+     assert len(te.C) == 4 and tt.plan((1, 3, 2)) == []
+ 
+diff --git a/tests/test_turnir_sohn_shared.py b/tests/test_turnir_sohn_shared.py
+new file mode 100644
+index 0000000..518fbdc
+--- /dev/null
++++ b/tests/test_turnir_sohn_shared.py
+@@ -0,0 +1,328 @@
++"""Порт группы 3 (Sohn в общем рецепте, путь (ii′), П28–П33 поправки 4): план раннера, запуск подпроцессом без torch в
++родителе, окно и аугментации Д-Т, устройство модели, дымовые прогоны S+B → перенос и выгрузка стендом. Только синтетика.
++
++cd osnovnaya_model && CUDA_VISIBLE_DEVICES= PYTHONPATH=src:../uzsign_e1/src python -m pytest -q tests/test_turnir_sohn_shared.py
++torch на верхнем уровне не импортируется: модуль импортирует и проба «родитель без torch» (подпроцесс).
++"""
++import copy
++import json
++import os
++import subprocess
++import sys
++from collections import Counter
++from pathlib import Path
++
++import numpy as np
++import pytest
++import yaml
++
++OM = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(OM / "scripts"))
++import turnir_eval as te  # noqa: E402
++import turnir_train as tt  # noqa: E402
++
++STEPS = {("Slovo", "scratch"): 14488, ("Bukva", "scratch"): 2154, ("UzSL", "transfer"): 3802, ("UzSL", "scratch"): 26609}
++
++
++def templates(tmp: Path) -> tuple[Path, list]:
++    """Синтетические шаблоны группы 1: ячейки A1 (родной = общий рецепт) по фолдам и S+B A1 → (runs, te.C с их src)."""
++    runs, C = tmp / "runs", []
++    for c in te.C:
++        if c["model"] == tt.G3_TPL and c["recipe"] == "native":
++            tr, key = c["cond"] == "transfer", f"TPL/{c['ds']}_{c['cond']}"
++            for k, f in enumerate(te.FOLDS[c["ds"]]):
++                st = STEPS[(c["ds"], c["cond"])] + k  # у каждого фолда свой бюджет
++                cfg = {"seed": 1, "model": {"arch": "mpk", "T": 32, "d_model": 192},
++                       "train": {"steps": st, "eval_every": st // 20, "ema": True, "merge_val": c["ds"] == te.LO,
++                                 "select": "last" if c["ds"] == te.LO else "best_val"},
++                       "finetune": {"init_from": "A1_pre/best.pt" if tr else False, "freeze_steps": round(0.2 * st) if tr else 0,
++                                    "unfreeze_every": round(st / 15) if tr else 0, "backbone_lr_mult": 0.1 if tr else 1.0},
++                       "data": {"dataset": c["ds"].lower(), "fold": f}, "aug": {"boundary_inward_only": c["ds"] != "Bukva"}}
++                d = runs / key / f / "seed1"
++                d.mkdir(parents=True)
++                (d / "config.yaml").write_text(yaml.safe_dump(cfg))
++                (d / "metrics.json").write_text("{}")  # inputs_sha256 нет — data_ok истинно
++            c = dict(c, src=[f"{key}/*/seed1"])
++        C.append(c)
++    d = runs / "M8/m83_pretrain_sb_a1/all/seed0"
++    d.mkdir(parents=True)
++    (d / "config.yaml").write_text(yaml.safe_dump({"seed": 0, "model": {"arch": "mpk", "T": 32}, "train": {"steps": 18407, "eval_every": 920},
++                                                   "data": {"sets": {"slovo": {"fold": "all"}, "bukva": {"fold": "all"}}}}))
++    (d / "metrics.json").write_text("{}")
++    return runs, C
++
++
++def env3(tmp: Path, setattr) -> Path:
++    runs, C = templates(tmp)
++    for mod, k, v in ((te, "RUNS", runs), (te, "C", C), (tt, "RUNS", runs), (tt, "TR", runs / "TURNIR/train"),
++                      (tt, "HOLD", tmp / "нет_придержки")):
++        setattr(mod, k, v)
++    return runs
++
++
++def test_plan_group3(tmp_path, monkeypatch):
++    """T1/T4: plan((3,)) — 165 заданий без «missing»; конфиг = шаблон A1 той же ячейки и фолда (with_defaults), меняется только
++    model (Д-Т) и подписи; перенос — init_from предобучения той же затравки, after и его задание в списке; затравки 0–4."""
++    runs = env3(tmp_path, monkeypatch.setattr)
++    J = tt.plan((3,))
++    assert len(J) == 165 and not any(j.get("missing") for j in J)
++    sohn = {**tt.SOHN_MODEL, "T": 32}
++    pre = {j["seed"]: j for j in J if "pretrain" in j["cell"]}
++    assert sorted(pre) == [0, 1, 2, 3, 4] and {j["cell"] for j in pre.values()} == {"pretrain/Sohn_shared"}
++    for s, j in pre.items():
++        e = tt.with_defaults(yaml.safe_load((runs / "M8/m83_pretrain_sb_a1/all/seed0/config.yaml").read_text()))
++        e["model"], e["experiment"], e["condition"] = sohn, "TURNIR", "pretrain_sb_Sohn_shared"
++        assert j["cfg"] == e and j["out"] == tt.TR / "pretrain/Sohn_shared/all" / f"seed{s}" and not j["small"]
++    rest = [j for j in J if "pretrain" not in j["cell"]]
++    assert Counter(j["cell"] for j in rest) == {"Slovo/Sohn/shared/scratch": 25, "Bukva/Sohn/shared/scratch": 25,
++                                                "UzSL/Sohn/shared/transfer": 55, "UzSL/Sohn/shared/scratch": 55}
++    for j in rest:
++        ds, _, _, cond = j["cell"].split("/")
++        f, s = j["out"].parent.name, j["seed"]
++        d = runs / f"TPL/{ds}_{cond}" / f / "seed1"
++        e = copy.deepcopy(tt.with_defaults(yaml.safe_load((d / "config.yaml").read_text())))
++        e["model"], e["experiment"], e["condition"] = sohn, "TURNIR", f"{ds}_Sohn_shared_{cond}"
++        if cond == "transfer":
++            e["finetune"]["init_from"] = str(pre[s]["out"] / "best.pt")
++        assert j["cfg"] == e, (ds, cond, f, s)
++        assert j["out"] == tt.TR / ds / "Sohn/shared" / cond / f / f"seed{s}" and s in range(5)
++        assert j["after"] == (str(pre[s]["out"]) if cond == "transfer" else None)
++        assert j["small"] == (e["train"]["steps"] <= tt.SMALL) and j["src"] == f"DERIVE(A1→Sohn) {d.resolve()}"
++
++
++DRIVER = r"""
++import json, sys, types
++from pathlib import Path
++sys.path[:0] = [sys.argv[2], sys.argv[3]]
++import test_turnir_sohn_shared as T
++tmp = Path(sys.argv[1])
++T.env3(tmp, setattr)
++tt = T.tt
++J = tt.plan((3,))
++pre = next(j for j in J if "pretrain" in j["cell"])
++fold = next(j for j in J if j.get("after") == str(pre["out"]))
++calls = []
++def fake(cmd, **kw):
++    calls.append({"cmd": [str(x) for x in cmd], "cwd": str(kw.get("cwd")), "pp": (kw.get("env") or {}).get("PYTHONPATH")})
++    if tt.PORT in cmd:
++        out = Path(cmd[cmd.index("--out") + 1])
++        out.mkdir(parents=True)
++        (out / "metrics.json").write_text("{}")
++    return types.SimpleNamespace(returncode=0, stderr="")
++tt.subprocess.run = fake
++msgs = [tt.run_job(pre), tt.run_job(fold)]
++print(json.dumps({"torch": sorted(m for m in sys.modules if m == "torch" or m.startswith(("torch.", "mpk"))), "msgs": msgs,
++                  "calls": calls, "pre": str(pre["out"]), "fold": str(fold["out"])}))
++"""
++
++
++def test_parent_has_no_torch_port_is_subprocess(tmp_path):
++    """Условие к1 0151 (22.1, П28–П33): plan((3,)) и run_job группы 3 в процессе раннера не импортируют torch (значит, контекста
++    CUDA у родителя нет — gpu_busy цепочки Э2 при придержке его не увидит); порт идёт подпроцессом той же командой, что
++    mpk.train (тот же python, cwd, PYTHONPATH), дообучение — после своего предобучения, с его best.pt."""
++    r = subprocess.run([sys.executable, "-c", DRIVER, str(tmp_path), str(OM / "tests"), str(OM / "scripts")],
++                       capture_output=True, text=True, env={**os.environ, "CUDA_VISIBLE_DEVICES": ""})
++    assert r.returncode == 0, r.stderr[-3000:]
++    o = json.loads(r.stdout.splitlines()[-1])
++    assert o["torch"] == [], o["torch"]
++    assert [m.split()[0] for m in o["msgs"]] == ["ok", "ok"], o["msgs"]
++    gate, job, gate2, job2 = o["calls"]
++    assert gate["cmd"][0] == "bash" and gate["cmd"][1].endswith("scripts/weekend_gate.sh") and gate2 == gate
++    for c, out in ((job, o["pre"]), (job2, o["fold"])):
++        cfg = Path(c["cmd"][3])
++        assert c["cmd"] == [sys.executable, tt.PORT, "--config", str(cfg), "--seed", "0", "--out", out]
++        assert c["cwd"] == str(tt.ROOT) and c["pp"] == f"{tt.ROOT / 'src'}:{tt.ROOT.parent / 'uzsign_e1/src'}"
++        assert yaml.safe_load(cfg.read_text())["model"]["arch"] == "sohn_shared"
++    assert yaml.safe_load(Path(job2["cmd"][3]).read_text())["finetune"]["init_from"] == str(Path(o["pre"]) / "best.pt")
++
++
++# ---------------------------------------------------------------- порт: окно, модель, прогоны (torch — внутри тестов)
++def test_window_and_aug_d_t():
++    """T2: при T = L — бит в бит m13_train.a1_aug_sohn; при T = 32 без пространственных аугментаций — кадры
++    mpk.augment.window(0, L, L, 32, aug) того же генератора; пакеты одного набора = m13_train.EpochStream."""
++    import torch
++    import m13_train as mt
++    import turnir_sohn_shared as ts
++    from mpk.augment import window
++    rng = np.random.default_rng(0)
++    x = rng.random((40, 118, 2)).astype(np.float32)
++    x[rng.random((40, 118)) < 0.1] = np.nan
++    aug = {**tt.with_defaults({})["aug"], "boundary_inward_only": True}
++    np.testing.assert_array_equal(ts.aug_t(x, 1.3, aug, np.random.default_rng(3), 40),
++                                  mt.a1_aug_sohn(x, 1.3, aug, np.random.default_rng(3)))
++    neu = {**aug, "p_hand_drop": [0.0, 0.0], "rot_deg": 0.0, "scale": [1.0, 1.0], "shift": 0.0, "hand_jitter": 0.0}
++    a = ts.aug_t(x, 1.0, neu, np.random.default_rng(4), 32)
++    g = torch.Generator().manual_seed(int(np.random.default_rng(4).integers(2 ** 62)))
++    one = lambda v: torch.tensor([v])
++    idx = window(one(0), one(40), one(40), 32, neu, g)[0].numpy()
++    assert a.shape == (32, 118, 2) and len(set(idx)) > 1
++    np.testing.assert_allclose(a, x[idx], atol=1e-6)
++    S = [{"recs": [(x, None)], "asp": np.ones(1), "y": np.array([2])}]
++    e, y = ts.Items(S, None, 0, 32)[(0, 0, 0)]  # проверка: 32 равномерных кадра → sohn.preprocess, без аугментаций
++    np.testing.assert_array_equal(e, ts.sohn.preprocess(x[mt.a1_window(40, 32)]))
++    assert y == 2 and e.shape == (32, 708)
++    b = [[(i, p) for _, i, p in s] for s in ts.Batches([np.arange(10, 30)], [8], 7, 5)]
++    assert b == list(mt.EpochStream(list(range(10, 30)), 7, 5, 8))
++
++
++def test_model_d_t():
++    """T1 (П29): от SohnNet — stem, блоки, top (classifier → Identity, LateDropout выключен); головы _Base на 384, emb_dim 256,
++    emb_scale 16; layer_groups — 5 групп парами сверху по sohn_groups, не пусты, не пересекаются, с головами покрывают модель."""
++    import torch
++    import m13_train as mt
++    import turnir_sohn_shared as ts
++    from mpk.train import param_groups
++    torch.manual_seed(0)
++    m = ts.SohnShared({**tt.SOHN_MODEL, "T": 32}, {"a": 7, "b": 3})
++    assert isinstance(m.net.classifier, torch.nn.Identity) and not m.net.late_dropout_on and m.emb_scale == 16.0
++    assert m.heads["a"].in_features == 384 and m.emb.out_features == 256 and m.protos["b"].shape == (3, 256)
++    g9 = [[p for mod in g for p in mod.parameters()] for g in mt.sohn_groups(m.net)]
++    g5 = [[p for mod in g for p in mod.parameters()] for g in m.layer_groups()]
++    assert [len(g) for g in g5] == [len(g9[0]) + len(g9[1]), len(g9[2]) + len(g9[3]), len(g9[4]) + len(g9[5]),
++                                    len(g9[6]) + len(g9[7]), len(g9[8])] and all(g5)
++    pg, groups = param_groups(m, {"backbone_lr_mult": 0.1, "freeze_steps": 5}, 1e-3)
++    assert len(pg) == 6 and [g["lr"] for g in pg] == [1e-3] + [1e-4] * 5 and groups == m.layer_groups()
++    assert {n.split(".")[0] for n, p in m.named_parameters() if any(p is q for q in pg[0]["params"])} == {"heads", "emb", "protos"}
++    out = m(torch.randn(4, 32, 708), torch.ones(4, 32, dtype=torch.bool), None, (("a", 3), ("b", 1)))
++    assert [o["logits"].shape for o in out] == [(3, 7), (1, 3)]
++
++
++def _m13(d: Path, name: str, signers, rng) -> list[str]:
++    """Синтетический кэш M13 (118 точек, NaN — нет точки) и кэш МПК (только clips, aspect) набора."""
++    clips, xs = [], []
++    for s in signers:
++        for i in range(8):
++            xs.append(rng.random((int(rng.integers(20, 45)), 118, 2)).astype(np.float32))
++            clips.append({"sample_id": f"{name}_{s}_{i}", "signer_id": s, "gloss": f"c{i % 4}"})
++    xy = np.concatenate(xs)
++    xy[rng.random(xy.shape[:2]) < 0.1] = np.nan
++    (d / "M13").mkdir(exist_ok=True)
++    np.savez(d / "M13" / f"{name}.npz", xy=xy, absent=np.zeros((len(xy), 4), bool),
++             offsets=np.concatenate([[0], np.cumsum([len(x) for x in xs])]).astype(np.int64),
++             fps_src=np.full(len(clips), 30.0, np.float32), clips=np.array(json.dumps(clips)), info=np.array("{}"))
++    np.savez(d / f"{name}_mpk.npz", clips=np.array(json.dumps([{"sample_id": c["sample_id"]} for c in clips])),
++             aspect=rng.uniform(0.5, 2.0, len(clips)).astype(np.float32))
++    return [c["sample_id"] for c in clips]
++
++
++def _split(d: Path, name: str, ids, parts: dict) -> Path:
++    p = d / f"{name}_{'_'.join(parts)}.json"
++    p.write_text(json.dumps({"folds": {fold: {r: [i for i in ids if i.split("_")[1] in sig] for r, sig in rs.items()}
++                                       for fold, rs in parts.items()}}))
++    return p
++
++
++def _cfg(d: Path, data: dict, steps: int, every: int, **kw) -> dict:
++    """Конфиг так, как его строит план группы 3: with_defaults(шаблон) → swap_model(…, «Sohn»)."""
++    tc = {"steps": steps, "eval_every": every, "batch_size": 16, "ema": True, **kw.pop("train", {})}
++    cfg = {"model": {"arch": "mpk", "T": 32}, "train": tc, "data": data, "aug": kw.pop("aug", {"boundary_inward_only": True}), **kw}
++    return tt.swap_model(tt.with_defaults(cfg), "Sohn")
++
++
++@pytest.fixture
++def port(tmp_path, monkeypatch):
++    import torch
++    import turnir_sohn_shared as ts
++    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)  # только ЦП
++    monkeypatch.setattr(ts, "M13_DIR", tmp_path / "M13")
++    rng = np.random.default_rng(0)
++    ids = {n: _m13(tmp_path, n, sig, rng) for n, sig in (("slovo", ["S01", "S02", "S03", "S04"]), ("bukva", ["S05", "S06", "S07"]),
++                                                         ("uzsl", ["U1", "U2", "U3", "U4", "U5"]))}
++    return ts, tmp_path, ids
++
++
++def _set(d, name, split, fold, has_test=True, disjoint=(("train", "val"), ("train", "test"), ("val", "test")), **kw):
++    return {"dataset": name, "cache": str(d / f"{name}_mpk.npz"), "split": str(split), "fold": fold, "has_test": has_test,
++            "disjoint": [list(x) for x in disjoint], "partial_split_ok": False, **kw}
++
++
++def test_smoke_sb_transfer_scratch_export(port, monkeypatch):
++    """T3 + T7 (часть): S+B две головы (доли shares, отбор best_val по среднему val) → корпус-перенос с init от S+B (merge_val,
++    last; заморозка и разморозка сверху вниз по шагам; замороженные группы, их MaskedBN и EMA = весам предобучения бит в бит;
++    lr кодировщика × 0,1); Bukva-подобный с нуля (best_val, тест); выход читает turnir_eval.export_cell как m13."""
++    import torch
++    ts, d, ids = port
++    code = d / "g3_code.txt"
++    seen, used = {}, []
++
++    class AM(torch.optim.swa_utils.AveragedModel):  # сырые веса и EMA — сохраняется и оценивается именно EMA
++        def __init__(self, model, *a, **k):
++            super().__init__(model, *a, **k)
++            seen["raw"], seen["ema"] = model, self.module
++
++    infer = ts.infer
++    monkeypatch.setattr(torch.optim.swa_utils, "AveragedModel", AM)
++    monkeypatch.setattr(ts, "infer", lambda model, *a: used.append(model is seen["ema"]) or infer(model, *a))
++    sb = {"sets": {"slovo": _set(d, "slovo", _split(d, "slovo", ids["slovo"], {"all": {"train": ["S01", "S02", "S03"], "val": ["S04"],
++                                                                                         "test": []}}), "all", False,
++                                 [("train", "val")], boundary_inward_only=True),
++                   "bukva": _set(d, "bukva", _split(d, "bukva", ids["bukva"], {"all": {"train": ["S05", "S06"], "val": ["S07"], "test": []}}),
++                                 "all", False, [("train", "val")], boundary_inward_only=False)}}
++    pre = d / "runs/TURNIR/train/pretrain/Sohn_shared/all/seed0"
++    m = ts.run(_cfg(d, sb, 8, 4, aug={"boundary_inward_only": "per_set"}), 0, pre, None, 0, code)
++    assert m["batch_share"] == {"slovo": 10, "bukva": 6} and set(m["labels"]) == {"slovo", "bukva"} and m["best_step"] in (4, 8)
++    assert not (pre / "probs.npz").exists() and set(json.loads(code.read_text())) == set(ts.G3_CODE)
++    ck = torch.load(pre / "best.pt")["model"]
++    assert {"heads.slovo.weight", "heads.bukva.weight"} <= set(ck) and used == [True] * 4  # val двух голов на шагах 4 и 8
++
++    lo = _split(d, "uzsl", ids["uzsl"], {"F1": {"train": ["U2", "U3", "U4"], "val": ["U5"], "test": ["U1"]}})
++    out = d / "runs/TURNIR/train/UzSL/Sohn/shared/transfer/F1/seed0"
++    cfg = _cfg(d, _set(d, "uzsl", lo, "F1", disjoint=(("train", "test"), ("val", "test"))), 12, 6,
++               train={"merge_val": True, "select": "last"},
++               finetune={"init_from": str(pre / "best.pt"), "freeze_steps": 4, "unfreeze_every": 2, "backbone_lr_mult": 0.1})
++    m = ts.run(cfg, 0, out, 5, 0, code)
++    assert m["ema_decay"] == 0.99 and m["n_groups"] == 5 and m["best_step"] == 5 and m["init_from"]["loaded"] > 0
++    for step, lrs, fz in m["trace"]:
++        assert fz == [k for k in range(5) if step <= 4 + 2 * k] and lrs[1:] == pytest.approx([lrs[0] * 0.1] * 5)
++    net = ts.SohnShared({**tt.SOHN_MODEL, "T": 32}, {"uzsl": 4})
++    name = {id(t): n for n, t in [*net.named_parameters(), *net.named_buffers()]}
++    keys = lambda g: [name[id(t)] for mod in g for t in [*mod.parameters(), *mod.buffers()]]
++    new = torch.load(out / "best.pt")["model"]
++    for g in net.layer_groups()[1:]:  # на шаге 5 заморожены группы 1–4
++        assert all(torch.equal(new[k], ck[k]) for k in keys(g))
++    assert not all(torch.equal(new[k], ck[k]) for k in keys(net.layer_groups()[0]))
++    assert not torch.equal(new["emb.weight"], ck["emb.weight"])  # вложение (λ_emb) учится: веса голов — с шага 1
++    raw, ema = seen["raw"].state_dict(), seen["ema"].state_dict()
++    assert all(torch.equal(new[k], ema[k].cpu()) for k in new) and not all(torch.equal(new[k], raw[k]) for k in new)
++    z = np.load(out / "probs.npz")
++    assert len(z["ids"]) == 8 and z["probs"].shape == (8, 4) and all(i.split("_")[1] == "U1" for i in z["ids"])
++
++    pp = _split(d, "bukva", ids["bukva"], {"fold1": {"train": ["S05"], "val": ["S06"], "test": ["S07"]}})
++    out2 = d / "runs/TURNIR/train/Bukva/Sohn/shared/scratch/fold1/seed0"
++    m = ts.run(_cfg(d, _set(d, "bukva", pp, "fold1"), 6, 3, aug={"boundary_inward_only": False}), 0, out2, None, 0, code)
++    assert m["best_step"] in (3, 6) and m["n_groups"] == 0 and "top1" in m
++
++    monkeypatch.setattr(te, "ROOT", d / "om")  # выгрузка пишет пути относительно ROOT.parent
++    monkeypatch.setattr(te, "RUNS", d / "runs")
++    monkeypatch.setattr(te, "OUT", d / "TURNIR")
++    monkeypatch.setattr(te, "PRED", d / "TURNIR/preds")
++    for key, o, sig in ((("UzSL", "transfer"), out, {"F1"}), (("Bukva", "scratch"), out2, {"S07"})):
++        c = next(c for c in te.C if (c["ds"], c["model"], c["recipe"], c["cond"]) == (key[0], "Sohn", "shared", key[1]))
++        te.export_cell(c, 1)
++        p = te.load_pred(te.cell_dir(c) / f"{o.parent.name}__seed0.npz")
++        assert set(p["role"]) == {"test"} and set(p["signer"]) == sig and len(p["ids"]) == 8
++
++
++def test_data_and_code_checks(port):
++    """П32: проверки до обучения — общие исполнители частей, тест в обучении (merge_val), блобы кода группы 3 ≠ записанным."""
++    ts, d, ids = port
++    bad = _split(d, "bukva", ids["bukva"], {"x": {"train": ["S05", "S07"], "val": ["S06"], "test": ["S07"]}})
++    with pytest.raises(AssertionError, match="части пересекаются"):
++        ts.load_set("bukva", _set(d, "bukva", bad, "x"), False)
++    leak = _split(d, "uzsl", ids["uzsl"], {"y": {"train": ["U2"], "val": ["U3", "U1"], "test": ["U1"]}})
++    with pytest.raises(AssertionError, match="пересекаются"):
++        ts.load_set("uzsl", _set(d, "uzsl", leak, "y", disjoint=(("train", "test"),)), True)
++    half = json.loads(_split(d, "uzsl", ids["uzsl"], {"h": {"train": ["U2", "U1"], "val": ["U3"], "test": ["U1"]}}).read_text())
++    u1 = [i for i in ids["uzsl"] if i.split("_")[1] == "U1"]
++    half["folds"]["h"]["train"] = [i for i in half["folds"]["h"]["train"] if i not in u1[4:]]
++    half["folds"]["h"]["test"] = u1[4:]  # записи не общие, исполнитель общий
++    (d / "half.json").write_text(json.dumps(half))
++    with pytest.raises(AssertionError, match="общие исполнители train∩test"):
++        ts.load_set("uzsl", _set(d, "uzsl", d / "half.json", "h", partial_split_ok=True), False)
++    sig = _split(d, "uzsl", ids["uzsl"], {"z": {"train": ["U2", "U3"], "val": ["U4"], "test": ["U1", "U5"]}})
++    s = ts.load_set("uzsl", _set(d, "uzsl", sig, "z"), True)
++    assert len(s["idx"]["val"]) == 0 and len(s["idx"]["train"]) == 24
++    code = d / "code.txt"
++    code.write_text(json.dumps({p: "0" * 40 for p in ts.G3_CODE}))
++    with pytest.raises(AssertionError, match="код группы 3"):
++        ts.code_check(code)
