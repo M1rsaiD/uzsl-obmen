@@ -1,0 +1,73 @@
+# строки к runs/TURNIR_E2_PREOK (к3 0055 разд. 5; к1 0156 «Дальше», 0157, 0158 «Дальше»); снято 21.11.2026 04:55:22, основное дерево osnovnaya_model
+# PH — ветка turnir-e2-ph (ссылки «PH» нет; в командах — имя ветки)
+## 1. хеш PH и блоб цепочки
+$ git rev-parse turnir-e2-ph
+ae482ae1e96226ff0bc0911c1c935ebe7e606946
+$ git rev-parse turnir-e2-ph:scripts/turnir_e2_chain.sh
+53a09884f8e888052b87cea4c9f8f86c785f0d78
+$ git rev-parse master
+6343f1cad508c314e352da206e0e50c2f64f543d
+## 2. master → PH
+$ git diff --stat master turnir-e2-ph
+ scripts/m13_train.py    |  148 +++++--
+ scripts/uzsohn_code.txt |    2 +
+ scripts/uzsohn_pose.py  |   33 +-
+ scripts/uzsohn_sel.py   |  144 ++++++-
+ src/mpk/sohn.py         |   79 +++-
+ tests/test_sohn.py      | 1075 ++++++++++++++++++++++++++++++++++++++++++++++-
+ 6 files changed, 1424 insertions(+), 57 deletions(-)
+$ git diff --name-only master turnir-e2-ph
+scripts/m13_train.py
+scripts/uzsohn_code.txt
+scripts/uzsohn_pose.py
+scripts/uzsohn_sel.py
+src/mpk/sohn.py
+tests/test_sohn.py
+## 3. ls-tree 8 файлов (к3 0055 разд. 5)
+$ git ls-tree -r turnir-e2-ph -- src/mpk/sohn.py scripts/m13_train.py scripts/uzsohn_sel.py scripts/uzsohn_pose.py scripts/uzsohn_code.txt scripts/turnir_val_m13.py src/mpk/train.py src/mpk/model.py
+100644 blob 5f83fecd2fcbccc582603fcc14ee32fc80f58be2	scripts/m13_train.py
+100644 blob 93433e3266bf6b67bf7d5eb88b1087464260bdb6	scripts/turnir_val_m13.py
+100644 blob ba36db8228bf99bb33d27a7707960b23cb1112b7	scripts/uzsohn_code.txt
+100644 blob b7532dcfe5e7e2779354e49aa71d82b4df31e63c	scripts/uzsohn_pose.py
+100644 blob d47d0c61dd321139f3b990951c748fe311e538ca	scripts/uzsohn_sel.py
+100644 blob 8fe58c63cd3b50986486f167f8a7335564992f94	src/mpk/model.py
+100644 blob 7f1ac1ffa7fc6e706f52500c6981f4b0a344f3ca	src/mpk/sohn.py
+100644 blob abee856e1194cca387b21bfdf253c04f1574db50	src/mpk/train.py
+## 4. ещё 2 блоба (к1 0158 «Дальше»; обещано в 0179 / к3 0091)
+$ git ls-tree turnir-e2-ph -- scripts/turnir_sohn_shared.py reports/TURNIR_prereg.md
+100644 blob f81cbf8d7d43d141ce3b84b8c05541d284a49993	reports/TURNIR_prereg.md
+100644 blob ae84ddbc8ea85dc72d5cad83339b65c8d053c69d	scripts/turnir_sohn_shared.py
+## 5. доп.: время, родители, деревья, предок
+$ stat -c '%y' runs/TURNIR_E1_g1.done
+2026-11-21 04:21:40.823888540 +0500
+$ git log -1 --format='%H %ci родители %P' master
+6343f1cad508c314e352da206e0e50c2f64f543d 2026-11-21 04:23:35 +0500 родители 254a82bd7040f121f9168d99a63fed85469368f6 917dea1ada59195d475593f89358d2af096b5eba
+$ git log -1 --format='%H %ci родители %P' turnir-e2-ph
+ae482ae1e96226ff0bc0911c1c935ebe7e606946 2026-11-21 04:24:57 +0500 родители 6343f1cad508c314e352da206e0e50c2f64f543d fa5e37cc01663f24dad9787a4fa48eb1c07a92b9
+$ git rev-parse master^{tree} turnir-e2-ph^{tree} db90ac7^{tree}
+5f43e02f85201bc1bc0001323ea5c8f0f25add76
+920650e28a439a81f2cc7e50e326fecd39f8aba9
+55cc155ca25215d643104f89f5d1c9dc4776a30a
+$ git merge-tree --write-tree --name-only 254a82b 917dea1 | head -1   # пробное слияние до записи: = дерево master
+5f43e02f85201bc1bc0001323ea5c8f0f25add76
+$ git merge-tree --write-tree --name-only master fa5e37c | head -1   # = дерево PH
+920650e28a439a81f2cc7e50e326fecd39f8aba9
+$ git diff --name-only f6a5a72 254a82b
+reports/TURNIR_prereg.md
+$ git diff --name-only 254a82b master
+scripts/turnir_cost.py
+scripts/turnir_e2_chain.sh
+scripts/turnir_eval.py
+scripts/turnir_g3_t7.py
+scripts/turnir_sohn_shared.py
+scripts/turnir_train.py
+scripts/turnir_val_m13.py
+tests/test_turnir_e2.py
+tests/test_turnir_sohn_shared.py
+$ git diff --name-only db90ac7 turnir-e2-ph
+reports/TURNIR_prereg.md
+$ git merge-base --is-ancestor master turnir-e2-ph && echo да
+да
+## 6. слияние не тронуло код этапа 2 и цепочки (пусто = не тронуты); пути — scripts/uzsohn_code.txt без v2:
+$ git diff --name-only 254a82b master -- src/mpk/__init__.py src/mpk/sohn.py src/mpk/data.py scripts/m13_train.py scripts/m13_build.py scripts/weekend_gate.sh scripts/uzsohn_chain.sh scripts/uzsohn_stage2_chain.sh scripts/uzsohn_code.txt scripts/uzsohn_sel.py scripts/uzsohn_gates.py scripts/uzsohn_pose_check.py tests/test_sohn.py reports/uzsohn_selftest_ref.json scripts/turnir_e1_chain.sh scripts/uzsohn_stage2_chain.sh
+(конец)

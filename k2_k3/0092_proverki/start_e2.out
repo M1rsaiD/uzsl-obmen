@@ -1,0 +1,12 @@
+# старт юнита turnir-e2 (режим (а)), 21.11.2026; команда — шапка scripts/turnir_e2_chain.sh, вариант (а), E2_MODE=a
+## перед стартом (к1 0156 разд. 4)
+время: 21.11 04:29:56
+HEAD: 6343f1cad508c314e352da206e0e50c2f64f543d (master)
+блоб файла цепочки: 53a09884f8e888052b87cea4c9f8f86c785f0d78
+git status --porcelain tests/: []
+git status --porcelain --untracked-files=no: []
+## после старта (04:30:11)
+systemctl --user is-active turnir-e2 turnir-e1 uzsohn-stage2: active active active
+OOMPolicy=continue MemoryMax=42949672960
+runs/TURNIR_HOLD_E2 (PID цепочки, boot_id, юнит): 249123 fc351999-fd06-4f60-9521-f0fe99eb70d4 turnir-e2
+boot_id сейчас: fc351999-fd06-4f60-9521-f0fe99eb70d4

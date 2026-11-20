@@ -1,0 +1,38 @@
+# тесты, ЦП (CUDA_VISIBLE_DEVICES=), PYTHONPATH=src:../uzsign_e1/src:../uzsign_ai_v2/src, python 3.14.7, -p no:cacheprovider; весь каталог tests/
+== wt_m 6343f1c 04:25:31
+ERROR tests/test_baselines.py::test_shapes_and_counts[slgcn_orig_mpk6] - Runt...
+ERROR tests/test_baselines.py::test_missing_hands_finite[slgcn_orig_mpk6] - R...
+ERROR tests/test_baselines.py::test_eval_deterministic[slgcn_orig_mpk6] - Run...
+1 failed, 244 passed, 3 skipped, 89 warnings, 6 errors in 91.91s (0:01:31)
+== wt_ph ae482ae 04:27:03
+ERROR tests/test_baselines.py::test_shapes_and_counts[slgcn_orig_mpk6] - Runt...
+ERROR tests/test_baselines.py::test_missing_hands_finite[slgcn_orig_mpk6] - R...
+ERROR tests/test_baselines.py::test_eval_deterministic[slgcn_orig_mpk6] - Run...
+1 failed, 279 passed, 380 warnings, 6 errors in 132.46s (0:02:12)
+== uzsohn_sel selftest (PH)
+selftest ok
+04:29:16
+
+## причина 7 одинаковых (test_baselines.py, slgcn_orig*) — первая ошибка, --tb=short:
+src/mpk/baselines.py:288 → external/sam-slr/SL-GCN/model/decouple_gcn_attn.py:106 → torch/cuda/__init__.py:591: RuntimeError: No CUDA GPUs are available
+## то же в основном дереве (master 6343f1c): tests/test_baselines.py — 1 failed, 29 passed, 6 errors
+## test_baselines.py и src/mpk/baselines.py слиянием не меняются (git diff --name-only 254a82b master — 9 файлов, их нет)
+## pytest -rfE tests/test_baselines.py (ЦП), краткий итог — все 7 имён
+### wt_m (6343f1c)
+FAILED tests/test_baselines.py::test_slgcn_orig_layer_groups
+ERROR tests/test_baselines.py::test_shapes_and_counts[slgcn_orig]
+ERROR tests/test_baselines.py::test_missing_hands_finite[slgcn_orig]
+ERROR tests/test_baselines.py::test_eval_deterministic[slgcn_orig]
+ERROR tests/test_baselines.py::test_shapes_and_counts[slgcn_orig_mpk6]
+ERROR tests/test_baselines.py::test_missing_hands_finite[slgcn_orig_mpk6]
+ERROR tests/test_baselines.py::test_eval_deterministic[slgcn_orig_mpk6]
+1 failed, 29 passed, 12 warnings, 6 errors in 2.10s
+### wt_ph (ae482ae)
+FAILED tests/test_baselines.py::test_slgcn_orig_layer_groups
+ERROR tests/test_baselines.py::test_shapes_and_counts[slgcn_orig]
+ERROR tests/test_baselines.py::test_missing_hands_finite[slgcn_orig]
+ERROR tests/test_baselines.py::test_eval_deterministic[slgcn_orig]
+ERROR tests/test_baselines.py::test_shapes_and_counts[slgcn_orig_mpk6]
+ERROR tests/test_baselines.py::test_missing_hands_finite[slgcn_orig_mpk6]
+ERROR tests/test_baselines.py::test_eval_deterministic[slgcn_orig_mpk6]
+1 failed, 29 passed, 12 warnings, 6 errors in 1.98s
