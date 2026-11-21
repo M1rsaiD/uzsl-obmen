@@ -1,0 +1,17 @@
+## 1. скрипт порта из диффов 0175 (новый файл) и 0176 — ожидается fc5d15a, затем ae84ddb (ls-tree PH)
+fc5d15ab4cbbf8fd0ab57f4e12f0633ed70a47a4
+ae84ddbc8ea85dc72d5cad83339b65c8d053c69d
+## 2. файлы рычагов f6a5a72 → fa5e37c (объединение файлов диффов 0163, 0163 B, 0167 рычаги, 0171) — должно = name-only master..PH
+scripts/m13_train.py
+scripts/uzsohn_code.txt
+scripts/uzsohn_pose.py
+scripts/uzsohn_sel.py
+src/mpk/sohn.py
+tests/test_sohn.py
+## 3. индексы блобов по диффам (файлов целиком у меня нет)
+index 889f69e..4df8fe3 100644
+index 4df8fe3..ba36db8 100644
+index 72a264d..f81cbf8 100644
+## 4. присланные файлы (0176_fajly) — ожидается d47d0c6, b7532dc
+d47d0c61dd321139f3b990951c748fe311e538ca
+b7532dcfe5e7e2779354e49aa71d82b4df31e63c
