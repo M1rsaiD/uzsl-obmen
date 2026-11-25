@@ -1,0 +1,23 @@
+# к3, 25.11: python 3.13.18, torch 2.5.1+cpu; seed_offset из k2_k3/0095_g2_seed_offset/turnir_their.py (блоб fa6651a) через ast; old — строка «-» диффа f6a8e52
+# запуск: python seed_k3.py <turnir_their.py> new|old fork|forkserver k
+python 3.13.18 torch 2.5.1+cpu
+new fork k=0 initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+new fork k=0 initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+new fork k=2 initial_seed=2000 worker_np/random/torch=[0.483576, 0.665329, 0.473656]
+new fork k=3 initial_seed=3000 worker_np/random/torch=[0.645608, 0.724909, 0.589384]
+new forkserver k=0 initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+new forkserver k=0 initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+new forkserver k=2 initial_seed=2000 worker_np/random/torch=[0.483576, 0.62918, 0.480664]
+new forkserver k=3 initial_seed=3000 worker_np/random/torch=[0.645608, 0.56299, 0.399411]
+TypeError: can only concatenate list (not "int") to list
+TypeError: can only concatenate list (not "int") to list
+TypeError: can only concatenate list (not "int") to list
+TypeError: can only concatenate list (not "int") to list
+TypeError: can only concatenate list (not "int") to list
+old fork k=2 ОШИБКА RuntimeError: DataLoader worker (pid(s) 2554) exited unexpectedly
+TypeError: can only concatenate list (not "int") to list
+TypeError: can only concatenate list (not "int") to list
+old forkserver k=0 initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+old forkserver k=0 initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+old forkserver k=2 initial_seed=2000 worker_np/random/torch=[0.483576, 0.62918, 0.480664]
+old forkserver k=3 initial_seed=3000 worker_np/random/torch=[0.645608, 0.56299, 0.399411]
