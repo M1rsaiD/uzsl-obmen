@@ -1,0 +1,23 @@
+commit f6a8e529bfd822ff1edd18e9377f1a89c59a87d8
+Author: m1rsaid <mirsaidbeky@gmail.com>
+Date:   Wed Nov 25 11:32:27 2026 +0500
+
+    Турнир, группа 2: seed_offset пропускает np.random.seed(список) воркеров DataLoader (310/310 TypeError 25.11 10:03–10:08)
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01K5uyjcn2nxKjag23eRzLhz
+
+diff --git a/scripts/turnir_their.py b/scripts/turnir_their.py
+index e7cc6bf..fa6651a 100644
+--- a/scripts/turnir_their.py
++++ b/scripts/turnir_their.py
+@@ -41,7 +41,8 @@ def seed_offset(k: int) -> None:
+     off = 1000 * k
+     for mod, name in ((torch, "manual_seed"), (torch.cuda, "manual_seed_all"), (np.random, "seed"), (random, "seed")):
+         f = getattr(mod, name)
+-        setattr(mod, name, lambda s=None, f=f: f((s or 0) + off))
++        # воркер DataLoader зовёт np.random.seed(список) из уже сдвинутой базы — пропускаем как есть
++        setattr(mod, name, lambda s=None, f=f: f(s) if isinstance(s, (list, tuple, np.ndarray)) else f((s or 0) + off))
+ 
+ 
+ def build(arch: str, ds: str, fold: str) -> Path:

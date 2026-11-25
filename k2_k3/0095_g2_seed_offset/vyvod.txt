@@ -1,0 +1,29 @@
+# repro_fork.py (fork, 2 воркера): old = код до f6a8e52, fix = новая строка
+fix 0 ok [[0, 1], [2, 3], [4, 5], [6, 7]] 1
+fix 2 ok [[0, 1], [2, 3], [4, 5], [6, 7]] 2001
+# старый код (git show f6a8e52~1) — тот же скрипт:
+RuntimeError: DataLoader worker (pid(s) 649137) exited unexpectedly
+RuntimeError: DataLoader worker (pid(s) 649183) exited unexpectedly
+# новый код в master на настоящем пути (forkserver — по умолчанию в Python 3.14):
+k=0 start_method=forkserver initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+k=0 start_method=forkserver initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+k=2 start_method=forkserver initial_seed=2000 worker_np/random/torch=[0.483576, 0.62918, 0.480664]
+k=3 start_method=forkserver initial_seed=3000 worker_np/random/torch=[0.645608, 0.56299, 0.399411]
+# их вызовы затравок:
+sam-slr/SL-GCN/main.py:36:    torch.cuda.manual_seed_all(1)
+sam-slr/SL-GCN/main.py:37:    torch.manual_seed(1)
+sam-slr/SL-GCN/main.py:38:    np.random.seed(1)
+sam-slr/SL-GCN/main.py:39:    random.seed(1)
+sam-slr/SL-GCN/main.py:72:        '--seed', type=int, default=1, help='random seed for pytorch')
+75:    random.seed(0), np.random.seed(0), torch.manual_seed(0)
+# старый код на пути forkserver (worker_streams.py):
+k=0 start_method=forkserver initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+k=2 start_method=forkserver initial_seed=2000 worker_np/random/torch=[0.483576, 0.62918, 0.480664]
+# настоящий путь (fork задан явно: m11_stgcn/run.py:35, m11_samslr/run.py:43) — новый код:
+k=0 start_method=fork initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+k=0 start_method=fork initial_seed=0 worker_np/random/torch=[0.837164, 0.213153, 0.78214]
+k=2 start_method=fork initial_seed=2000 worker_np/random/torch=[0.483576, 0.665329, 0.473656]
+k=3 start_method=fork initial_seed=3000 worker_np/random/torch=[0.645608, 0.724909, 0.589384]
+# то же, старый код:
+TypeError: can only concatenate list (not "int") to list
+TypeError: can only concatenate list (not "int") to list
