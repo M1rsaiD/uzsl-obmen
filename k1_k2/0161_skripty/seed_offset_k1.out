@@ -1,0 +1,7 @@
+NoneType np ← 2000                                   random ← 2000   torch ← 2000
+int      np ← 2001                                   random ← 2001   torch ← 2001
+int64    np ← np.int64(2001)                         random ← 2001   torch ← 2001
+list     np ← [123, 456, 789, 1011]                  random ← 2007   torch ← 2007
+tuple    np ← (123, 456, 789, 1011)                  random ← 2007   torch ← 2007
+ndarray  np ← array([ 123,  456,  789, 1011], dtype=uint32) random ← 2007   torch ← 2007
+ok
