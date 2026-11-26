@@ -1,0 +1,12 @@
+# к3, 26.11: python 3.13, без torch; turnir_their.py = k2_k3/0095_g2_seed_offset/turnir_their.py (fa6651a) + хунк d07e1e3.diff → eb7f1db
+# запуск: python -I init_k3.py <turnir_their.py eb7f1db>
+SL-GCN каталог (относительный) → runs/pretrain/SL-GCN/seed0/save_models/sam_slr_joint_all-7.pt абсолютный: True файл есть после chdir: True
+SL-GCN файл как есть: True
+SL-GCN пропавший файл → assert: нет весов предобучения: /tmp/tmpmhtnnkpo
+ST-GCN каталог (относительный) → runs/pretrain/ST-GCN/seed0/work_dir/epoch50_model.pt абсолютный: True файл есть после chdir: True
+ST-GCN файл как есть: True
+ST-GCN пропавший файл → assert: нет весов предобучения: /tmp/tmpmhtnnkpo
+несуществующий путь → assert: нет весов предобучения: /tmp/tmpmhtnnkpo
+jobs=1 jobs_small=0: малое, большое, малое → ['big', 'big', 'big']
+jobs=1 jobs_small=2: малое, большое, малое → ['small', 'big', 'small']
+jobs=2 jobs_small=3: малое, большое, малое → ['small', 'big', 'small']
