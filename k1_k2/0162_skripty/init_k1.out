@@ -1,0 +1,11 @@
+SL-GCN каталог → save_models/sam_slr_joint_all-7.pt ; файл → как есть
+ST-GCN каталог → work_dir/stgcn/epoch50_model.pt ; файл → как есть
+абсолютный путь в summary.json → он же
+assert: файла нет
+assert: summary.json указывает на пропавший файл
+каталог без summary.json → FileNotFoundError (громко, до сборки данных)
+--jobs-small 0, малое=True: пул big, размер малого пула 1
+--jobs-small 0, малое=False: пул big, размер малого пула 1
+--jobs-small 2, малое=True: пул small, размер малого пула 2
+--jobs-small 2, малое=False: пул big, размер малого пула 2
+ok
