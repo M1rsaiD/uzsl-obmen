@@ -1,0 +1,18 @@
+$ proverka_init.py
+SL-GCN seed0 save_models классификатор: True классов: 1034 тензоров: 342
+SL-GCN seed1 save_models классификатор: True классов: 1034 тензоров: 342
+SL-GCN seed2 save_models классификатор: True классов: 1034 тензоров: 342
+SL-GCN seed3 save_models классификатор: True классов: 1034 тензоров: 342
+SL-GCN seed4 save_models классификатор: True классов: 1034 тензоров: 342
+ST-GCN seed0 work_dir классификатор: True классов: 1034 тензоров: 172
+ST-GCN seed1 work_dir классификатор: True классов: 1034 тензоров: 172
+ST-GCN seed2 work_dir классификатор: True классов: 1034 тензоров: 172
+ST-GCN seed3 work_dir классификатор: True классов: 1034 тензоров: 172
+ST-GCN seed4 work_dir классификатор: True классов: 1034 тензоров: 172
+
+$ pytest tests/test_turnir_e2.py tests/test_turnir_sohn_shared.py tests/test_turnir_their.py
+89 passed, 16 warnings in 56.51s
+
+$ git rev-parse d07e1e3:scripts/turnir_their.py d07e1e3:scripts/turnir_train.py
+eb7f1db3af935ad0634dd61f41e33ec3e05437fd
+b7870b4bcccfe818583e528d6646ec6d73b6e27a

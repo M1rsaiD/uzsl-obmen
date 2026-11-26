@@ -1,0 +1,74 @@
+diff --git a/scripts/turnir_their.py b/scripts/turnir_their.py
+index fa6651a..eb7f1db 100644
+--- a/scripts/turnir_their.py
++++ b/scripts/turnir_their.py
+@@ -94,6 +94,15 @@ def build(arch: str, ds: str, fold: str) -> Path:
+     return o
+ 
+ 
++def resolve_init(init: str) -> str:
++    """--init: файл весов или каталог предобучения (так передаёт раннер) — тогда выбранные им веса (summary.json «weights»)."""
++    p = Path(init).resolve()
++    if p.is_dir():
++        p = p / json.loads((p / "summary.json").read_text())["weights"]
++    assert p.is_file(), f"нет весов предобучения: {p}"
++    return str(p)
++
++
+ def write_out(out: Path, ds: str, score: dict, data: Path, extra: dict) -> None:
+     labels = json.loads((data / "labels.json").read_text())
+     meta = json.loads((data / "test_meta.json").read_text())
+@@ -182,6 +191,8 @@ if __name__ == "__main__":
+     ap.add_argument("--init")
+     ap.add_argument("--out")
+     a = ap.parse_args()
++    if a.init:
++        a.init = resolve_init(a.init)
+     data = build(a.arch, a.ds, a.fold)
+     if a.cmd == "build":
+         print(data)
+diff --git a/scripts/turnir_train.py b/scripts/turnir_train.py
+index fe899b3..b7870b4 100644
+--- a/scripts/turnir_train.py
++++ b/scripts/turnir_train.py
+@@ -298,9 +298,10 @@ if __name__ == "__main__":
+     # предобучения — первыми (дообучения ждут их metrics.json); малые и большие — в своих пулах
+     pre = [j for j in todo if "pretrain" in j["cell"]]
+     rest = [j for j in todo if "pretrain" not in j["cell"]]
+-    with ThreadPoolExecutor(a.jobs) as big, ThreadPoolExecutor(a.jobs_small) as small:
++    # --jobs-small 0: малые — в общий пул, по одному с большими (повтор после OOM рядом с большим прогоном, 26.11)
++    with ThreadPoolExecutor(a.jobs) as big, ThreadPoolExecutor(max(1, a.jobs_small)) as small:
+         futs = [big.submit(run_job, j) for j in pre]
+-        futs += [(small if j["small"] else big).submit(run_job, j) for j in rest]
++        futs += [(small if j["small"] and a.jobs_small else big).submit(run_job, j) for j in rest]
+         bad = 0
+         for f in futs:
+             msg = f.result()
+diff --git a/tests/test_turnir_their.py b/tests/test_turnir_their.py
+new file mode 100644
+index 0000000..8ac5ff9
+--- /dev/null
++++ b/tests/test_turnir_their.py
+@@ -0,0 +1,22 @@
++"""turnir_their.resolve_init: раннер передаёт --init каталогом предобучения (26.11: 55/55 IsADirectoryError в torch.load)."""
++import json
++import sys
++from pathlib import Path
++
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++import turnir_their as tt  # noqa: E402
++
++
++def test_resolve_init(tmp_path):
++    pre = tmp_path / "seed0"
++    (pre / "save_models").mkdir(parents=True)
++    w = pre / "save_models" / "sam_slr_joint_all-7.pt"
++    w.write_bytes(b"x")
++    (pre / "summary.json").write_text(json.dumps({"weights": "save_models/sam_slr_joint_all-7.pt"}))
++    assert tt.resolve_init(str(pre)) == str(w)  # каталог → выбранные веса
++    assert tt.resolve_init(str(w)) == str(w)  # файл — как есть
++    w.unlink()
++    with pytest.raises(AssertionError):
++        tt.resolve_init(str(pre))  # summary.json указывает на пропавший файл
